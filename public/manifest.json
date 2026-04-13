@@ -1,0 +1,21 @@
+{
+  "name": "TravelQuote V2",
+  "short_name": "TravelQuote",
+  "description": "Multi-operator Travel Agency Quote Builder",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFBFC",
+  "theme_color": "#1A5F7A",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
