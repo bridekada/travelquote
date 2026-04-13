@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble } from "lucide-react";
@@ -25,7 +25,7 @@ import {
   deleteGuestAccommodation
 } from "@/app/actions/operational-config";
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter();
   const { profile, loading: authLoading, selectedOperatorId } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -1078,6 +1078,23 @@ function AgentPerformanceLeaderboard({ issuers, closers }: { issuers: any[], clo
     </div>
   );
 }
+
+function DashboardFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-white">
+      <Loader2 className="animate-spin text-primary" size={32} />
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<DashboardFallback />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
 
 function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
