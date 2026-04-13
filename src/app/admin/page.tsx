@@ -29,7 +29,7 @@ export default function AdminPortal() {
   const [isAddingOperator, setIsAddingOperator] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState('operator_sales');
-  const [isManualLink, setIsManualLink] = useState(false);
+  const [isManualLink, setIsManualLink] = useState(true);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
@@ -590,22 +590,7 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-[#f0f2f5] rounded-xl border border-[#e8eaed]">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Manual Link Mode</span>
-                      <span className="text-[10px] text-text-tertiary">Bypass email and copy link manually</span>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setIsManualLink(!isManualLink)}
-                      className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-1 ${isManualLink ? 'bg-emerald-500' : 'bg-[#d1d5db]'}`}
-                    >
-                      <motion.div 
-                        animate={{ x: isManualLink ? 20 : 0 }}
-                        className="w-4 h-4 bg-white rounded-full shadow-sm"
-                      />
-                    </button>
-                  </div>
+                  {/* Manual link mode is now the default and only option as requested */}
 
                   {inviteRole === 'super_admin' && (
                     <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
@@ -624,7 +609,7 @@ export default function AdminPortal() {
                   )}
 
                   <button type="submit" disabled={formLoading} className="w-full h-12 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : (isManualLink ? 'Generate Invite Link' : 'Send Invitation')}
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invite Link'}
                   </button>
                 </form>
               )}
