@@ -1388,7 +1388,6 @@ function PackageListItem({ packageItem, miscPresets, onEdit, onDelete }: { packa
   const inclusions = [];
   if (packageItem.includes_vehicle) inclusions.push("Vehicle Rate");
   if (packageItem.includes_fuel) inclusions.push("Fuel Cost");
-  if (packageItem.includes_wash) inclusions.push("Wash Fee");
   if (packageItem.includes_accommodation) inclusions.push("Guest Accom");
   
   packageItem.includes_misc_ids?.forEach((id: string) => {
@@ -1486,8 +1485,7 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#f0f2f5]">
             <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">KM per Litre</label><input name="km_per_l" type="number" step="0.1" defaultValue={editingItem?.km_per_l || 10} className="input" style={{ height: '40px' }} /></div>
-            <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Fuel Type</label><select name="fuel_type" defaultValue={editingItem?.fuel_type || 'Diesel'} className="input" style={{ height: '40px' }}><option>Diesel</option><option>Gasoline</option></select></div>
-            <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Carwash Fee</label><input name="carwash_fee" type="number" defaultValue={editingItem?.carwash_fee} className="input" style={{ height: '40px' }} /></div>
+            <div className="space-y-1.5 md:col-span-2"><label className="text-xs font-bold text-text-secondary ml-1">Fuel Type</label><select name="fuel_type" defaultValue={editingItem?.fuel_type || 'Diesel'} className="input" style={{ height: '40px' }}><option>Diesel</option><option>Gasoline</option></select></div>
           </div>
           <div className="pt-3 border-t border-[#f0f2f5]">
             <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Save Vehicle Configuration'}</button>
@@ -1656,7 +1654,6 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
                 {[
                   { name: 'includes_vehicle', label: 'Vehicle Rate' },
                   { name: 'includes_fuel', label: 'Fuel Cost' },
-                  { name: 'includes_wash', label: 'Wash Fee' },
                   { name: 'includes_accommodation', label: 'Guest Accom' }
                 ].map((item: any) => (
                   <label key={item.name} className="flex items-center gap-2 px-3 py-2.5 bg-[#f8f9fb] rounded-xl cursor-pointer hover:bg-[#f0f2f5] transition-all">

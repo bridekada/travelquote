@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, Save, MapPin, Users, Car, Calendar, 
   Plus, Trash2, Calculator, Info, Fuel, Map as MapIcon, Minus,
-  Settings, Clock, Sparkles, CreditCard, Receipt, ShieldCheck, Percent,
-  ChevronRight, ArrowRight, Loader2, Copy, Printer, CheckCircle, X, FileText, Check, AlertTriangle, BedDouble
+  Settings, Clock, Sparkles, CreditCard, Receipt, ShieldCheck, Percent, Star,
+  ChevronRight, ArrowRight, Loader2, Copy, Printer, CheckCircle, X, FileText, Check, AlertTriangle, BedDouble, ChevronDown
 } from "lucide-react";
 import { AREA_DEFAULTS } from "@/data/presets";
 import { useAuth } from "@/lib/auth";
@@ -30,7 +30,6 @@ interface QuoteItem {
   km: number;
   km_per_l: number;
   fuel_price: number;
-  carwash_fee: number;
   dynamic_costs: Record<string, number>;
   row_total: number;
   is_manual?: boolean;
@@ -75,7 +74,7 @@ function TagSelector({ options, selectedTags, onChange }: { options: string[], s
   };
 
   return (
-    <div className="flex gap-1 mt-1 overflow-x-auto scrollbar-hide">
+    <div className="flex gap-1 mt-1 flex-wrap">
       {options.map(tag => {
         const isActive = selectedTags.includes(tag);
         return (
@@ -105,7 +104,7 @@ function ConfirmedSummary({ quote, onReconfigure, onBack }: { quote: any, onReco
     total_amount: quote.selected_package_total || quote.grand_total,
     pax_count: quote.pax_count,
     per_pax: Math.round((quote.selected_package_total || quote.grand_total) / (quote.pax_count || 1)),
-    inclusions: { vehicle: true, fuel: true, wash: true, misc_details: [] },
+    inclusions: { vehicle: true, fuel: true, misc_details: [] },
     itinerary_snapshot: quote.items || []
   };
 
@@ -321,7 +320,6 @@ function ConfirmedSummary({ quote, onReconfigure, onBack }: { quote: any, onReco
                          <div className="grid grid-cols-1 gap-3">
                             {details.inclusions.vehicle && <div className="flex items-center gap-3 text-sm font-bold text-primary"><CheckCircle size={16} className="text-emerald-500" /> Professional Transport</div>}
                             {details.inclusions.fuel && <div className="flex items-center gap-3 text-sm font-bold text-primary"><CheckCircle size={16} className="text-emerald-500" /> Fuel & Logistics included</div>}
-                            {details.inclusions.wash && <div className="flex items-center gap-3 text-sm font-bold text-primary"><CheckCircle size={16} className="text-emerald-500" /> Sanitization & Fees</div>}
                             {details.inclusions.misc_details.map((m: any, i: number) => (
                               <div key={i} className="flex items-center gap-3 text-sm font-bold text-primary">
                                  <CheckCircle size={16} className="text-emerald-500" strokeWidth={2.5} /> {m.name}
@@ -573,6 +571,7 @@ function QuoteBuilder() {
   const [dbVehicles, setDbVehicles] = useState<any[]>([]);
   const [dbMiscPresets, setDbMiscPresets] = useState<any[]>([]);
   const [dbPackagePresets, setDbPackagePresets] = useState<any[]>([]);
+  const [livePackages, setLivePackages] = useState<any[]>([]);
   const [dbAccommodations, setDbAccommodations] = useState<any[]>([]);
   const [initialQuotationText, setInitialQuotationText] = useState<string>("");
 
@@ -598,6 +597,7 @@ function QuoteBuilder() {
   const [newFeeAmount, setNewFeeAmount] = useState("");
 
   const [discount, setDiscount] = useState<number>(0);
+  const [openConfigId, setOpenConfigId] = useState<string | null>(null);
 
   const [dialogConfig, setDialogConfig] = useState<{
     isOpen: boolean;
@@ -671,14 +671,23 @@ function QuoteBuilder() {
 
   // Handle Default Selection (Recommended)
   useEffect(() => {
-    if (dbPackagePresets.length > 0 && !selectedPackageId && !quoteId) {
-      const recommended = dbPackagePresets.find(p => p.is_recommended);
+    if (dbPackagePresets.length > 0 && !isLoaded) {
+       // Only initialize if we're not loading an existing quote (which has its own logic)
+       if (!quoteId) {
+         setLivePackages(dbPackagePresets);
+       }
+    }
+  }, [dbPackagePresets, quoteId, isLoaded]);
+
+  useEffect(() => {
+    if (livePackages.length > 0 && !selectedPackageId && !quoteId) {
+      const recommended = livePackages.find(p => p.is_recommended);
       if (recommended) {
         setSelectedPackageName(recommended.title);
         setSelectedPackageId(recommended.id);
       }
     }
-  }, [dbPackagePresets, selectedPackageId, quoteId]);
+  }, [livePackages, selectedPackageId, quoteId]);
 
   // Load Existing Quote if ID present
   useEffect(() => {
@@ -733,7 +742,6 @@ function QuoteBuilder() {
           km: item.km || 0,
           km_per_l: item.km_per_l || 10,
           fuel_price: item.fuel_price || 60,
-          carwash_fee: item.misc || 0,
           dynamic_costs: item.dynamic_costs || {},
           row_total: item.row_total || 0,
           applied_preset_id: item.applied_preset_id || "", 
@@ -746,6 +754,9 @@ function QuoteBuilder() {
 
       if (qData.extra_fees_json) setExtraFees(qData.extra_fees_json);
       if (qData.discount_total) setDiscount(qData.discount_total);
+      if (qData.package_options_json) setLivePackages(qData.package_options_json);
+      else if (dbPackagePresets.length > 0) setLivePackages(dbPackagePresets);
+
       if (qData.selected_package) setSelectedPackageName(qData.selected_package);
       if (qData.selected_package_id) setSelectedPackageId(qData.selected_package_id);
       if (qData.quotation_text) setInitialQuotationText(qData.quotation_text);
@@ -793,7 +804,6 @@ function QuoteBuilder() {
               km: 0,
               km_per_l: 10,
               fuel_price: quote.default_fuel_price,
-              carwash_fee: 0,
               dynamic_costs: {},
               tags: [],
               guest_accommodation_id: "",
@@ -833,14 +843,14 @@ function QuoteBuilder() {
     const match = sorted.find(a => a.pax_count >= quote.pax_count) || sorted[sorted.length - 1];
     if (!match) return;
 
-    // Check if ANY item needs an accommodation set
-    const needsUpdate = quote.items.some(item => !item.guest_accommodation_id);
+    // Check if ANY item needs an accommodation set (and isn't manually locked)
+    const needsUpdate = quote.items.some(item => !item.guest_accommodation_id && !item.is_manual);
     if (!needsUpdate) return;
 
     setQuote(prev => ({
       ...prev,
       items: prev.items.map(item => {
-        if (!item.guest_accommodation_id) {
+        if (!item.guest_accommodation_id && !item.is_manual) {
           const updated = { ...item, guest_accommodation_id: match.id, guest_accommodation_amount: match.amount };
           updated.row_total = calculateRowTotal(updated);
           return updated;
@@ -862,7 +872,6 @@ function QuoteBuilder() {
               ...item,
               vehicle_rate: item.is_manual ? item.vehicle_rate : (v.default_rate || 0),
               km_per_l: item.is_manual ? item.km_per_l : (v.km_per_l || 10),
-              carwash_fee: item.is_manual ? item.carwash_fee : (v.carwash_fee || 0),
               fuel_price: item.fuel_price || prev.default_fuel_price
             };
             return {
@@ -886,7 +895,6 @@ function QuoteBuilder() {
       const dCosts = { ...item.dynamic_costs };
       let vRate = item.vehicle_rate;
       let kpl = item.km_per_l;
-      let wash = item.carwash_fee;
       
       // 1. Backfill Miscellaneous Presets - BASED ON TAGS
       // Only default the value if the fee's name is in the row's tags
@@ -905,7 +913,6 @@ function QuoteBuilder() {
       if (v && vRate === 0 && !item.is_manual) {
         vRate = v.default_rate || 0;
         kpl = v.km_per_l || 10;
-        wash = v.carwash_fee || 0;
         changed = true;
       }
 
@@ -914,7 +921,6 @@ function QuoteBuilder() {
           ...item, 
           vehicle_rate: vRate,
           km_per_l: kpl,
-          carwash_fee: wash,
           dynamic_costs: dCosts 
         };
         updated.row_total = calculateRowTotal(updated);
@@ -939,7 +945,7 @@ function QuoteBuilder() {
         row_total: (() => {
           const fuel = (!item.km || !item.km_per_l || item.km_per_l <= 0) ? 0 : (item.km / item.km_per_l) * (item.fuel_price || 0);
           const dynamicTotal = Object.values(item.dynamic_costs || {}).reduce((a: number, b: any) => a + (b || 0), 0);
-          const baseTotal = item.vehicle_rate + fuel + item.carwash_fee + dynamicTotal;
+          const baseTotal = item.vehicle_rate + fuel + dynamicTotal;
           return baseTotal * (1 + (prev.admin_commission || 0) / 100);
         })()
       }))
@@ -956,7 +962,7 @@ function QuoteBuilder() {
     const fuel = calculateFuelCost(item);
     const dynamicTotal = Object.values(item.dynamic_costs || {}).reduce((a, b: any) => a + (b || 0), 0);
     const accomAmount = item.guest_accommodation_amount || 0;
-    const baseTotal = item.vehicle_rate + fuel + item.carwash_fee + accomAmount + dynamicTotal;
+    const baseTotal = item.vehicle_rate + fuel + accomAmount + dynamicTotal;
     return baseTotal * (1 + (quote.admin_commission || 0) / 100);
   };
 
@@ -991,9 +997,8 @@ function QuoteBuilder() {
       destination: p.title,
       itinerary_details: p.details || "",
       km: p.default_km || 0,
-      // Total Reset: Setting these to 0/empty/false triggers the Intelligent Reconciliation engine
+      // Total Reset...
       vehicle_rate: 0,
-      carwash_fee: 0,
       km_per_l: 0,
       dynamic_costs: {},
       applied_preset_id: pId,
@@ -1003,9 +1008,10 @@ function QuoteBuilder() {
   };
 
   const totals = useMemo(() => {
-    const packagesToCompute = dbPackagePresets.length > 0 
-      ? dbPackagePresets 
-      : [{ title: 'Total Amount', includes_vehicle: true, includes_fuel: true, includes_wash: true, includes_accommodation: true, includes_misc_ids: dbMiscPresets.map(p => p.id) }];
+    // Priority: livePackages (current session overrides) -> fallback default
+    const packagesToCompute = livePackages.length > 0 
+      ? livePackages 
+      : [{ name: 'Total Amount', includes_vehicle: true, includes_fuel: true, includes_accommodation: true, includes_misc_ids: dbMiscPresets.map(p => p.id) }];
 
     const packageTotals = packagesToCompute.map(pkg => {
       let sum = 0;
@@ -1014,7 +1020,6 @@ function QuoteBuilder() {
         let rowBase = 0;
         if (pkg.includes_vehicle) rowBase += item.vehicle_rate;
         if (pkg.includes_fuel) rowBase += calculateFuelCost(item);
-        if (pkg.includes_wash) rowBase += item.carwash_fee;
         if (pkg.includes_accommodation) rowBase += (item.guest_accommodation_amount || 0);
         (pkg.includes_misc_ids || []).forEach((mId: string) => {
           rowBase += (item.dynamic_costs[mId] || 0);
@@ -1022,16 +1027,18 @@ function QuoteBuilder() {
         sum += rowBase * (1 + commission / 100);
       });
       return { 
-        name: pkg.title, 
+        name: pkg.name || pkg.title || 'Untitled Package', 
         total: sum,
-        is_recommended: pkg.is_recommended
+        is_recommended: pkg.is_recommended,
+        id: pkg.id,
+        config: pkg // keep a reference to the config for re-selection logic if needed
       };
     });
 
     const commissionRate = quote.admin_commission || 0;
     let grandTotalBase = 0;
     quote.items.forEach(item => {
-      const rowBase = item.vehicle_rate + calculateFuelCost(item) + item.carwash_fee + (item.guest_accommodation_amount || 0) + Object.values(item.dynamic_costs || {}).reduce((a, b: any) => a + (b || 0), 0);
+      const rowBase = item.vehicle_rate + calculateFuelCost(item) + (item.guest_accommodation_amount || 0) + Object.values(item.dynamic_costs || {}).reduce((a, b: any) => a + (b || 0), 0);
       grandTotalBase += rowBase * (1 + commissionRate / 100);
     });
 
@@ -1048,7 +1055,7 @@ function QuoteBuilder() {
       selectedPkgPrice,
       totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0)
     };
-  }, [quote.items, extraFees, discount, dbPackagePresets, dbMiscPresets, selectedPackageName, quote.admin_commission]);
+  }, [quote.items, extraFees, discount, livePackages, dbMiscPresets, selectedPackageName, quote.admin_commission]);
 
   const handleAddExtraFee = (presetId: string) => {
     const p = dbMiscPresets.find(m => m.id === presetId);
@@ -1066,6 +1073,60 @@ function QuoteBuilder() {
     setNewFeeName("");
     setNewFeeAmount("");
     setIsAdjustOpen(false);
+  };
+
+  const handleUpdatePackageOption = (pkgIndex: number, updates: any) => {
+    setLivePackages(prev => {
+      const next = [...prev];
+      next[pkgIndex] = { ...next[pkgIndex], ...updates };
+      return next;
+    });
+  };
+
+  const handleToggleMiscInclusion = (pkgIndex: number, miscId: string) => {
+    setLivePackages(prev => {
+      const next = [...prev];
+      const pkg = { ...next[pkgIndex] };
+      const currentMisc = pkg.includes_misc_ids || [];
+      if (currentMisc.includes(miscId)) {
+        pkg.includes_misc_ids = currentMisc.filter((id: string) => id !== miscId);
+      } else {
+        pkg.includes_misc_ids = [...currentMisc, miscId];
+      }
+      next[pkgIndex] = pkg;
+      return next;
+    });
+  };
+
+  const handleAddCustomPackage = () => {
+    const customCount = livePackages.filter(p => p.is_custom).length;
+    const newName = `Custom Option ${customCount + 1}`;
+    
+    const newPkg = {
+      id: `custom-${Math.random().toString(36).substr(2, 9)}`,
+      name: newName,
+      includes_vehicle: true,
+      includes_fuel: true,
+      includes_accommodation: true,
+      includes_misc_ids: [],
+      is_recommended: false,
+      is_custom: true
+    };
+    
+    setLivePackages([...livePackages, newPkg]);
+    setSelectedPackageName(newPkg.name);
+    setSelectedPackageId(newPkg.id);
+    setOpenConfigId(newPkg.id); // Open config immediately so they can rename it
+  };
+
+  const handleRemovePackage = (index: number) => {
+    if (livePackages.length <= 1) return;
+    const pkg = livePackages[index];
+    if (selectedPackageId === pkg.id) {
+      setSelectedPackageId(null);
+      setSelectedPackageName("");
+    }
+    setLivePackages(prev => prev.filter((_, i) => i !== index));
   };
 
   const compileQuotationText = (currentQuote: any, currentItems: any[], currentFees: any[], currentDiscount: number, currentTotals: any) => {
@@ -1106,17 +1167,14 @@ ${item.destination}
 
 `;
       
-      const pPreset = dbPackagePresets.find(p => p.title === pkg.name);
-      if (pPreset) {
-        text += (pPreset.includes_vehicle ? "✔" : "❌") + ` Vehicle\n`;
-        text += (pPreset.includes_fuel ? "✔" : "❌") + ` Fuel Cost\n`;
-        text += (pPreset.includes_wash ? "✔" : "❌") + ` Wash Fee\n`;
-        text += (pPreset.includes_accommodation ? "✔" : "❌") + ` Guest Accommodation\n`;
-        
-        dbMiscPresets.forEach(m => {
-          const isIncluded = pPreset.includes_misc_ids?.includes(m.id);
-          text += (isIncluded ? "✔" : "❌") + ` ${m.name}\n`;
-        });
+      text += (pkg.config.includes_vehicle ? "✔" : "❌") + ` Vehicle\n`;
+      text += (pkg.config.includes_fuel ? "✔" : "❌") + ` Fuel Cost\n`;
+      text += (pkg.config.includes_accommodation ? "✔" : "❌") + ` Guest Accommodation\n`;
+      
+      dbMiscPresets.forEach(m => {
+        const isIncluded = (pkg.config.includes_misc_ids || []).includes(m.id);
+        text += (isIncluded ? "✔" : "❌") + ` ${m.name}\n`;
+      });
 
         // Accommodation line
         const hasAccom = currentItems.some(i => i.guest_accommodation_id && i.guest_accommodation_amount > 0);
@@ -1131,7 +1189,6 @@ ${item.destination}
           )];
           text += `✔ Accommodation (${accomNames.join(', ')})\n`;
         }
-      }
       text += `\n`;
     });
 
@@ -1184,37 +1241,34 @@ ${item.destination}
           quotation_text: freshText,
           grand_total: totals.grandTotal,
           extra_fees_json: extraFees,
-          extra_fees_total: extraFees.reduce((a, b) => a + b.amount, 0),
+          extra_fees_total: totals.totalExtraFees,
           discount_total: discount,
           status: customStatus || (quote.status === 'Confirmed' ? 'Confirmed' : (quote.status || 'Draft')),
           admin_commission: quote.admin_commission,
           selected_package: selectedPackageName,
-          selected_package_id: selectedPackageId
+          selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
+          package_options_json: livePackages
       };
 
       // Snapshot logic for confirmations
       if ((customStatus === 'Confirmed' || (customStatus === undefined && quote.status === 'Confirmed')) && selectedPackageId) {
         quotePayload.confirmed_at = new Date().toISOString();
-        const selectedPkg = totals.packages.find(p => {
-          const pPreset = dbPackagePresets.find(preset => preset.title === p.name);
-          return pPreset?.id === selectedPackageId;
-        });
+        const selectedPkg = totals.packages.find(p => p.id === selectedPackageId);
 
         if (selectedPkg) {
           quotePayload.selected_package_total = totals.selectedPkgPrice;
           
-          const pPreset = dbPackagePresets.find(p => p.id === selectedPackageId);
+          const pConfig = selectedPkg.config;
           quotePayload.selected_package_details = {
             package_name: selectedPkg.name,
             total_amount: totals.grandTotal,
             pax_count: quote.pax_count,
             per_pax: Math.round(totals.grandTotal / (quote.pax_count || 1)),
             inclusions: {
-              vehicle: pPreset?.includes_vehicle || false,
-              fuel: pPreset?.includes_fuel || false,
-              wash: pPreset?.includes_wash || false,
-              accommodation: pPreset?.includes_accommodation || false,
-              misc_details: (pPreset?.includes_misc_ids || []).map((mId: string) => {
+              vehicle: pConfig?.includes_vehicle || false,
+              fuel: pConfig?.includes_fuel || false,
+              accommodation: pConfig?.includes_accommodation || false,
+              misc_details: (pConfig?.includes_misc_ids || []).map((mId: string) => {
                 const m = dbMiscPresets.find(preset => preset.id === mId);
                 return { name: m?.name || 'Unknown', amount: m?.default_amount || 0 };
               })
@@ -1256,7 +1310,6 @@ ${item.destination}
         km: i.km,
         km_per_l: i.km_per_l,
         fuel_price: i.fuel_price,
-        misc: i.carwash_fee,
         dynamic_costs: i.dynamic_costs,
         row_total: i.row_total,
         tags: i.tags.join(', '),
@@ -1661,7 +1714,7 @@ ${item.destination}
                     </div>
                     
                     <div className="flex-1">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-x-10 gap-y-2">
                         <div className="md:col-span-12 lg:col-span-5 space-y-1.5">
                           <div className="space-y-1">
                             <label className="text-[8.5px] font-black uppercase tracking-widest text-text-tertiary ml-1.5 mb-0 inline-block">Itinerary Name</label>
@@ -1704,7 +1757,7 @@ ${item.destination}
                                   handleUpdateItem(index, { 
                                     guest_accommodation_id: e.target.value || "",
                                     guest_accommodation_amount: accom ? accom.amount : 0
-                                  });
+                                  }, true);
                                 }}
                               >
                                 <option value="">-- None --</option>
@@ -1714,15 +1767,6 @@ ${item.destination}
                               </select>
                             </div>
                           )}
-                          </div>
-
-                          <div className="space-y-1">
-                             <label className="text-[8.5px] font-black uppercase tracking-widest text-text-tertiary ml-1.5 mb-0 inline-block">Operational Tags</label>
-                             <TagSelector 
-                               selectedTags={item.tags || []} 
-                               onChange={(newTags) => handleUpdateItem(index, { tags: newTags })} 
-                               options={dbMiscPresets.map(p => p.name)}
-                             />
                           </div>
                         </div>
 
@@ -1738,6 +1782,15 @@ ${item.destination}
                             value={item.itinerary_details}
                             onChange={(e) => handleUpdateItem(index, { itinerary_details: e.target.value })}
                           />
+                        </div>
+
+                        <div className="md:col-span-12 pt-1 border-t border-gray-50/50 space-y-1">
+                           <label className="text-[8.5px] font-black uppercase tracking-widest text-text-tertiary ml-1.5 mb-0 inline-block">Operational Tags</label>
+                           <TagSelector 
+                             selectedTags={item.tags || []} 
+                             onChange={(newTags) => handleUpdateItem(index, { tags: newTags })} 
+                             options={dbMiscPresets.map(p => p.name)}
+                           />
                         </div>
                       </div>
                       <div className="h-1 w-full" />
@@ -1768,12 +1821,36 @@ ${item.destination}
                 </div>
                 <h2 className="text-lg font-bold text-primary">Operational Matrix (Spreadsheet)</h2>
               </div>
+              
+              <div className="flex items-center gap-6 px-1 mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Automated via Tag</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Confirmed Selection</span>
+                </div>
+              </div>
 
               {(() => {
                 const accomColWidth = dbAccommodations.length > 0 ? 120 : 0;
                 const dynamicColsWidth = dbMiscPresets.length * 120;
                 const matrixWidth = Math.max(1200, 800 + accomColWidth + dynamicColsWidth);
                 
+                const colTotals = quote.items.reduce((acc, item) => {
+                  acc.rate += item.vehicle_rate || 0;
+                  acc.km += item.km || 0;
+                  acc.fuel += calculateFuelCost(item);
+                  acc.accom += item.guest_accommodation_amount || 0;
+                  acc.grand += item.row_total || 0;
+                  
+                  dbMiscPresets.forEach(p => {
+                    acc.misc[p.id] = (acc.misc[p.id] || 0) + (item.dynamic_costs[p.id] || 0);
+                  });
+                  return acc;
+                }, { rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number> });
+
                 return (
                   <div className="bg-white rounded-3xl border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-x-auto scroll-shadow">
                     <table className="w-full text-left border-collapse" style={{ minWidth: `${matrixWidth}px` }}>
@@ -1785,7 +1862,6 @@ ${item.destination}
                           <th className="px-4 py-8 border-b border-[#f0f2f5]">Est. KM</th>
                           <th className="px-4 py-8 border-b border-[#f0f2f5]">KM/L</th>
                           <th className="px-4 py-8 border-b border-[#f0f2f5]">Fuel</th>
-                          <th className="px-4 py-8 border-b border-[#f0f2f5]">Wash Fee</th>
                           {dbAccommodations.length > 0 && (
                             <th className="px-4 py-8 border-b border-[#f0f2f5] text-teal-600">Guest Accom</th>
                           )}
@@ -1817,10 +1893,6 @@ ${item.destination}
                             <td className="px-4 py-6 border-none">
                                <div className="text-xs font-black text-rose-500 whitespace-nowrap">₱{Math.round(calculateFuelCost(item)).toLocaleString()}</div>
                             </td>
-                            <td className="px-4 py-6 border-none relative">
-                               <input type="number" className={`w-[70px] bg-transparent border-none text-xs font-bold focus:ring-0 p-0 ${item.is_manual ? 'text-amber-500' : 'text-text-tertiary/60'}`} placeholder="Wash" value={item.carwash_fee} onChange={(e) => handleUpdateItem(index, { carwash_fee: parseFloat(e.target.value) || 0 }, true)} />
-                               {item.is_manual && <div className="absolute top-4 right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />}
-                            </td>
                             
                             {dbAccommodations.length > 0 && (
                               <td className="px-4 py-6 border-none relative">
@@ -1843,7 +1915,6 @@ ${item.destination}
                                       handleUpdateItem(index, { dynamic_costs: newCosts });
                                     }} 
                                   />
-                                  {isTagDriven && val > 0 && <div className="absolute top-4 right-1 w-1.5 h-1.5 rounded-full bg-indigo-400" title="Set by tag" />}
                                 </td>
                               );
                             })}
@@ -1857,6 +1928,30 @@ ${item.destination}
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr className="bg-[#f8f9fb] border-t-2 border-primary/10">
+                          <td className="!pl-10 pr-4 py-8 font-black text-primary border-none text-[10px] uppercase tracking-widest">Totals</td>
+                          <td className="px-4 py-8 border-none"></td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-primary">₱{Math.round(colTotals.rate).toLocaleString()}</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-text-secondary">{colTotals.km.toLocaleString()} KM</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-indigo-400/70">--</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-rose-500">₱{Math.round(colTotals.fuel).toLocaleString()}</td>
+                          
+                          {dbAccommodations.length > 0 && (
+                            <td className="px-4 py-8 border-none text-xs font-black text-teal-600">₱{Math.round(colTotals.accom).toLocaleString()}</td>
+                          )}
+
+                          {dbMiscPresets.map(p => (
+                            <td key={p.id} className="px-4 py-8 border-none text-xs font-black text-indigo-600">
+                              ₱{Math.round(colTotals.misc[p.id] || 0).toLocaleString()}
+                            </td>
+                          ))}
+
+                          <td className="pl-4 !pr-10 py-8 text-right border-none">
+                             <div className="text-sm font-black text-primary whitespace-nowrap">₱{Math.round(colTotals.grand).toLocaleString()}</div>
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 );
@@ -1876,47 +1971,178 @@ ${item.destination}
                 </div>
                 <div className="flex flex-col gap-4">
                   {totals.packages.map((pkg, i) => {
-                    const pPreset = dbPackagePresets.find(p => p.title === pkg.name);
-                    const pkgId = pPreset?.id;
-                    const isSelected = selectedPackageId === pkgId;
+                    const isSelected = selectedPackageId === pkg.id;
+                    const isOpen = openConfigId === pkg.id;
                     
                     return (
                       <div 
-                        key={i} 
+                        key={pkg.id || i} 
+                        className={`w-full rounded-2xl border transition-all relative flex flex-col p-6 cursor-pointer group ${
+                          isSelected 
+                            ? "bg-[#1a2138] border-[#1a2138] text-white shadow-2xl shadow-primary/20 scale-[1.02]" 
+                            : "bg-white border-gray-100 text-primary hover:border-primary/20 hover:shadow-xl"
+                        }`}
                         onClick={() => {
                           setSelectedPackageName(pkg.name);
-                          setSelectedPackageId(pkgId || null);
+                          setSelectedPackageId(pkg.id || null);
                         }}
-                        className={`w-full h-24 rounded-3xl border transition-all relative flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                          isSelected 
-                            ? "bg-[#1a2138] border-[#1a2138] text-white shadow-xl" 
-                            : "bg-white border-gray-100 text-primary hover:border-primary/20 hover:shadow-sm"
-                        }`}
                       >
-                        {pkg.is_recommended && (
-                          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-md text-[6px] font-black uppercase tracking-widest ${isSelected ? "bg-white/10 text-white" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
-                            Recommended
+                        {/* Status Row */}
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center gap-1.5">
+                            {livePackages.length > 1 && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemovePackage(i);
+                                }}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                                  isSelected ? "text-white/20 hover:text-rose-400" : "text-gray-300 hover:text-rose-500"
+                                }`}
+                                title="Remove this package option"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                            <div className={`px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest ${
+                              isSelected ? "bg-white/10 text-white/50" : "bg-gray-50 text-text-tertiary"
+                            }`}>
+                              Option {i + 1}
+                            </div>
                           </div>
-                        )}
 
-                        <div className={`absolute top-4 left-6 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                          isSelected ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-gray-100 opacity-20"
-                        }`}>
-                          {isSelected && <CheckCircle size={10} className="text-white" />}
+                          <div className="flex items-center gap-3">
+                            {pkg.is_recommended && (
+                              <div className={`px-2.5 py-1.5 rounded-lg text-[7px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
+                                isSelected ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              }`}>
+                                <Star size={8} fill="currentColor" /> Recommended
+                              </div>
+                            )}
+                            {isSelected && <CheckCircle size={18} fill="currentColor" className="text-emerald-500" />}
+                          </div>
                         </div>
 
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? "text-white/40" : "text-text-tertiary"}`}>
-                          {pkg.name}
-                        </span>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className={`text-sm font-bold ${isSelected ? "text-white/20" : "text-primary/10"}`}>₱</span>
-                          <span className="text-3xl font-black tracking-tighter italic leading-none">
-                            {pkg.total.toLocaleString()}
-                          </span>
+                        {/* Package Header */}
+                        <div className="mb-2">
+                           <input 
+                             type="text"
+                             value={pkg.name || ""}
+                             onChange={(e) => handleUpdatePackageOption(i, { name: e.target.value })}
+                             onClick={(e) => e.stopPropagation()}
+                             className={`w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-[13px] md:text-sm font-black tracking-tight leading-snug transition-colors placeholder:opacity-20 pointer-events-auto ${
+                               isSelected ? "text-white !placeholder-white/20" : "text-primary !placeholder-primary/20"
+                             }`}
+                             placeholder="Enter package name..."
+                           />
                         </div>
+
+                        {/* Action Row */}
+                        <div className="mt-auto flex items-end justify-between gap-4">
+                          <div className="flex flex-col">
+                            <span className={`text-[8px] font-black uppercase tracking-[0.2em] mb-1 transition-colors ${isSelected ? "text-white/60" : "text-text-tertiary/40"}`}>Proposal Amount</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-base font-bold italic transition-colors ${isSelected ? "text-white/40" : "text-primary/20"}`}>₱</span>
+                              <span className={`text-2xl md:text-3xl font-black tracking-tighter italic leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
+                                {pkg.total.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenConfigId(isOpen ? null : (pkg.id || `pkg-${i}`));
+                            }}
+                            className={`flex items-center gap-1.5 px-3 !h-7 !min-h-0 !min-w-0 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                              isSelected 
+                                ? "!bg-white !text-primary hover:bg-white/90" 
+                                : "!bg-[#1a2138] !text-white hover:opacity-90"
+                            }`}
+                          >
+                            {isOpen ? <X size={10} /> : <Settings size={10} />}
+                            <span className="leading-none">Configure</span>
+                            <ChevronDown size={10} className={`transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+                          </button>
+                        </div>
+
+                        <AnimatePresence>
+                          {isOpen && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="w-full mt-4 overflow-hidden"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className={`p-4 rounded-xl border ${isSelected ? "bg-white/5 border-white/10" : "bg-gray-50/50 border-gray-100"} grid grid-cols-1 gap-2`}>
+                                {/* Inline Renaming */}
+                                <div className="px-3 py-2">
+                                  <label className={`text-[8px] font-black uppercase tracking-widest mb-1.5 block ${isSelected ? "text-white/40" : "text-text-tertiary/40"}`}>Option Label</label>
+                                  <input 
+                                    type="text"
+                                    value={pkg.name}
+                                    onChange={(e) => handleUpdatePackageOption(i, { name: e.target.value })}
+                                    className={`w-full bg-transparent border-b text-[10px] font-bold focus:outline-none focus:border-emerald-500 transition-all py-1 ${
+                                      isSelected ? "text-white border-white/10" : "text-primary border-gray-200"
+                                    }`}
+                                    placeholder="Enter package name..."
+                                  />
+                                </div>
+
+                                <div className={`h-px my-1 ${isSelected ? "bg-white/10" : "bg-gray-200/50"}`} />
+
+                                {[
+                                  { id: 'vehicle', label: 'Vehicle Rate', checked: pkg.config.includes_vehicle, update: { includes_vehicle: !pkg.config.includes_vehicle } },
+                                  { id: 'fuel', label: 'Fuel Cost', checked: pkg.config.includes_fuel, update: { includes_fuel: !pkg.config.includes_fuel } },
+                                  { id: 'accom', label: 'Guest Accom', checked: pkg.config.includes_accommodation, update: { includes_accommodation: !pkg.config.includes_accommodation } },
+                                ].map((inc) => (
+                                  <label key={inc.id} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer hover:bg-black/5 transition-all">
+                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? "text-white/60" : "text-text-tertiary"}`}>{inc.label}</span>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={inc.checked} 
+                                      onChange={() => handleUpdatePackageOption(i, inc.update)}
+                                      className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                                    />
+                                  </label>
+                                ))}
+
+                                {dbMiscPresets.length > 0 && <div className={`h-px my-1 ${isSelected ? "bg-white/10" : "bg-gray-200/50"}`} />}
+                                
+                                {dbMiscPresets.map((misc) => {
+                                  const isIncluded = (pkg.config.includes_misc_ids || []).includes(misc.id);
+                                  return (
+                                    <label key={misc.id} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer hover:bg-black/5 transition-all">
+                                      <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? "text-white/60" : "text-text-tertiary"}`}>{misc.name}</span>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isIncluded} 
+                                        onChange={() => handleToggleMiscInclusion(i, misc.id)}
+                                        className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                                      />
+                                    </label>
+                                  );
+                                })}
+
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     );
                   })}
+                  
+                  {/* Add Custom Package Button */}
+                  <button 
+                    onClick={handleAddCustomPackage}
+                    className="w-full h-16 rounded-3xl border-2 border-dashed border-gray-100 flex items-center justify-center gap-3 text-text-tertiary hover:border-primary/20 hover:text-primary transition-all group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/5 transition-all">
+                      <Plus size={16} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Add Custom Option</span>
+                  </button>
                 </div>
               </div>
 

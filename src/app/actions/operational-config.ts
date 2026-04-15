@@ -48,7 +48,6 @@ export async function saveVehicle(formData: FormData, operatorId: string) {
     pax_capacity: parseInt(formData.get('pax_capacity') as string) || 1,
     default_rate: parseFloat(formData.get('default_rate') as string) || 0,
     km_per_l: parseFloat(formData.get('km_per_l') as string) || 10,
-    carwash_fee: parseFloat(formData.get('carwash_fee') as string) || 0,
     fuel_type: formData.get('fuel_type') as string || 'Gasoline',
     is_active: true
   };
@@ -194,7 +193,6 @@ export async function savePackagePreset(formData: FormData) {
   const description = formData.get('description') as string;
   const includes_vehicle = formData.get('includes_vehicle') === 'true';
   const includes_fuel = formData.get('includes_fuel') === 'true';
-  const includes_wash = formData.get('includes_wash') === 'true';
   const includes_accommodation = formData.get('includes_accommodation') === 'true';
   const is_recommended = formData.get('is_recommended') === 'true';
   const includes_misc_ids = JSON.parse(formData.get('includes_misc_ids') as string || '[]');
@@ -205,7 +203,6 @@ export async function savePackagePreset(formData: FormData) {
     description,
     includes_vehicle,
     includes_fuel,
-    includes_wash,
     includes_accommodation,
     includes_misc_ids,
     is_recommended
