@@ -37,6 +37,7 @@ interface QuoteItem {
   tags: string[];
   guest_accommodation_id?: string;
   guest_accommodation_amount?: number;
+  fuel_cost_manual?: number;
 }
 
 interface QuoteData {
@@ -573,6 +574,7 @@ function QuoteBuilder() {
   const [dbPackagePresets, setDbPackagePresets] = useState<any[]>([]);
   const [livePackages, setLivePackages] = useState<any[]>([]);
   const [dbAccommodations, setDbAccommodations] = useState<any[]>([]);
+  const [includeItineraryInText, setIncludeItineraryInText] = useState<boolean>(true);
   const [initialQuotationText, setInitialQuotationText] = useState<string>("");
 
   // Helper to format ISO dates for datetime-local input
@@ -954,6 +956,7 @@ function QuoteBuilder() {
 
   // --- Calculations ---
   const calculateFuelCost = (item: QuoteItem) => {
+    if (item.fuel_cost_manual !== undefined && item.fuel_cost_manual !== null) return item.fuel_cost_manual;
     if (!item.km || !item.km_per_l || item.km_per_l <= 0) return 0;
     return (item.km / item.km_per_l) * (item.fuel_price || 0);
   };
@@ -1014,7 +1017,8 @@ function QuoteBuilder() {
       : [{ name: 'Total Amount', includes_vehicle: true, includes_fuel: true, includes_accommodation: true, includes_misc_ids: dbMiscPresets.map(p => p.id) }];
 
     const packageTotals = packagesToCompute.map(pkg => {
-      let sum = 0;
+      let baseSum = 0;
+      let totalSum = 0;
       const commission = quote.admin_commission || 0;
       quote.items.forEach(item => {
         let rowBase = 0;
@@ -1024,36 +1028,52 @@ function QuoteBuilder() {
         (pkg.includes_misc_ids || []).forEach((mId: string) => {
           rowBase += (item.dynamic_costs[mId] || 0);
         });
-        sum += rowBase * (1 + commission / 100);
+        baseSum += rowBase;
+        totalSum += rowBase * (1 + commission / 100);
       });
       return { 
         name: pkg.name || pkg.title || 'Untitled Package', 
-        total: sum,
+        total: totalSum,
+        commissionAmount: totalSum - baseSum,
         is_recommended: pkg.is_recommended,
         id: pkg.id,
-        config: pkg // keep a reference to the config for re-selection logic if needed
+        config: pkg
       };
     });
 
-    const commissionRate = quote.admin_commission || 0;
-    let grandTotalBase = 0;
+    // Matrix Base Total (for the totals row in the matrix itself)
+    let grandTotalBaseSum = 0;
     quote.items.forEach(item => {
-      const rowBase = item.vehicle_rate + calculateFuelCost(item) + (item.guest_accommodation_amount || 0) + Object.values(item.dynamic_costs || {}).reduce((a, b: any) => a + (b || 0), 0);
-      grandTotalBase += rowBase * (1 + commissionRate / 100);
+      grandTotalBaseSum += calculateRowTotal(item);
     });
-
+    
     const adjustments = extraFees.reduce((a, b) => a + (b.amount || 0), 0) - (discount || 0);
     
     // Calculate selection-based totals
     const selectedPkg = packageTotals.find(p => p.name === selectedPackageName);
-    const selectedPkgPrice = selectedPkg ? selectedPkg.total : grandTotalBase;
+    const selectedPkgPrice = selectedPkg ? selectedPkg.total : grandTotalBaseSum;
     const finalGrandTotal = selectedPkgPrice + adjustments;
+
+    const colTotals = quote.items.reduce((acc, item) => {
+      const fuel = calculateFuelCost(item);
+      acc.rate += item.vehicle_rate;
+      acc.km += item.km;
+      acc.fuel += fuel;
+      acc.accom += (item.guest_accommodation_amount || 0);
+      acc.grand += calculateRowTotal(item);
+      
+      dbMiscPresets.forEach(p => {
+        acc.misc[p.id] = (acc.misc[p.id] || 0) + (item.dynamic_costs[p.id] || 0);
+      });
+      return acc;
+    }, { rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number> });
 
     return {
       packages: packageTotals,
       grandTotal: finalGrandTotal,
       selectedPkgPrice,
-      totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0)
+      totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0),
+      colTotals
     };
   }, [quote.items, extraFees, discount, livePackages, dbMiscPresets, selectedPackageName, quote.admin_commission]);
 
@@ -1140,19 +1160,24 @@ function QuoteBuilder() {
 
 `;
     
-    text += `--- ITINERARY ---
+    if (includeItineraryInText) {
+      text += `--- ITINERARY ---
 
 `;
-    currentItems.forEach((item, idx) => {
-      text += `Day ${idx + 1}:
+      currentItems.forEach((item, idx) => {
+        text += `Day ${idx + 1}:
 ${item.destination}
 `;
-      if (item.itinerary_details) {
-        const details = item.itinerary_details.split('\n').filter(Boolean);
-        details.forEach((d: string) => text += `• ${d.replace(/^•\s*/, '')}\n`);
-      }
-      text += `\n`;
-    });
+        if (item.itinerary_details) {
+          const details = item.itinerary_details.split('\n').filter(Boolean);
+          details.forEach((d: string) => text += `• ${d.replace(/^•\s*/, '')}\n`);
+        }
+        text += `\n`;
+      });
+    }
+
+    const selectedVehicle = dbVehicles.find(v => v.model === currentQuote.vehicle_model);
+    const vehicleDetail = selectedVehicle ? `${selectedVehicle.model} (${selectedVehicle.pax_capacity} PAX)` : (currentQuote.vehicle_model || "Standard Vehicle");
 
     text += `--- PACKAGE OPTIONS ---
 
@@ -1167,28 +1192,56 @@ ${item.destination}
 
 `;
       
-      text += (pkg.config.includes_vehicle ? "✔" : "❌") + ` Vehicle\n`;
-      text += (pkg.config.includes_fuel ? "✔" : "❌") + ` Fuel Cost\n`;
-      text += (pkg.config.includes_accommodation ? "✔" : "❌") + ` Guest Accommodation\n`;
-      
+      const inclusions: string[] = [];
+      const exclusions: string[] = [];
+
+      // Static Config Inclusions
+      if (pkg.config.includes_vehicle) inclusions.push(`Vehicle: ${vehicleDetail}`); else exclusions.push(`Private Vehicle`);
+      if (pkg.config.includes_fuel) inclusions.push(`Fuel Consumption`); else exclusions.push(`Fuel Consumption`);
+      if (pkg.config.includes_accommodation) inclusions.push(`Guest Accommodation`); else exclusions.push(`Guest Accommodation`);
+
+      // Misc Inclusions - Filtered by Cost
       dbMiscPresets.forEach(m => {
-        const isIncluded = (pkg.config.includes_misc_ids || []).includes(m.id);
-        text += (isIncluded ? "✔" : "❌") + ` ${m.name}\n`;
+        const isToggled = (pkg.config.includes_misc_ids || []).includes(m.id);
+        const totalCostAcrossItems = currentItems.reduce((sum, item) => sum + (item.dynamic_costs[m.id] || 0), 0);
+        
+        if (isToggled && totalCostAcrossItems > 0) {
+          inclusions.push(m.name);
+        } else if (isToggled && totalCostAcrossItems === 0) {
+          // If toggled ON but cost is 0, it shouldn't be an "Inclusion"
+          exclusions.push(m.name);
+        } else if (!isToggled) {
+          exclusions.push(m.name);
+        }
       });
 
-        // Accommodation line
-        const hasAccom = currentItems.some(i => i.guest_accommodation_id && i.guest_accommodation_amount > 0);
-        if (hasAccom) {
-          const accomNames = [...new Set(currentItems
-            .filter(i => i.guest_accommodation_id)
-            .map(i => {
-              const a = dbAccommodations.find(ac => ac.id === i.guest_accommodation_id);
-              return a ? a.name : null;
-            })
-            .filter(Boolean)
-          )];
-          text += `✔ Accommodation (${accomNames.join(', ')})\n`;
+      // Special Accommodation grouping for inclusions
+      const hasAccomInItems = currentItems.some(i => i.guest_accommodation_id && i.guest_accommodation_amount > 0);
+      if (pkg.config.includes_accommodation && hasAccomInItems) {
+        const accomNames = [...new Set(currentItems
+          .filter(i => i.guest_accommodation_id)
+          .map(i => {
+            const a = dbAccommodations.find(ac => ac.id === i.guest_accommodation_id);
+            return a ? a.name : null;
+          })
+          .filter(Boolean)
+        )];
+        if (accomNames.length > 0) {
+          // Remove the generic 'Guest Accommodation' if we have specific names
+          const genIdx = inclusions.indexOf('Guest Accommodation');
+          if (genIdx > -1) inclusions.splice(genIdx, 1);
+          inclusions.push(`Accommodation (${accomNames.join(', ')})`);
         }
+      }
+
+      text += `✔ INCLUSIONS:\n`;
+      inclusions.forEach(inc => text += `• ${inc}\n`);
+      
+      if (exclusions.length > 0) {
+        text += `\n❌ EXCLUSIONS:\n`;
+        exclusions.forEach(exc => text += `• ${exc}\n`);
+      }
+
       text += `\n`;
     });
 
@@ -1200,17 +1253,23 @@ ${item.destination}
         text += `• ${fee.name}: + ₱${fee.amount.toLocaleString()}\n`;
       });
       if (currentDiscount > 0) {
-        text += `• Discount Applied: - ₱${currentDiscount.toLocaleString()}\n`;
+        text += `• DISCOUNT APPLIED: - ₱${currentDiscount.toLocaleString()}\n`;
       }
       text += `\n`;
     }
 
     if (currentQuote.notes) {
-      text += `--- NOTES ---
+      text += `--- PERSONAL NOTES ---
 
 `;
-      text += currentQuote.notes + `\n`;
+      text += currentQuote.notes + `\n\n`;
     }
+
+    text += `--- ADDITIONAL NOTES ---
+1. Fuel is computed based on P120/L and may vary depending on actual consumption and fuel price changes.
+2. Driver service is up to 10 hours per day. Excess hours will be charged P100/hour.
+3. For bookings with accommodation, 50% downpayment is required.
+`;
     
     return text;
   };
@@ -1822,14 +1881,12 @@ ${item.destination}
                 <h2 className="text-lg font-bold text-primary">Operational Matrix (Spreadsheet)</h2>
               </div>
               
-              <div className="flex items-center gap-6 px-1 mb-6">
+              <div className="flex items-center gap-6 mt-1 flex-wrap invisible">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Automated via Tag</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Confirmed Selection</span>
+                  <div className="w-4 h-4 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600">
+                    <AlertTriangle size={10} />
+                  </div>
+                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Included in Package but Total is ₱0</span>
                 </div>
               </div>
 
@@ -1838,18 +1895,7 @@ ${item.destination}
                 const dynamicColsWidth = dbMiscPresets.length * 120;
                 const matrixWidth = Math.max(1200, 800 + accomColWidth + dynamicColsWidth);
                 
-                const colTotals = quote.items.reduce((acc, item) => {
-                  acc.rate += item.vehicle_rate || 0;
-                  acc.km += item.km || 0;
-                  acc.fuel += calculateFuelCost(item);
-                  acc.accom += item.guest_accommodation_amount || 0;
-                  acc.grand += item.row_total || 0;
-                  
-                  dbMiscPresets.forEach(p => {
-                    acc.misc[p.id] = (acc.misc[p.id] || 0) + (item.dynamic_costs[p.id] || 0);
-                  });
-                  return acc;
-                }, { rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number> });
+                const colTotals = totals.colTotals;
 
                 return (
                   <div className="bg-white rounded-3xl border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-x-auto scroll-shadow">
@@ -1863,11 +1909,27 @@ ${item.destination}
                           <th className="px-4 py-8 border-b border-[#f0f2f5]">KM/L</th>
                           <th className="px-4 py-8 border-b border-[#f0f2f5]">Fuel</th>
                           {dbAccommodations.length > 0 && (
-                            <th className="px-4 py-8 border-b border-[#f0f2f5] text-teal-600">Guest Accom</th>
+                            <th className="px-4 py-8 border-b border-[#f0f2f5] text-black">Guest Accom</th>
                           )}
-                          {dbMiscPresets.map(p => (
-                            <th key={p.id} className="px-4 py-8 border-b border-[#f0f2f5] text-indigo-500">{p.name}</th>
-                          ))}
+                          {dbMiscPresets.map(p => {
+                            // Warn if ANY package claims this inclusion but its actual operational cost is zero
+                            const isIncludedInAnyPkg = livePackages.some(lp => (lp.includes_misc_ids || []).includes(p.id));
+                            const totalCost = colTotals.misc[p.id] || 0;
+                            const showWarning = isIncludedInAnyPkg && totalCost === 0;
+
+                            return (
+                              <th key={p.id} className="px-4 py-8 border-b border-[#f0f2f5] text-indigo-500 relative">
+                                <div className="flex items-center gap-1.5">
+                                  {p.name}
+                                  {showWarning && (
+                                    <div className="w-3.5 h-3.5 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 animate-pulse" title="Included in package but cost is currently zero.">
+                                      <AlertTriangle size={10} />
+                                    </div>
+                                  )}
+                                </div>
+                              </th>
+                            );
+                          })}
                           <th className="pl-4 !pr-10 py-8 border-b border-[#f0f2f5] text-right">Row Total</th>
                         </tr>
                       </thead>
@@ -1880,23 +1942,31 @@ ${item.destination}
                             </td>
                             <td className="px-4 py-6 border-none text-xs">
                                <div className="flex items-center gap-1">
-                                 <span className="text-[10px] font-bold text-gray-300">₱</span>
-                                 <input type="number" className="w-[80px] bg-transparent border-none text-xs font-black text-primary focus:ring-0 p-0" value={item.vehicle_rate} onChange={(e) => handleUpdateItem(index, { vehicle_rate: parseFloat(e.target.value) || 0 })} />
+                                 <span className="text-[10px] font-bold text-gray-400">₱</span>
+                                 <input type="number" className="w-[80px] bg-transparent border-none text-xs font-black text-black focus:ring-0 p-0" value={item.vehicle_rate} onChange={(e) => handleUpdateItem(index, { vehicle_rate: parseFloat(e.target.value) || 0 })} />
                                </div>
                             </td>
                             <td className="px-4 py-6 border-none">
-                               <input type="number" className="w-[60px] bg-transparent border-none text-xs font-bold text-text-secondary focus:ring-0 p-0" value={item.km} onChange={(e) => handleUpdateItem(index, { km: parseFloat(e.target.value) || 0 })} />
+                               <input type="number" className="w-[60px] bg-transparent border-none text-xs font-bold text-black focus:ring-0 p-0" value={item.km} onChange={(e) => handleUpdateItem(index, { km: parseFloat(e.target.value) || 0 })} />
                             </td>
                             <td className="px-4 py-6 border-none">
-                               <input type="number" className="w-[60px] bg-transparent border-none text-xs font-bold text-indigo-400/70 focus:ring-0 p-0" placeholder="L/100" value={item.km_per_l} onChange={(e) => handleUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} />
+                               <input type="number" className="w-[60px] bg-transparent border-none text-xs font-bold text-black focus:ring-0 p-0" placeholder="L/100" value={item.km_per_l} onChange={(e) => handleUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} />
                             </td>
                             <td className="px-4 py-6 border-none">
-                               <div className="text-xs font-black text-rose-500 whitespace-nowrap">₱{Math.round(calculateFuelCost(item)).toLocaleString()}</div>
+                               <div className="flex items-center gap-1">
+                                 <span className="text-[10px] font-bold text-gray-400">₱</span>
+                                 <input 
+                                   type="number" 
+                                   className="w-[80px] bg-transparent border-none text-xs font-black text-black focus:ring-0 p-0" 
+                                   value={Math.round(item.fuel_cost_manual ?? calculateFuelCost(item))} 
+                                   onChange={(e) => handleUpdateItem(index, { fuel_cost_manual: parseFloat(e.target.value) || 0 })} 
+                                 />
+                               </div>
                             </td>
                             
                             {dbAccommodations.length > 0 && (
                               <td className="px-4 py-6 border-none relative">
-                                <input type="number" className={`w-[70px] bg-transparent border-none text-xs font-bold focus:ring-0 p-0 ${(item.guest_accommodation_amount || 0) > 0 ? 'text-teal-600' : 'text-text-tertiary/40'}`} placeholder="0" value={item.guest_accommodation_amount || 0} onChange={(e) => handleUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })} />
+                                <input type="number" className="w-[70px] bg-transparent border-none text-xs font-bold text-black focus:ring-0 p-0" placeholder="0" value={item.guest_accommodation_amount || 0} onChange={(e) => handleUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })} />
                               </td>
                             )}
 
@@ -1930,15 +2000,15 @@ ${item.destination}
                       </tbody>
                       <tfoot>
                         <tr className="bg-[#f8f9fb] border-t-2 border-primary/10">
-                          <td className="!pl-10 pr-4 py-8 font-black text-primary border-none text-[10px] uppercase tracking-widest">Totals</td>
+                          <td className="!pl-10 pr-4 py-8 font-black text-black border-none text-[10px] uppercase tracking-widest">Totals</td>
                           <td className="px-4 py-8 border-none"></td>
-                          <td className="px-4 py-8 border-none text-xs font-black text-primary">₱{Math.round(colTotals.rate).toLocaleString()}</td>
-                          <td className="px-4 py-8 border-none text-xs font-black text-text-secondary">{colTotals.km.toLocaleString()} KM</td>
-                          <td className="px-4 py-8 border-none text-xs font-black text-indigo-400/70">--</td>
-                          <td className="px-4 py-8 border-none text-xs font-black text-rose-500">₱{Math.round(colTotals.fuel).toLocaleString()}</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-black">₱{Math.round(colTotals.rate).toLocaleString()}</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-black">{colTotals.km.toLocaleString()} KM</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-black underline decoration-gray-200">--</td>
+                          <td className="px-4 py-8 border-none text-xs font-black text-black">₱{Math.round(colTotals.fuel).toLocaleString()}</td>
                           
                           {dbAccommodations.length > 0 && (
-                            <td className="px-4 py-8 border-none text-xs font-black text-teal-600">₱{Math.round(colTotals.accom).toLocaleString()}</td>
+                            <td className="px-4 py-8 border-none text-xs font-black text-black">₱{Math.round(colTotals.accom).toLocaleString()}</td>
                           )}
 
                           {dbMiscPresets.map(p => (
@@ -1948,7 +2018,12 @@ ${item.destination}
                           ))}
 
                           <td className="pl-4 !pr-10 py-8 text-right border-none">
-                             <div className="text-sm font-black text-primary whitespace-nowrap">₱{Math.round(colTotals.grand).toLocaleString()}</div>
+                            <div className="text-sm font-black text-black whitespace-nowrap">₱{Math.round(colTotals.grand).toLocaleString()}</div>
+                            {quote.admin_commission > 0 && (
+                              <div className="text-[9px] font-bold text-amber-500 whitespace-nowrap mt-0.5">
+                                +{quote.admin_commission}% from ₱{Math.round(colTotals.grand / (1 + quote.admin_commission / 100)).toLocaleString()}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       </tfoot>
@@ -2041,11 +2116,18 @@ ${item.destination}
                         <div className="mt-auto flex items-end justify-between gap-4">
                           <div className="flex flex-col">
                             <span className={`text-[8px] font-black uppercase tracking-[0.2em] mb-1 transition-colors ${isSelected ? "text-white/60" : "text-text-tertiary/40"}`}>Proposal Amount</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-base font-bold italic transition-colors ${isSelected ? "text-white/40" : "text-primary/20"}`}>₱</span>
-                              <span className={`text-2xl md:text-3xl font-black tracking-tighter italic leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
-                                {pkg.total.toLocaleString()}
-                              </span>
+                            <div className="flex items-baseline gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-base font-bold italic transition-colors ${isSelected ? "text-white/40" : "text-primary/20"}`}>₱</span>
+                                <span className={`text-2xl md:text-3xl font-black tracking-tighter italic leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
+                                  {Math.round(pkg.total).toLocaleString()}
+                                </span>
+                              </div>
+                              {pkg.commissionAmount > 0 && (
+                                <span className={`text-[9px] font-bold lowercase tracking-normal transition-colors ${isSelected ? "text-amber-400" : "text-emerald-500"}`}>
+                                  + ₱{Math.round(pkg.commissionAmount).toLocaleString()} commission
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -2197,22 +2279,26 @@ ${item.destination}
                     </div>
                   ))}
 
-                  <div className="flex justify-between items-center py-6">
-                    <div className="flex items-center gap-2">
-                       <CreditCard size={12} className="text-emerald-500 opacity-40" />
-                       <span className="font-black text-[9px] uppercase tracking-widest text-text-tertiary">Discount Applied</span>
+                    <div className="flex justify-between items-center py-6 pr-4">
+                      <div className="flex items-center gap-2">
+                         <CreditCard size={12} className="text-emerald-500 opacity-40" />
+                         <span className="font-black text-[9px] uppercase tracking-widest text-text-tertiary">Discount Applied</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-black italic text-emerald-600">
+                        <span className="text-[10px]">- ₱</span>
+                        <input 
+                          type="text" 
+                          inputMode="decimal"
+                          className="w-24 text-right bg-transparent border-none focus:ring-0 p-0 pr-2 text-sm font-black italic tracking-tighter" 
+                          placeholder="0" 
+                          value={discount || ""} 
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                            setDiscount(parseFloat(val) || 0);
+                          }} 
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 font-black italic text-emerald-600">
-                      <span className="text-[10px]">- ₱</span>
-                      <input 
-                        type="number" 
-                        className="w-20 text-right bg-transparent border-none focus:ring-0 p-0 text-sm font-black italic tracking-tighter" 
-                        placeholder="0" 
-                        value={discount || ""} 
-                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} 
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -2254,28 +2340,48 @@ ${item.destination}
               </div>
             </div>
 
-            <div className="px-4 md:px-8 lg:!px-12 py-3 md:!py-4 border-t border-[#f0f2f5] bg-white flex items-center gap-2 md:gap-3 safe-bottom">
-               {initialQuotationText && (
+            <div className="px-4 md:px-6 lg:!px-10 py-4 border-t border-[#f0f2f5] bg-white flex flex-col gap-4 safe-bottom">
+               {/* Row 1: Controls */}
+               <div className="flex items-center justify-between bg-gray-50/50 rounded-xl px-4 py-2.5 border border-gray-100/50">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Quotation Text</span>
+                    <span className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest opacity-60 italic">Customize generated text</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={includeItineraryInText}
+                      onChange={(e) => setIncludeItineraryInText(e.target.checked)}
+                    />
+                    <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                    <span className="ms-2.5 text-[9px] font-black uppercase tracking-widest text-text-tertiary group-hover:text-primary transition-colors">Include Itinerary</span>
+                  </label>
+               </div>
+
+               {/* Row 2: Actions */}
+               <div className="flex items-center gap-2">
+                 {initialQuotationText && (
+                   <button 
+                     onClick={() => {
+                       setPreviewText(initialQuotationText);
+                       setIsPreviewOpen(true);
+                     }}
+                     className="h-11 px-3 bg-[#f8f9fb] border border-[#e8eaed] text-text-tertiary rounded-xl font-black text-[8px] tracking-[0.1em] uppercase hover:bg-[#f0f2f5] hover:text-primary transition-all flex items-center justify-center gap-1.5 shrink-0"
+                   >
+                     <Copy size={12} className="opacity-40" />
+                     <span>Saved Quote</span>
+                   </button>
+                 )}
                  <button 
-                   onClick={() => {
-                     setPreviewText(initialQuotationText);
-                     setIsPreviewOpen(true);
-                   }}
-                   className="h-12 px-3 md:px-5 bg-[#f8f9fb] border border-[#e8eaed] text-text-tertiary rounded-2xl font-black text-[9px] tracking-[0.1em] uppercase hover:bg-[#f0f2f5] hover:text-primary transition-all flex items-center justify-center gap-2 shrink-0"
+                   onClick={handleFinish}
+                   disabled={isSaving || quote.items.length === 0}
+                   className="flex-1 h-11 bg-primary text-white rounded-xl font-black text-[9px] tracking-[0.15em] uppercase shadow-lg shadow-primary/10 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                  >
-                   <Copy size={14} className="opacity-40" />
-                   <span className="hidden md:inline">Previously Saved Quote</span>
-                   <span className="md:hidden">Prev</span>
+                   Current Live Quote 
+                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                  </button>
-               )}
-               <button 
-                 onClick={handleFinish}
-                 disabled={isSaving || quote.items.length === 0}
-                 className="flex-1 h-12 bg-primary text-white rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-primary/10 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-               >
-                 Current Live Quote 
-                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-               </button>
+               </div>
             </div>
           </div>
         </div>
