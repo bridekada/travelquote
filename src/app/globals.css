@@ -388,80 +388,121 @@ input[type="checkbox"] {
   }
 }
 
-/* CUSTOM FLATPICKR THEME - SLEEK EMERALD */
-.flatpickr-calendar {
+/* --- GLOBAL FLATPICKR OVERRIDES (Emerald Theme) --- */
+body .flatpickr-calendar {
   background: #ffffff !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 16px !important;
   font-family: 'Inter', sans-serif !important;
-  padding: 8px !important;
+  padding: 8px 12px !important;
   margin-top: 8px !important;
-  width: 290px !important;
+  width: 360px !important; /* Increased width to fix Saturday cutoff */
+  min-width: 360px !important;
 }
 
-.flatpickr-calendar::before, .flatpickr-calendar::after {
+body .flatpickr-calendar::before, 
+body .flatpickr-calendar::after {
   display: none !important;
 }
 
-.flatpickr-day {
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
+body .flatpickr-innerContainer {
+  padding: 0 !important;
+  width: 100% !important;
 }
 
-.flatpickr-day.today {
+body .flatpickr-days, 
+body .dayContainer {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+body .flatpickr-day {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  max-width: none !important;
+  flex-basis: 14.28% !important; /* Force 7 columns */
+  height: 30px !important; /* Extremely compact */
+  line-height: 30px !important;
+  font-size: 13px !important;
+}
+
+body .flatpickr-day.today {
   border-color: #10B981 !important;
   color: #059669 !important;
 }
 
-.flatpickr-day.today:hover {
+body .flatpickr-day.today:hover {
   background: #ecfdf5 !important;
-  color: #059669 !important;
 }
 
-.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+body .flatpickr-day.selected, 
+body .flatpickr-day.startRange, 
+body .flatpickr-day.endRange {
   background: #00674F !important;
   border-color: #00674F !important;
   color: #fff !important;
   box-shadow: 0 4px 6px -1px rgba(0, 103, 79, 0.2) !important;
 }
 
-.flatpickr-day:hover {
-  background: #f1f5f9 !important;
+body .flatpickr-months {
+  padding: 0 4px !important;
 }
 
-.flatpickr-months .flatpickr-month {
+body .flatpickr-months .flatpickr-month {
   color: #0f172a !important;
   fill: #0f172a !important;
+  height: 24px !important; /* Minimal header */
 }
 
-.flatpickr-current-month .flatpickr-monthDropdown-months {
+body .flatpickr-current-month {
+  padding: 0 !important;
+  height: 24px !important;
+  line-height: 24px !important;
+}
+
+body .flatpickr-current-month .flatpickr-monthDropdown-months {
   font-weight: 700 !important;
 }
 
-.flatpickr-weekday {
+body .flatpickr-weekdaycontainer {
+  display: flex !important;
+  width: 100% !important;
+  height: 20px !important; /* Ultra-thin weekdays */
+}
+
+body .flatpickr-weekday {
   color: #94a3b8 !important;
   font-weight: 600 !important;
+  flex: 1 !important;
+  font-size: 11px !important;
 }
 
-/* Time Picker Styling */
-.flatpickr-time {
+/* Time Picker - Minimalist */
+body .flatpickr-time {
   border-top: 1px solid #f1f5f9 !important;
-  margin-top: 8px !important;
-  padding-top: 8px !important;
+  margin-top: 0px !important;
+  padding-top: 0px !important;
+  height: 28px !important;
 }
 
-.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover, 
-.flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus {
+/* Internal Container Height Fixes */
+body .flatpickr-innerContainer,
+body .flatpickr-days,
+body .dayContainer {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+body .flatpickr-time input:hover, 
+body .flatpickr-time .flatpickr-am-pm:hover, 
+body .flatpickr-time input:focus, 
+body .flatpickr-time .flatpickr-am-pm:focus {
   background: #f8fafc !important;
-}
-
-.numInputWrapper:hover {
-  background: transparent !important;
-}
-
-.flatpickr-innerContainer {
-  padding: 4px !important;
 }
 
 .date-input-compact {
