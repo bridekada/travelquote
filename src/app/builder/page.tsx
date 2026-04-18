@@ -89,13 +89,13 @@ function QuoteBuilder() {
     confirmed_at: null, items: []
   });
 
-  // Payment Tracking
   const [payments, setPayments] = useState<any[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPaymentSaving, setIsPaymentSaving] = useState(false);
 
   const fetchPayments = async () => {
     if (!quoteId) return;
-    const { data } = await supabase.from('quote_payments').select('*').eq('quote_id', quoteId).order('created_at', { ascending: false });
+    const { data } = await supabase.from('payments').select('*').eq('quote_id', quoteId).order('created_at', { ascending: false });
     if (data) setPayments(data);
   };
 
@@ -551,7 +551,8 @@ function QuoteBuilder() {
         package_options_json: livePackages
       };
 
-      if ((customStatus === 'Confirmed' || quote.status === 'Confirmed') && selectedPackageId) {
+      const isCurrentlyConfirmed = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(quote.status || '');
+      if ((customStatus === 'Confirmed' || isCurrentlyConfirmed) && selectedPackageId) {
         payload.confirmed_at = new Date().toISOString();
         const selPkg = totals.packages.find(p => p.id === selectedPackageId);
         if (selPkg) {
@@ -639,28 +640,92 @@ function QuoteBuilder() {
   };
 
   const handleAddPaymentLocal = async (data: any) => {
-    const { error } = await supabase.from('quote_payments').insert([{ quote_id: quote.id, amount: parseFloat(data.amount), payment_method: data.method, reference_number: data.reference, notes: data.notes }]);
-    if (error) return;
-    const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
-    const totalAgreed = quote.selected_package_details?.total_amount || 0;
-    const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
-    await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
-    setIsPaymentModalOpen(false); fetchPayments(); setQuote(prev => ({ ...prev, status: nextStatus }));
+    if (!quote.id) {
+      openDialog({ title: "System Error", message: "Quote ID missing. Please refresh and try again.", type: "warning" });
+      return;
+    }
+
+    setIsPaymentSaving(true);
+    try {
+      const { error } = await supabase.from('payments').insert([{ 
+        quote_id: quote.id, 
+        amount: parseFloat(data.amount), 
+        payment_method: data.method, 
+        reference_number: data.reference, 
+        notes: data.notes 
+      }]);
+
+      if (error) {
+        throw new Error(`Failed to record payment: ${error.message}`);
+      }
+
+      const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
+      const totalAgreed = quote.selected_package_details?.total_amount || 0;
+      const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
+
+      const { error: updateError } = await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+      
+      if (updateError) {
+        throw new Error(`Payment recorded but failed to update quote status: ${updateError.message}`);
+      }
+
+      setIsPaymentModalOpen(false); 
+      await fetchPayments(); 
+      setQuote(prev => ({ ...prev, status: nextStatus }));
+      openDialog({ title: "Success", message: "Payment successfully recorded.", type: "success" });
+    } catch (e: any) {
+      openDialog({ title: "Payment Error", message: e.message, type: "warning" });
+    } finally {
+      setIsPaymentSaving(true); // Keep true for a split second to prevent flicker, then false
+      setTimeout(() => setIsPaymentSaving(false), 500);
+    }
   };
 
   const handleVoidPaymentLocal = async (id: string) => {
-    if (!confirm('Void transaction?')) return;
-    await supabase.from('quote_payments').delete().eq('id', id);
-    fetchPayments();
+    openDialog({
+      title: "Void Transaction",
+      message: "Are you sure you want to permanently void this transaction record? This action will impact the billing progress and cannot be undone.",
+      type: "warning",
+      confirmText: "Void Transaction",
+      onConfirm: async () => {
+        const { error } = await supabase.from('payments').delete().eq('id', id);
+        if (error) {
+          openDialog({ title: "Error", message: error.message, type: "warning" });
+        } else {
+          // Re-fetch and reconcile status
+          const { data: remainingPayments } = await supabase.from('payments').select('amount').eq('quote_id', quote.id);
+          const totalAfterVoid = (remainingPayments || []).reduce((s, p) => s + (p.amount || 0), 0);
+          const totalAgreed = quote.selected_package_details?.total_amount || 0;
+          
+          let nextStatus: QuoteData['status'] = 'Confirmed';
+          if (totalAfterVoid >= totalAgreed && totalAgreed > 0) nextStatus = 'Payment Complete';
+          else if (totalAfterVoid > 0) nextStatus = 'Payment Started';
+
+          if (nextStatus !== quote.status) {
+            await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+            setQuote(prev => ({ ...prev, status: nextStatus }));
+          }
+          
+          fetchPayments();
+          openDialog({ title: "Transaction Voided", message: "The financial ledger has been updated.", type: "success" });
+        }
+      }
+    });
   };
 
-  if (quote.status === 'Confirmed' && !isReconfiguring) {
+  const isConfirmedView = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(quote.status || '') && !isReconfiguring;
+
+  if (isConfirmedView) {
     return (
-      <ConfirmedSummary 
-        quote={quote} onReconfigure={() => setIsReconfiguring(true)} onBack={() => router.push('/dashboard')}
-        payments={payments} isPaymentModalOpen={isPaymentModalOpen} setIsPaymentModalOpen={setIsPaymentModalOpen}
-        handleAddPayment={handleAddPaymentLocal} handleVoidPayment={handleVoidPaymentLocal}
-      />
+      <>
+        <ConfirmedSummary 
+          quote={quote} onReconfigure={() => setIsReconfiguring(true)} onBack={() => router.push('/dashboard')}
+          payments={payments} isPaymentModalOpen={isPaymentModalOpen} setIsPaymentModalOpen={setIsPaymentModalOpen}
+          handleAddPayment={handleAddPaymentLocal} handleVoidPayment={handleVoidPaymentLocal}
+          isSaving={isPaymentSaving}
+        />
+        <PremiumDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
+      </>
     );
   }
 

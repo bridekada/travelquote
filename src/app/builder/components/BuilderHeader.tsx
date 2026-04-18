@@ -74,30 +74,37 @@ export default function BuilderHeader({
 
             <div className="h-8 w-px bg-gray-100 mx-0.5 md:mx-2 hidden sm:block" />
 
-            {quoteId && status !== 'Confirmed' && itemsCount > 0 && (
-              <button 
-                onClick={onConfirm}
-                disabled={isSaving || !selectedPackageId || !customerName}
-                className="h-10 md:!h-11 px-3 md:!px-6 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-1 md:gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-30 disabled:grayscale"
-              >
-                <CheckCircle size={16} />
-                <span className="hidden md:inline">Confirm Quote</span>
-              </button>
-            )}
-
-
-            <button 
-              onClick={onSave}
-              disabled={isSaving || !customerName?.trim()}
-              className="h-10 md:!h-11 px-4 md:!px-8 bg-[#1a2138] text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-2 md:gap-3 hover:opacity-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/10"
-            >
-              {isSaving ? "Saving..." : (
+            {(() => {
+              const isConfirmedFlow = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(status);
+              
+              return (
                 <>
-                  <Save size={18} /> 
-                  <span className="hidden sm:inline">{status === 'Confirmed' ? 'Save & Update' : 'Save Quote'}</span>
+                  {quoteId && !isConfirmedFlow && itemsCount > 0 && (
+                    <button 
+                      onClick={onConfirm}
+                      disabled={isSaving || !selectedPackageId || !customerName}
+                      className="h-10 md:!h-11 px-3 md:!px-6 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-1 md:gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-30 disabled:grayscale"
+                    >
+                      <CheckCircle size={16} />
+                      <span className="hidden md:inline">Confirm Quote</span>
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={onSave}
+                    disabled={isSaving || !customerName?.trim()}
+                    className="h-10 md:!h-11 px-4 md:!px-8 bg-[#1a2138] text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-2 md:gap-3 hover:opacity-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/10"
+                  >
+                    {isSaving ? "Saving..." : (
+                      <>
+                        <Save size={18} /> 
+                        <span className="hidden sm:inline">{isConfirmedFlow ? 'Save & Update' : 'Save Quote'}</span>
+                      </>
+                    )}
+                  </button>
                 </>
-              )}
-            </button>
+              );
+            })()}
           </div>
         )}
       </div>
