@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +21,7 @@ interface AdminStats {
   totalUsers: number;
 }
 
-export default function AdminPortal() {
+export function AdminPortal() {
   const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
   const [operators, setOperators] = useState<any[]>([]);
@@ -251,16 +251,16 @@ export default function AdminPortal() {
     <div className="min-h-screen" style={{ background: 'var(--color-bg-page)' }}>
 
       {/* ── Slim Top Bar ─── */}
-      <header className="sticky top-0 z-40 w-full" style={{ background: 'white', borderBottom: '1px solid var(--color-border-default)' }}>
-        <div className="flex items-center justify-between" style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px', height: '56px' }}>
+      <header style={topBar} className="sticky top-0 z-40 w-full flex justify-center">
+        <div style={topBarInner} className="flex items-center justify-between">
           <div
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2.5 cursor-pointer group"
+            className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-all"
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-brand)', color: 'white' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: 'var(--color-brand)', color: 'white' }}>
               <LayoutGrid size={16} />
             </div>
-            <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Command Center</span>
+            <span className="text-sm md:text-base font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Command Center</span>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -285,13 +285,13 @@ export default function AdminPortal() {
       </header>
 
       {/* ── Main Content ─── */}
-      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 24px' }}>
+      <main style={pageContainer}>
 
         {/* Title */}
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+        <h1 style={pageTitle}>
           Admin Dashboard
         </h1>
-        <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '36px' }}>
+        <p style={pageSubtitle}>
           Manage operators, personnel, and system access.
         </p>
 
@@ -464,302 +464,312 @@ export default function AdminPortal() {
       </main>
 
       {/* ──────────── MODALS ──────────── */}
+      {/* ── INVITE USER MODAL ─── */}
       <AnimatePresence>
-
-        {/* ── INVITE USER MODAL ─── */}
-        {isInviting && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsInviting(false)}
-              className="absolute inset-0"
-              style={modalOverlay}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-h-[90vh] overflow-y-auto"
-              style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
-            >
-              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
-                <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="flex items-center justify-center hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                  <X size={20} />
-                </button>
-              </div>
-
-              {generatedLink ? (
-                <div className="flex flex-col" style={{ gap: '20px' }}>
-                  <div className="flex flex-col items-center text-center" style={{ padding: '24px', background: 'var(--color-brand-soft)', borderRadius: '16px' }}>
-                    <div className="flex items-center justify-center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-success)', color: 'white', marginBottom: '16px' }}>
-                      <CheckCircle size={24} />
-                    </div>
-                    <h4 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', fontSize: '15px' }}>User Profile Created</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.5, maxWidth: '220px' }}>
-                      Share the link below with the user to grant access.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Private Access URL</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 truncate" style={{ ...inputStyle, height: '42px', padding: '0 14px', background: 'var(--color-bg-subtle)', fontSize: '12px', fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
-                        {generatedLink}
-                      </div>
-                      <button
-                        onClick={copyToClipboard}
-                        className="flex items-center gap-2 transition-all"
-                        style={{ ...btnPrimary, padding: '0 20px', height: '42px', background: copied ? 'var(--color-success)' : 'var(--color-brand)' }}
-                      >
-                        {copied ? <CheckCircle size={14} /> : <Mail size={14} />}
-                        {copied ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
-                    style={{ width: '100%', height: '44px', border: '1px solid var(--color-border-default)', borderRadius: '12px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', background: 'white', fontFamily: 'inherit' }}
-                  >
-                    Done
+          {isInviting && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsInviting(false)}
+                className="absolute inset-0"
+                style={modalOverlay}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                className="relative w-full max-h-[90vh] overflow-y-auto"
+                style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
+                  <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="flex items-center justify-center hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                    <X size={20} />
                   </button>
                 </div>
-              ) : (
-                <form onSubmit={handleInviteSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div>
-                    <label style={labelStyle}>Full Name</label>
-                    <input name="fullName" type="text" style={inputStyle} placeholder="e.g. Gabriel Rossetti" required
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Email Address</label>
-                    <input name="email" type="email" style={inputStyle} placeholder="personnel@agency.com" required
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label style={labelStyle}>Operator</label>
-                      <select
-                        name="operatorId"
-                        style={{ ...inputStyle, opacity: inviteRole === 'super_admin' ? 0.5 : 1 }}
-                        required={inviteRole !== 'super_admin'}
-                        disabled={inviteRole === 'super_admin'}
-                      >
-                        <option value="">{inviteRole === 'super_admin' ? 'All Operators' : 'Select...'}</option>
-                        {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Role</label>
-                      <select
-                        name="role"
-                        style={inputStyle}
-                        required
-                        value={inviteRole}
-                        onChange={(e) => setInviteRole(e.target.value)}
-                      >
-                        <option value="operator_sales">Sales</option>
-                        <option value="operator_admin">Manager</option>
-                        <option value="super_admin">Global Admin</option>
-                      </select>
-                    </div>
-                  </div>
 
-                  {inviteRole === 'super_admin' && (
-                    <div style={{ padding: '14px 16px', background: 'var(--color-brand-soft)', borderRadius: '12px', border: '1px solid var(--color-brand-border)' }}>
-                      <p style={{ fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
-                        <strong style={{ display: 'block', marginBottom: '2px' }}>Global Admin Notice</strong>
-                        This user will have full administrative access to all operators.
+                {generatedLink ? (
+                  <div className="flex flex-col" style={{ gap: '20px' }}>
+                    <div className="flex flex-col items-center text-center" style={{ padding: '24px', background: 'var(--color-brand-soft)', borderRadius: '16px' }}>
+                      <div className="flex items-center justify-center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-success)', color: 'white', marginBottom: '16px' }}>
+                        <CheckCircle size={24} />
+                      </div>
+                      <h4 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', fontSize: '15px' }}>User Profile Created</h4>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.5, maxWidth: '220px' }}>
+                        Share the link below with the user to grant access.
                       </p>
                     </div>
-                  )}
 
-                  {inviteStatus && (
-                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: inviteStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: inviteStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                      {inviteStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                      {inviteStatus.msg}
+                    <div>
+                      <label style={{ ...labelStyle, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Private Access URL</label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 truncate" style={{ ...inputStyle, height: '42px', padding: '0 14px', background: 'var(--color-bg-subtle)', fontSize: '12px', fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
+                          {generatedLink}
+                        </div>
+                        <button
+                          onClick={copyToClipboard}
+                          className="flex items-center gap-2 transition-all"
+                          style={{ ...btnPrimary, padding: '0 20px', height: '42px', background: copied ? 'var(--color-success)' : 'var(--color-brand)' }}
+                        >
+                          {copied ? <CheckCircle size={14} /> : <Mail size={14} />}
+                          {copied ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
+                      style={{ width: '100%', height: '44px', border: '1px solid var(--color-border-default)', borderRadius: '12px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', background: 'white', fontFamily: 'inherit' }}
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleInviteSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                    <div>
+                      <label style={labelStyle}>Full Name</label>
+                      <input name="fullName" type="text" style={inputStyle} placeholder="e.g. Gabriel Rossetti" required
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Email Address</label>
+                      <input name="email" type="email" style={inputStyle} placeholder="personnel@agency.com" required
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label style={labelStyle}>Operator</label>
+                        <select
+                          name="operatorId"
+                          style={{ ...inputStyle, opacity: inviteRole === 'super_admin' ? 0.5 : 1 }}
+                          required={inviteRole !== 'super_admin'}
+                          disabled={inviteRole === 'super_admin'}
+                        >
+                          <option value="">{inviteRole === 'super_admin' ? 'All Operators' : 'Select...'}</option>
+                          {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Role</label>
+                        <select
+                          name="role"
+                          style={inputStyle}
+                          required
+                          value={inviteRole}
+                          onChange={(e) => setInviteRole(e.target.value)}
+                        >
+                          <option value="operator_sales">Sales</option>
+                          <option value="operator_admin">Manager</option>
+                          <option value="super_admin">Global Admin</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {inviteRole === 'super_admin' && (
+                      <div style={{ padding: '14px 16px', background: 'var(--color-brand-soft)', borderRadius: '12px', border: '1px solid var(--color-brand-border)' }}>
+                        <p style={{ fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
+                          <strong style={{ display: 'block', marginBottom: '2px' }}>Global Admin Notice</strong>
+                          This user will have full administrative access to all operators.
+                        </p>
+                      </div>
+                    )}
+
+                    {inviteStatus && (
+                      <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: inviteStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: inviteStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
+                        {inviteStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                        {inviteStatus.msg}
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                      style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                    >
+                      {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invite Link'}
+                    </button>
+                  </form>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ── ADD OPERATOR MODAL ─── */}
+        <AnimatePresence>
+          {isAddingOperator && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsAddingOperator(false)}
+                className="absolute inset-0"
+                style={modalOverlay}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                className="relative w-full max-h-[90vh] overflow-y-auto"
+                style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Register New Operator</h3>
+                  <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label style={labelStyle}>Agency Name</label>
+                      <input name="name" type="text" style={inputStyle} placeholder="e.g. Skyline Travel" required
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Official Website</label>
+                      <input name="website" type="text" style={inputStyle} placeholder="e.g. skyline.com"
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
+                      <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                        <Plus size={12} /> Add Channel
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
+                      {newSocialLinks.map((link, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <div className="relative flex-1">
+                            <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
+                              {getSocialIcon(link)}
+                            </div>
+                            <input
+                              name="socialLinks"
+                              type="text"
+                              style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
+                              placeholder="fb.com/page or ig.com/user"
+                              value={link}
+                              onChange={(e) => updateSocialField(idx, e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSocialField(idx)}
+                            className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                            style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                          >
+                            <Minus size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {operatorStatus && (
+                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: operatorStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: operatorStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
+                      {operatorStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                      {operatorStatus.msg}
                     </div>
                   )}
 
                   <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
                     style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
                   >
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invite Link'}
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Register Agency'}
                   </button>
                 </form>
-              )}
-            </motion.div>
-          </div>
-        )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-        {/* ── ADD OPERATOR MODAL ─── */}
-        {isAddingOperator && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsAddingOperator(false)}
-              className="absolute inset-0"
-              style={modalOverlay}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-h-[90vh] overflow-y-auto"
-              style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
-            >
-              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Register New Operator</h3>
-                <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label style={labelStyle}>Agency Name</label>
-                    <input name="name" type="text" style={inputStyle} placeholder="e.g. Skyline Travel" required
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Official Website</label>
-                    <input name="website" type="text" style={inputStyle} placeholder="e.g. skyline.com"
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
+        <AnimatePresence>
+          {isSettingsOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsSettingsOpen(false)}
+                className="absolute inset-0"
+                style={modalOverlay}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                className="relative w-full max-h-[90vh] overflow-y-auto"
+                style={{ ...modalCard, maxWidth: '400px', padding: '36px' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Account Settings</h3>
+                  <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                    <X size={20} />
+                  </button>
                 </div>
 
-                <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
-                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                      <Plus size={12} /> Add Channel
-                    </button>
+                <form onSubmit={handleUpdateProfile} className="flex flex-col" style={{ gap: '20px' }}>
+                  <div>
+                    <label style={labelStyle}>Full Name</label>
+                    <input type="text" style={inputStyle} value={newFullName} onChange={(e) => setNewFullName(e.target.value)} required
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
-                  <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
-                    {newSocialLinks.map((link, idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <div className="relative flex-1">
-                          <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
-                            {getSocialIcon(link)}
-                          </div>
-                          <input
-                            name="socialLinks"
-                            type="text"
-                            style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
-                            placeholder="fb.com/page or ig.com/user"
-                            value={link}
-                            onChange={(e) => updateSocialField(idx, e.target.value)}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeSocialField(idx)}
-                          className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                          style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
-                        >
-                          <Minus size={14} />
-                        </button>
+
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', marginBottom: '16px' }}>Security Key Setup</p>
+                    <div className="flex flex-col" style={{ gap: '14px' }}>
+                      <div>
+                        <label style={labelStyle}>New Security Key</label>
+                        <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                          onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {operatorStatus && (
-                  <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: operatorStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: operatorStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                    {operatorStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                    {operatorStatus.msg}
-                  </div>
-                )}
-
-                <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                  style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                >
-                  {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Register Agency'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-
-        {/* ── ACCOUNT SETTINGS MODAL ─── */}
-        {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsOpen(false)}
-              className="absolute inset-0"
-              style={modalOverlay}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-h-[90vh] overflow-y-auto"
-              style={{ ...modalCard, maxWidth: '400px', padding: '36px' }}
-            >
-              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Account Settings</h3>
-                <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleUpdateProfile} className="flex flex-col" style={{ gap: '20px' }}>
-                <div>
-                  <label style={labelStyle}>Full Name</label>
-                  <input type="text" style={inputStyle} value={newFullName} onChange={(e) => setNewFullName(e.target.value)} required
-                    onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                    onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                  />
-                </div>
-
-                <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                  <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', marginBottom: '16px' }}>Security Key Setup</p>
-                  <div className="flex flex-col" style={{ gap: '14px' }}>
-                    <div>
-                      <label style={labelStyle}>New Security Key</label>
-                      <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Confirm Security Key</label>
-                      <input type="password" style={inputStyle} placeholder="Re-enter to confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
+                      <div>
+                        <label style={labelStyle}>Confirm Security Key</label>
+                        <input type="password" style={inputStyle} placeholder="Re-enter to confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                          onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {passwordError && (
-                  <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: '#FEF2F2', color: 'var(--color-danger)' }}>
-                    <AlertCircle size={14} />
-                    {passwordError}
-                  </div>
-                )}
+                  {passwordError && (
+                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: '#FEF2F2', color: 'var(--color-danger)' }}>
+                      <AlertCircle size={14} />
+                      {passwordError}
+                    </div>
+                  )}
 
-                <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                  style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                >
-                  {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Update Account'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
+                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                  >
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Update Account'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={null}>
+      <AdminPortal />
+    </Suspense>
   );
 }

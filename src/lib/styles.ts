@@ -16,7 +16,7 @@ export const cardStyle: CSSProperties = {
   background: 'var(--color-bg-card)',
   border: '1px solid var(--color-border-default)',
   borderRadius: '16px',
-  padding: '14px 24px',
+  padding: '20px 24px',
   boxShadow: 'var(--shadow-xs)',
 };
 
@@ -67,11 +67,12 @@ export const btnPrimary: CSSProperties = {
   background: 'var(--color-brand)',
   color: 'white',
   border: 'none',
-  borderRadius: '12px',
-  fontWeight: 600,
+  borderRadius: '16px',
+  fontWeight: 700,
   fontSize: '14px',
   fontFamily: 'inherit',
   cursor: 'pointer',
+  transition: 'all 0.2s ease',
 };
 
 export const btnSecondary: CSSProperties = {
@@ -149,16 +150,26 @@ export const modalOverlay: CSSProperties = {
 };
 
 export const modalCard: CSSProperties = {
+  position: 'relative',
+  zIndex: 10,
   background: 'white',
   border: '1px solid var(--color-border-default)',
-  borderRadius: '24px',
-  boxShadow: '0 24px 48px rgba(0,0,0,0.12)',
+  borderRadius: '32px',
+  boxShadow: '0 32px 64px -12px rgba(15, 23, 42, 0.12)',
+  padding: '36px',
 };
 
 export const modalTitle: CSSProperties = {
   fontSize: '20px',
-  fontWeight: 700,
+  fontWeight: 800,
   color: 'var(--color-text-primary)',
+  letterSpacing: '-0.02em',
+};
+
+export const modalFormSpace: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '24px',
 };
 
 /* ── Typography ────────────────────────────────── */
@@ -174,7 +185,7 @@ export const pageTitle: CSSProperties = {
 export const pageSubtitle: CSSProperties = {
   fontSize: '14px',
   color: 'var(--color-text-muted)',
-  marginBottom: '36px',
+  marginBottom: '28px',
 };
 
 export const headingMd: CSSProperties = {
@@ -197,10 +208,17 @@ export const topBar: CSSProperties = {
 };
 
 export const topBarInner: CSSProperties = {
-  maxWidth: '860px',
-  margin: '0 auto',
-  padding: '0 24px',
-  height: '56px',
+  width: '100%',
+  padding: '0 32px',
+  height: '64px',
+};
+
+export const tabRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  marginBottom: '32px',
+  overflowX: 'auto',
 };
 
 /* ── Status / Alerts ───────────────────────────── */

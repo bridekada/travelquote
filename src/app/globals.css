@@ -371,3 +371,19 @@ input[type="checkbox"] {
   .no-print { display: none !important; }
   body { background: white !important; }
 }
+
+/* STATUS HUB DENSITY OVERRIDE */
+.status-hub-btn {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  height: 32px !important; /* Touch-friendly mobile height */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 640px) {
+  .status-hub-btn {
+    height: 22px !important; /* Surgical density for desktop */
+  }
+}

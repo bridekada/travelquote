@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble } from "lucide-react";
+import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +24,13 @@ import {
   deletePackagePreset,
   deleteGuestAccommodation
 } from "@/app/actions/operational-config";
+import {
+  cardStyle, chipGreen, chipGray, btnPrimary, btnIcon,
+  inputStyle, labelStyle, sectionLabel, headingMd,
+  modalOverlay, modalCard, modalTitle, modalFormSpace,
+  pageTitle, pageSubtitle, pageContainer, topBar, topBarInner, tabRowStyle,
+  alertSuccess, alertError, inputFocus, inputBlur,
+} from "@/lib/styles";
 
 function DashboardContent() {
   const router = useRouter();
@@ -33,6 +40,7 @@ function DashboardContent() {
   const [paymentTotals, setPaymentTotals] = useState<Record<string, number>>({});
   const confirmedStatuses = ['Confirmed', 'Payment Started', 'Payment Complete'];
   const [searchQuery, setSearchQuery] = useState("");
+  const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -334,6 +342,30 @@ function DashboardContent() {
     return matchesSearch;
   });
 
+  const filteredFleet = fleet.filter(v => 
+    v.model?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    v.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPresets = presets.filter(p => 
+    p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredMiscPresets = miscPresets.filter(m => 
+    m.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    m.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPackagePresets = packagePresets.filter(p => 
+    p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredAccommodations = accommodations.filter(a => 
+    a.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const toggleGroup = (status: string) => {
     setExpandedGroup(prev => prev === status ? null : status);
   };
@@ -353,13 +385,16 @@ function DashboardContent() {
       
       {/* ── Admin Oversight Bar ──────────────────── */}
       {isImpersonating && (
-        <div className="bg-primary text-white w-full flex justify-center py-2 text-[10px] font-bold uppercase tracking-widest z-50">
-          <div className="max-w-4xl w-full px-6 flex items-center justify-between">
+        <div 
+          className="bg-primary text-white w-full flex justify-center py-2 text-[10px] font-bold uppercase tracking-widest z-50 sticky top-0 md:relative"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          <div className="w-full px-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ShieldCheck size={12} className="text-accent" />
-              <span>Oversight: <span className="text-accent">{profile.operators?.name}</span></span>
+              <ShieldCheck size={12} className="text-white opacity-80" />
+              <span>Oversight Mode: <span className="font-black">{profile.operators?.name}</span></span>
             </div>
-            <button onClick={() => router.push('/admin')} className="flex items-center gap-1.5 hover:text-accent transition-colors">
+            <button onClick={() => router.push('/admin')} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
               <ChevronLeft size={10} /> Exit Station
             </button>
           </div>
@@ -367,24 +402,27 @@ function DashboardContent() {
       )}
 
       {/* ── Slim Top Bar ─────────────────────────── */}
-      <header className="bg-white border-b border-[#e8eaed] sticky top-0 z-40 w-full flex justify-center safe-top">
-        <div className="max-w-4xl w-full px-4 md:px-6 h-16 flex items-center justify-between">
+      <header style={topBar} className="sticky top-0 z-40 w-full flex justify-center safe-top">
+        <div style={topBarInner} className="flex items-center justify-between">
           <div 
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 md:gap-3 cursor-pointer group hover:opacity-80 transition-all min-w-0"
+            className="flex items-center gap-6 cursor-pointer group hover:opacity-80 transition-all min-w-0"
           >
-            <LayoutGrid className="text-primary group-hover:scale-110 transition-transform shrink-0" size={18} />
-            <span className="text-sm md:text-base font-bold text-primary tracking-tight truncate">TravelQuote</span>
-            <span className="text-xs text-text-tertiary hidden sm:inline">·</span>
-            <div className="text-xs font-medium text-text-secondary hidden sm:block truncate">
-              Station: <span className="text-primary font-bold">{profile?.operators?.name}</span>
+            <div className="flex items-center gap-3">
+              <LayoutGrid style={{ color: 'var(--color-brand)' }} className="group-hover:scale-110 transition-transform shrink-0" size={20} />
+              <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">Command Center</span>
+            </div>
+            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
+            <div className="text-xs font-medium text-text-muted hidden sm:block truncate">
+              Station: <span style={{ color: 'var(--color-brand)', fontWeight: 700 }}>{profile?.operators?.name}</span>
             </div>
           </div>
           
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <button 
               onClick={handleSignOut} 
-              className="h-9 w-9 rounded-lg border border-[#e8eaed] flex items-center justify-center text-text-secondary hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all cursor-pointer active:scale-90"
+              style={btnIcon}
+              className="hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all active:scale-90"
               title="Sign Out"
               aria-label="Sign Out"
             >
@@ -393,6 +431,7 @@ function DashboardContent() {
             <div 
               onClick={() => setIsSettingsOpen(true)}
               className="h-9 w-12 rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold cursor-pointer hover:ring-4 hover:ring-primary/10 transition-all active:scale-95 shadow-lg shadow-primary/10"
+              style={{ background: 'var(--color-brand)' }}
               title="Account Settings"
               role="button"
               aria-label="Account Settings"
@@ -403,20 +442,20 @@ function DashboardContent() {
         </div>
       </header>
 
-      <main className="max-w-4xl w-full px-4 md:px-6 py-8 md:py-14 flex flex-col gap-4">
+      <main style={pageContainer} className="flex flex-col gap-4">
         
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-primary mb-1 tracking-tight">
+            <h1 style={pageTitle}>
               {activeTab === 'quotes' && "Operational Station"}
-              {activeTab === 'analytics' && "Agency Insights"}
+              {activeTab === 'analytics' && "Ops Insights"}
               {activeTab === 'vehicles' && "Fleet Inventory"}
               {activeTab === 'itinerary' && "Service Presets"}
               {activeTab === 'miscellaneous' && "Miscellaneous Fees"}
               {activeTab === 'packages' && "Summary Packages"}
-          {activeTab === 'accommodation' && "Guest Accommodation"}
+              {activeTab === 'accommodation' && "Guest Accommodation"}
             </h1>
-            <p className="text-xs md:text-sm text-text-secondary">
+            <p style={pageSubtitle}>
               {activeTab === 'quotes' && "Active mission control and trip management."}
               {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
               {activeTab === 'vehicles' && "Manage your vehicles and service rates."}
@@ -429,9 +468,10 @@ function DashboardContent() {
           {activeTab === 'quotes' && (
             <button 
               onClick={() => router.push('/builder')}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <Plus size={20} />
+              <Plus size={16} strokeWidth={2.5} />
               <span className="hidden sm:inline">Issue Quote</span>
               <span className="sm:hidden">New</span>
             </button>
@@ -439,58 +479,71 @@ function DashboardContent() {
           {activeTab === 'vehicles' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingVehicle(true); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <CarFront size={20} />
+              <CarFront size={16} strokeWidth={2.5} />
               Add Vehicle
             </button>
           )}
           {activeTab === 'itinerary' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingPreset(true); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <MapIcon size={20} />
+              <MapIcon size={16} strokeWidth={2.5} />
               Define Preset
             </button>
           )}
           {activeTab === 'miscellaneous' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingMisc(true); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <Banknote size={20} />
+              <Banknote size={16} strokeWidth={2.5} />
               Add Misc Fee
             </button>
           )}
           {activeTab === 'packages' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingPackage(true); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <LayoutGrid size={20} />
+              <LayoutGrid size={16} strokeWidth={2.5} />
               Add Package
             </button>
           )}
           {activeTab === 'accommodation' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingAccommodation(true); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity shrink-0"
+              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
             >
-              <BedDouble size={20} />
+              <BedDouble size={16} strokeWidth={2.5} />
               Add Accommodation
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-snap-x pb-2" role="tablist">
-          <button onClick={() => setActiveTab('analytics')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'analytics' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Analytics</button>
-          <button onClick={() => setActiveTab('quotes')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'quotes' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Quotes</button>
-          <button onClick={() => setActiveTab('vehicles')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'vehicles' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Vehicles</button>
-          <button onClick={() => setActiveTab('accommodation')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'accommodation' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Guest Accom</button>
-          <button onClick={() => setActiveTab('itinerary')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'itinerary' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Itinerary</button>
-          <button onClick={() => setActiveTab('miscellaneous')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'miscellaneous' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Misc. Fees</button>
-          <button onClick={() => setActiveTab('packages')} className={`!px-3 !py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all shrink-0 ${activeTab === 'packages' ? 'bg-primary text-white shadow-md shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-tertiary hover:border-primary hover:text-primary'}`}>Packages</button>
+        <div style={tabRowStyle} className="no-scrollbar" role="tablist">
+          {validTabs.map(tab => (
+            <button 
+              key={tab}
+              onClick={() => setActiveTab(tab)} 
+              className={`!px-5 !py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 border`}
+              style={{
+                background: activeTab === tab ? 'var(--color-brand)' : 'white',
+                borderColor: activeTab === tab ? 'var(--color-brand)' : 'var(--color-border-default)',
+                color: activeTab === tab ? 'white' : 'var(--color-text-muted)',
+                boxShadow: activeTab === tab ? 'var(--shadow-xs)' : 'none'
+              }}
+            >
+              {tab === 'accommodation' ? 'Guest Accom' : tab === 'miscellaneous' ? 'Misc. Fees' : tab}
+            </button>
+          ))}
         </div>
 
         {activeTab !== 'analytics' && (
@@ -524,10 +577,25 @@ function DashboardContent() {
           </div>
         )}
           {activeTab === 'analytics' && (
-            <div className="flex flex-col gap-4 pt-10">
-              <div className="flex items-center gap-2 p-1.5 bg-[#f0f2f5] rounded-2xl w-fit">
-                <button onClick={() => setAnalyticsDays(7)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${analyticsDays === 7 ? 'bg-white text-primary shadow-sm' : 'text-text-tertiary hover:text-primary'}`}>Last 7 Days</button>
-                <button onClick={() => setAnalyticsDays(30)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${analyticsDays === 30 ? 'bg-white text-primary shadow-sm' : 'text-text-tertiary hover:text-primary'}`}>Last 30 Days</button>
+            <div className="flex flex-col gap-6">
+              <div 
+                style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border-default)' }}
+                className="flex items-center gap-1.5 p-1 rounded-2xl w-fit"
+              >
+                {[7, 30].map(days => (
+                  <button 
+                    key={days}
+                    onClick={() => setAnalyticsDays(days as 7 | 30)} 
+                    className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all`}
+                    style={{
+                      background: analyticsDays === days ? 'white' : 'transparent',
+                      color: analyticsDays === days ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                      boxShadow: analyticsDays === days ? 'var(--shadow-xs)' : 'none'
+                    }}
+                  >
+                    Last {days} Days
+                  </button>
+                ))}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
@@ -577,23 +645,29 @@ function DashboardContent() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-white border border-[#e8eaed] rounded-2xl !p-5 shadow-sm flex items-center justify-between">
+                <div style={cardStyle} className="!p-5 flex items-center justify-between">
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.15em] text-text-tertiary mb-0.5">Total Quotes</p>
-                    <h3 className="text-2xl font-black text-primary tracking-tight">₱{analytics.total.amount.toLocaleString()}</h3>
-                    <p className="text-[10px] font-semibold text-text-secondary mt-0.5">{analytics.total.count} Record{analytics.total.count !== 1 ? 's' : ''}</p>
+                    <p style={sectionLabel} className="mb-0.5">Total Quotes</p>
+                    <h3 style={headingMd} className="text-2xl tracking-tight">₱{analytics.total.amount.toLocaleString()}</h3>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.total.count} Record{analytics.total.count !== 1 ? 's' : ''}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{ background: '#EFF6FF', color: '#2563EB' }}
+                  >
                     <FileText size={22} />
                   </div>
                 </div>
-                <div className="bg-white border border-[#e8eaed] rounded-2xl !p-5 shadow-sm flex items-center justify-between">
+                <div style={cardStyle} className="!p-5 flex items-center justify-between">
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.15em] text-text-tertiary mb-0.5">Total Collection</p>
-                    <h3 className="text-2xl font-black text-emerald-600 tracking-tight">₱{Object.values(paymentTotals).reduce((a, b) => a + b, 0).toLocaleString()}</h3>
-                    <p className="text-[10px] font-semibold text-text-secondary mt-0.5">From {Object.values(paymentTotals).filter(v => v > 0).length} quote{Object.values(paymentTotals).filter(v => v > 0).length !== 1 ? 's' : ''}</p>
+                    <p style={sectionLabel} className="mb-0.5">Total Collection</p>
+                    <h3 style={headingMd} className="text-2xl tracking-tight !text-[var(--color-brand)]">₱{Object.values(paymentTotals).reduce((a, b) => a + b, 0).toLocaleString()}</h3>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">From {Object.values(paymentTotals).filter(v => v > 0).length} quote{Object.values(paymentTotals).filter(v => v > 0).length !== 1 ? 's' : ''}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'var(--color-brand-soft)', color: 'var(--color-brand)' }}
+                  >
                     <Banknote size={22} />
                   </div>
                 </div>
@@ -604,14 +678,14 @@ function DashboardContent() {
                   closers={analytics.leaderboard.closers} 
                 />
 
-                <div className="bg-white border border-[#f0f2f5] rounded-3xl !p-10 shadow-sm">
-                  <div className="flex items-center justify-between mb-10">
+                <div style={cardStyle} className="!p-8">
+                  <div className="flex items-center justify-between mb-8">
                     <div>
-                      <h4 className="text-lg font-bold text-primary flex items-center gap-2">
-                        <TrendingUp size={20} className="text-secondary" />
+                      <h4 style={headingMd} className="flex items-center gap-2">
+                        <TrendingUp size={20} style={{ color: 'var(--color-brand)' }} />
                         Quotation Trend Velocity
                       </h4>
-                      <p className="text-xs text-text-secondary">Daily record volume for the last {analyticsDays} days.</p>
+                      <p style={pageSubtitle} className="!mb-0">Daily record volume for the last {analyticsDays} days.</p>
                     </div>
                   </div>
                   <div className="h-[180px] w-full">
@@ -623,97 +697,88 @@ function DashboardContent() {
 
           {activeTab === 'quotes' && (
             quotes.length > 0 ? (
-              <div className="space-y-4">
-                {allStatuses.map(status => {
-                  const groupQuotes = filteredQuotes.filter(q => q.status === status);
-                  const isEmpty = groupQuotes.length === 0;
-                  
-                  const isExpanded = expandedGroup === status;
-                  const groupTotal = groupQuotes.reduce((sum, q) => sum + (q.grand_total || 0), 0);
-                  const groupPaid = groupQuotes.reduce((sum, q) => sum + (paymentTotals[q.id] || 0), 0);
-                  
-                  const dotColors: Record<string, string> = {
-                    'Draft': 'bg-slate-400',
-                    'Quotation Sent': 'bg-blue-500',
-                    'Follow-up Needed': 'bg-amber-500',
-                    'Confirmed': 'bg-emerald-500',
-                    'Payment Started': 'bg-indigo-500',
-                    'Payment Complete': 'bg-violet-500',
-                    'Lost': 'bg-gray-400',
-                    'Cancelled': 'bg-rose-500',
-                  };
-                  const bgColors: Record<string, string> = {
-                    'Draft': 'bg-slate-50',
-                    'Quotation Sent': 'bg-blue-50',
-                    'Follow-up Needed': 'bg-amber-50',
-                    'Confirmed': 'bg-emerald-50',
-                    'Payment Started': 'bg-indigo-50',
-                    'Payment Complete': 'bg-violet-50',
-                    'Lost': 'bg-gray-50',
-                    'Cancelled': 'bg-rose-50',
-                  };
+              <div className="flex flex-col gap-6">
+                {/* Status Filter Tabs */}
+                <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1 border-b border-[#f1f3f5]">
+                  {["All", ...allStatuses].map(status => {
+                    const count = status === "All" 
+                      ? filteredQuotes.length 
+                      : quotes.filter(q => q.status === status).length;
+                    const isActive = quoteStatusFilter === status;
+                    
+                    const shortNames: Record<string, string> = {
+                      'Quotation Sent': 'Sent',
+                      'Follow-up Needed': 'Follow-up',
+                      'Payment Started': 'Paying',
+                      'Payment Complete': 'Paid',
+                      'Cancelled': 'Cancelled'
+                    };
+                    const displayName = shortNames[status] || status;
 
-                  return (
-                    <div key={status} className={`rounded-2xl border border-[#e8eaed] bg-white relative ${isEmpty ? 'opacity-50' : ''}`} style={{ zIndex: allStatuses.length - allStatuses.indexOf(status) }}>
-                      <button 
-                        onClick={() => !isEmpty && toggleGroup(status)}
-                        className={`w-full flex items-center justify-between px-7 py-3 transition-colors ${isEmpty ? 'cursor-default' : 'hover:bg-[#fafbfc]'} ${isExpanded && !isEmpty ? 'border-b border-[#f0f2f5]' : ''}`}
+                    return (
+                      <button
+                        key={status}
+                        onClick={() => setQuoteStatusFilter(status)}
+                        className={`group relative pb-3 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${
+                          isActive 
+                            ? 'text-primary border-primary' 
+                            : 'text-text-tertiary border-transparent hover:text-primary hover:border-primary/30'
+                        }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${dotColors[status]}`} />
-                          <span className="text-xs font-black uppercase tracking-widest text-primary">{status}</span>
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${bgColors[status]} text-text-tertiary`}>{groupQuotes.length}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          {groupPaid > 0 && (
-                            <span className="text-[10px] font-bold text-emerald-500">Paid: ₱{groupPaid.toLocaleString()}</span>
-                          )}
-                          <span className="text-xs font-bold text-text-tertiary font-mono">₱{groupTotal.toLocaleString()}</span>
-                          <ChevronDown size={14} className={`text-text-tertiary transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <div className="flex items-center gap-1.5">
+                          {displayName}
+                          <span className={`text-[8px] font-black ${isActive ? 'text-primary' : 'text-text-tertiary/50'}`}>
+                            {status === "All" ? quotes.length : count}
+                          </span>
                         </div>
                       </button>
-                      
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            <div className="flex flex-col divide-y divide-[#f0f2f5]">
-                              {groupQuotes.map((quote: any) => {
-                                const now = new Date();
-                                const twoWeeks = new Date();
-                                twoWeeks.setDate(now.getDate() + 14);
-                                const isUrgent = !confirmedStatuses.includes(quote.status || '') && quote.status !== 'Cancelled' && quote.status !== 'Lost' && quote.eta && new Date(quote.eta) > now && new Date(quote.eta) <= twoWeeks;
+                    );
+                  })}
+                </div>
 
-                                return (
-                                  <QuoteListItem 
-                                    key={quote.id}
-                                    quoteId={quote.id}
-                                    customer={quote.customer_name} 
-                                    route={quote.vehicle_model || "Private Trip"} 
-                                    date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
-                                    status={quote.status} 
-                                    isUrgent={isUrgent}
-                                    amount={`P${quote.grand_total?.toLocaleString()}`}
-                                    totalPaid={paymentTotals[quote.id] || 0}
-                                    agent={quote.profiles?.full_name}
-                                    onClick={() => router.push(`/builder?id=${quote.id}`)}
-                                    onStatusChange={(newStatus: string) => {
-                                      setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })}
+                <div className="flex flex-col gap-3">
+                  {(() => {
+                    const displayQuotes = quoteStatusFilter === "All" 
+                      ? filteredQuotes 
+                      : filteredQuotes.filter(q => q.status === quoteStatusFilter);
+                    
+                    if (displayQuotes.length === 0) {
+                      return (
+                        <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                          <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                          <h3 className="text-sm font-bold text-primary mb-1">No matching quotes</h3>
+                          <p className="text-[10px] text-text-secondary">Try a different search term or status filter.</p>
+                        </div>
+                      );
+                    }
+
+                    return displayQuotes.map((quote: any) => {
+                      const now = new Date();
+                      const twoWeeks = new Date();
+                      twoWeeks.setDate(now.getDate() + 14);
+                      const isUrgent = !confirmedStatuses.includes(quote.status || '') && quote.status !== 'Cancelled' && quote.status !== 'Lost' && quote.eta && new Date(quote.eta) > now && new Date(quote.eta) <= twoWeeks;
+
+                      return (
+                        <QuoteListItem 
+                          key={quote.id}
+                          quoteId={quote.id}
+                          customer={quote.customer_name} 
+                          route={quote.vehicle_model || "Private Trip"} 
+                          date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
+                          status={quote.status} 
+                          isUrgent={isUrgent}
+                          amount={`₱${quote.grand_total?.toLocaleString()}`}
+                          totalPaid={paymentTotals[quote.id] || 0}
+                          agent={quote.profiles?.full_name}
+                          onClick={() => router.push(`/builder?id=${quote.id}`)}
+                          onStatusChange={(newStatus: string) => {
+                            setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
+                          }}
+                        />
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             ) : (
               <EmptyState 
@@ -727,14 +792,22 @@ function DashboardContent() {
 
           {activeTab === 'vehicles' && (
             fleet.length > 0 ? (
-              fleet.map((v: any) => (
-                <VehicleListItem 
-                  key={v.id} 
-                  vehicle={v} 
-                  onEdit={() => { setEditingItem(v); setIsAddingVehicle(true); }} 
-                  onDelete={() => handleDelete('vehicle', v.id, v.model)}
-                />
-              ))
+              filteredFleet.length > 0 ? (
+                filteredFleet.map((v: any) => (
+                  <VehicleListItem 
+                    key={v.id} 
+                    vehicle={v} 
+                    onEdit={() => { setEditingItem(v); setIsAddingVehicle(true); }} 
+                    onDelete={() => handleDelete('vehicle', v.id, v.model)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                  <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                  <h3 className="text-sm font-bold text-primary mb-1">No matching vehicles</h3>
+                  <p className="text-[10px] text-text-secondary">Try a different search term.</p>
+                </div>
+              )
             ) : (
               <EmptyState 
                 title="Fleet is empty" 
@@ -748,14 +821,22 @@ function DashboardContent() {
 
           {activeTab === 'itinerary' && (
             presets.length > 0 ? (
-              presets.map((p: any) => (
-                <PresetListItem 
-                  key={p.id} 
-                  preset={p} 
-                  onEdit={() => { setEditingItem(p); setIsAddingPreset(true); }} 
-                  onDelete={() => handleDelete('itinerary', p.id, p.title)}
-                />
-              ))
+              filteredPresets.length > 0 ? (
+                filteredPresets.map((p: any) => (
+                  <PresetListItem 
+                    key={p.id} 
+                    preset={p} 
+                    onEdit={() => { setEditingItem(p); setIsAddingPreset(true); }} 
+                    onDelete={() => handleDelete('itinerary', p.id, p.title)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                  <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                  <h3 className="text-sm font-bold text-primary mb-1">No matching presets</h3>
+                  <p className="text-[10px] text-text-secondary">Try a different search term.</p>
+                </div>
+              )
             ) : (
               <EmptyState 
                 title="No presets defined" 
@@ -769,18 +850,26 @@ function DashboardContent() {
 
           {activeTab === 'miscellaneous' && (
             miscPresets.length > 0 ? (
-              miscPresets.map((m: any) => (
-                <MiscPresetListItem 
-                  key={m.id} 
-                  preset={m} 
-                  onEdit={() => { setEditingItem(m); setIsAddingMisc(true); }} 
-                  onDelete={() => handleDelete('misc', m.id, m.name)}
-                />
-              ))
+              filteredMiscPresets.length > 0 ? (
+                filteredMiscPresets.map((m: any) => (
+                  <MiscPresetListItem 
+                    key={m.id} 
+                    preset={m} 
+                    onEdit={() => { setEditingItem(m); setIsAddingMisc(true); }} 
+                    onDelete={() => handleDelete('misc', m.id, m.name)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                  <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                  <h3 className="text-sm font-bold text-primary mb-1">No matching misc fees</h3>
+                  <p className="text-[10px] text-text-secondary">Try a different search term.</p>
+                </div>
+              )
             ) : (
               <EmptyState 
-                title="No misc fees defined" 
-                desc="Define standard fees like carwash, tolls, or permits." 
+                title="No misc fees" 
+                desc="Configure presets for ferry fares, driver meals, etc." 
                 onAction={() => { setEditingItem(null); setIsAddingMisc(true); }}
                 actionLabel="Add Misc Fee"
                 icon={<Banknote size={48} />}
@@ -790,19 +879,27 @@ function DashboardContent() {
 
           {activeTab === 'packages' && (
             packagePresets.length > 0 ? (
-              packagePresets.map((p: any) => (
-                <PackageListItem 
-                  key={p.id} 
-                  packageItem={p} 
-                  miscPresets={miscPresets}
-                  onEdit={() => { setEditingItem(p); setIsAddingPackage(true); }} 
-                  onDelete={() => handleDelete('package', p.id, p.title)}
-                />
-              ))
+              filteredPackagePresets.length > 0 ? (
+                filteredPackagePresets.map((p: any) => (
+                  <PackageListItem 
+                    key={p.id} 
+                    packageItem={p} 
+                    miscPresets={miscPresets}
+                    onEdit={() => { setEditingItem(p); setIsAddingPackage(true); }} 
+                    onDelete={() => handleDelete('package', p.id, p.title)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                  <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                  <h3 className="text-sm font-bold text-primary mb-1">No matching packages</h3>
+                  <p className="text-[10px] text-text-secondary">Try a different search term.</p>
+                </div>
+              )
             ) : (
               <EmptyState 
-                title="No packages defined" 
-                desc="Create pricing packages for faster quoting." 
+                title="No packages" 
+                desc="Bundle services into predefined quotation packages." 
                 onAction={() => { setEditingItem(null); setIsAddingPackage(true); }}
                 actionLabel="Add Package"
                 icon={<LayoutGrid size={48} />}
@@ -812,14 +909,22 @@ function DashboardContent() {
 
           {activeTab === 'accommodation' && (
             accommodations.length > 0 ? (
-              accommodations.map((a: any) => (
-                <AccommodationListItem 
-                  key={a.id} 
-                  item={a}
-                  onEdit={() => { setEditingItem(a); setIsAddingAccommodation(true); }} 
-                  onDelete={() => handleDelete('accommodation', a.id, a.name)}
-                />
-              ))
+              filteredAccommodations.length > 0 ? (
+                filteredAccommodations.map((a: any) => (
+                  <AccommodationListItem 
+                    key={a.id} 
+                    item={a}
+                    onEdit={() => { setEditingItem(a); setIsAddingAccommodation(true); }} 
+                    onDelete={() => handleDelete('accommodation', a.id, a.name)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white border border-[#e8eaed] rounded-3xl">
+                  <Search className="mx-auto mb-4 text-text-tertiary opacity-30" size={40} />
+                  <h3 className="text-sm font-bold text-primary mb-1">No matching accommodations</h3>
+                  <p className="text-[10px] text-text-secondary">Try a different search term.</p>
+                </div>
+              )
             ) : (
               <EmptyState 
                 title="No accommodations configured" 
@@ -837,6 +942,7 @@ function DashboardContent() {
         <AnimatePresence>
           {isSettingsOpen && (
             <UserSettingsModal
+              key="settings-modal"
               isOpen={isSettingsOpen}
               onClose={() => setIsSettingsOpen(false)}
               fullName={newFullName}
@@ -854,6 +960,7 @@ function DashboardContent() {
 
           {isAddingVehicle && (
             <AddVehicleModal 
+              key="vehicle-modal"
               onClose={() => setIsAddingVehicle(false)} 
               editingItem={editingItem}
               operatorId={selectedOperatorId!}
@@ -863,6 +970,7 @@ function DashboardContent() {
 
           {isAddingPreset && (
             <AddPresetModal 
+              key="preset-modal"
               onClose={() => setIsAddingPreset(false)} 
               editingItem={editingItem}
               operatorId={selectedOperatorId!}
@@ -873,6 +981,7 @@ function DashboardContent() {
 
           {isAddingMisc && (
             <AddMiscModal 
+              key="misc-modal"
               onClose={() => setIsAddingMisc(false)} 
               editingItem={editingItem}
               operatorId={selectedOperatorId!}
@@ -882,6 +991,7 @@ function DashboardContent() {
 
           {isAddingPackage && (
             <AddPackageModal 
+              key="package-modal"
               onClose={() => setIsAddingPackage(false)} 
               editingItem={editingItem}
               operatorId={selectedOperatorId!}
@@ -892,6 +1002,7 @@ function DashboardContent() {
 
           {isAddingAccommodation && (
             <AddAccommodationModal 
+              key="accommodation-modal"
               onClose={() => setIsAddingAccommodation(false)} 
               editingItem={editingItem}
               operatorId={selectedOperatorId!}
@@ -931,30 +1042,41 @@ function EmptyState({ title, desc, onAction, actionLabel, icon }: any) {
 
 function AnalyticCard({ title, value, secondaryValue, growth, icon, color, compact }: any) {
   const colors: any = {
-    emerald: 'bg-emerald-50 text-emerald-600',
-    blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600',
-    rose: 'bg-rose-50 text-rose-600',
-    primary: 'bg-primary/5 text-primary',
-    slate: 'bg-slate-100 text-slate-500',
-    indigo: 'bg-indigo-50 text-indigo-600',
-    violet: 'bg-violet-50 text-violet-600',
-    gray: 'bg-gray-100 text-gray-500',
+    emerald: { bg: 'var(--color-brand-soft)', text: 'var(--color-brand)' },
+    blue: { bg: '#EFF6FF', text: '#2563EB' },
+    amber: { bg: '#FFFBEB', text: '#D97706' },
+    rose: { bg: '#FEF2F2', text: 'var(--color-danger)' },
+    primary: { bg: 'var(--color-brand-soft)', text: 'var(--color-brand)' },
+    slate: { bg: 'var(--color-bg-subtle)', text: 'var(--color-text-muted)' },
+    indigo: { bg: '#F5F3FF', text: '#4F46E5' },
+    violet: { bg: '#F5F3FF', text: '#7C3AED' },
+    gray: { bg: 'var(--color-bg-subtle)', text: 'var(--color-text-muted)' },
   };
 
+  const theme = colors[color] || colors.slate;
+
   return (
-    <div className={`bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] ${compact ? 'rounded-2xl !p-4' : 'rounded-3xl !p-6'}`}>
+    <div style={cardStyle} className={compact ? '!p-4' : '!p-6'}>
       <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-4'}`}>
-        <div className={`${compact ? 'w-7 h-7 rounded-xl' : 'w-10 h-10 rounded-2xl'} ${colors[color]} flex items-center justify-center`}>
+        <div 
+          className={`${compact ? 'w-7 h-7 rounded-xl' : 'w-10 h-10 rounded-2xl'} flex items-center justify-center`}
+          style={{ background: theme.bg, color: theme.text }}
+        >
           {icon}
         </div>
-        <div className={`px-2 py-0.5 rounded-full font-black tracking-tighter ${compact ? 'text-[8px]' : 'text-[10px]'} ${growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+        <div 
+          className={`px-2 py-0.5 rounded-full font-bold ${compact ? 'text-[8px]' : 'text-[10px]'}`}
+          style={{ 
+            background: growth >= 0 ? 'var(--color-brand-soft)' : '#FEF2F2', 
+            color: growth >= 0 ? 'var(--color-brand)' : 'var(--color-danger)' 
+          }}
+        >
           {growth >= 0 ? '↑' : '↓'} {Math.abs(growth).toFixed(1)}%
         </div>
       </div>
-      <p className={`font-black uppercase tracking-[0.15em] text-text-tertiary ${compact ? 'text-[8px] mb-0.5' : 'text-[10px] mb-1'}`}>{title}</p>
-      <h3 className={`font-black text-primary tracking-tight leading-tight ${compact ? 'text-lg' : 'text-2xl'}`}>{value}</h3>
-      {secondaryValue && <p className={`font-semibold text-text-secondary ${compact ? 'text-[10px] mt-0.5' : 'text-xs mt-1'}`}>{secondaryValue}</p>}
+      <p style={sectionLabel} className={compact ? 'text-[8px] mb-0.5' : 'text-[10px] mb-1'}>{title}</p>
+      <h3 style={headingMd} className={compact ? 'text-lg' : 'text-2xl'}>{value}</h3>
+      {secondaryValue && <p className={`font-medium text-text-muted ${compact ? 'text-[10px] mt-0.5' : 'text-xs mt-1'}`}>{secondaryValue}</p>}
     </div>
   );
 }
@@ -964,18 +1086,18 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
     if (active && payload && payload.length) {
       return (
         <div 
-          className="bg-white/95 rounded-xl shadow-2xl shadow-primary/10 border border-[#e8eaed] backdrop-blur-md"
-          style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '20px', paddingBottom: '20px' }}
+          style={modalCard}
+          className="backdrop-blur-md !p-5"
         >
-          <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-text-tertiary mb-3">{payload[0].payload.name}</p>
+          <p style={sectionLabel} className="mb-3">{payload[0].payload.name}</p>
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-16">
-              <span className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest">Total Quotes</span>
-              <span className="text-[10px] font-extrabold text-primary">{payload[0].value}</span>
+            <div className="flex items-center justify-between gap-12">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Total Quotes</span>
+              <span className="text-[12px] font-extrabold text-primary">{payload[0].value}</span>
             </div>
-            <div className="flex items-center justify-between gap-16 border-t border-[#f0f2f5] pt-3">
-              <span className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest">Total Amount</span>
-              <span className="text-[10px] font-extrabold text-primary">P{payload[0].payload.value?.toLocaleString()}</span>
+            <div className="flex items-center justify-between gap-12 border-t border-[var(--color-border-default)] pt-3">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Total Amount</span>
+              <span className="text-[12px] font-extrabold text-primary">P{payload[0].payload.value?.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -989,34 +1111,34 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
       <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#1A5F7A" stopOpacity={0.1}/>
-            <stop offset="95%" stopColor="#1A5F7A" stopOpacity={0}/>
+            <stop offset="5%" stopColor="var(--color-brand)" stopOpacity={0.1}/>
+            <stop offset="95%" stopColor="var(--color-brand)" stopOpacity={0}/>
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f2f5" />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-default)" />
         <XAxis 
           dataKey="name" 
           axisLine={false} 
           tickLine={false} 
-          tick={{ fontSize: 10, fontWeight: 700, fill: '#9ca3af' }}
+          tick={{ fontSize: 10, fontWeight: 500, fill: 'var(--color-text-faint)' }}
           dy={10}
           minTickGap={30}
         />
         <YAxis 
           axisLine={false} 
           tickLine={false} 
-          tick={{ fontSize: 10, fontWeight: 700, fill: '#9ca3af' }}
+          tick={{ fontSize: 10, fontWeight: 500, fill: 'var(--color-text-faint)' }}
         />
         <Tooltip 
           content={<CustomTooltip />} 
-          cursor={{ stroke: '#1A5F7A', strokeWidth: 2, strokeDasharray: '5 5' }}
+          cursor={{ stroke: 'var(--color-brand)', strokeWidth: 2, strokeDasharray: '5 5' }}
           wrapperStyle={{ outline: 'none' }}
         />
         <Area 
           type="monotone" 
           dataKey="quotes" 
-          stroke="#1A5F7A" 
-          strokeWidth={4} 
+          stroke="var(--color-brand)" 
+          strokeWidth={3} 
           fillOpacity={1} 
           fill="url(#colorValue)" 
           animationDuration={1500}
@@ -1102,19 +1224,25 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   return (
     <div className="flex items-center justify-between group">
       <div className="flex items-center gap-4">
-        <div className="w-6 text-[10px] font-black text-text-tertiary opacity-30 group-hover:opacity-100 transition-opacity">
+        <div className="w-6 text-[10px] font-bold text-text-faint opacity-50 group-hover:opacity-100 transition-opacity">
           #{rank}
         </div>
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold ${isSuccess ? 'bg-emerald-50 text-emerald-600' : 'bg-primary/5 text-primary'}`}>
+        <div 
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold`}
+          style={{ 
+            background: isSuccess ? 'var(--color-brand-soft)' : 'var(--color-bg-subtle)', 
+            color: isSuccess ? 'var(--color-brand)' : 'var(--color-text-primary)' 
+          }}
+        >
           {initials}
         </div>
         <div>
-          <p className="text-sm font-bold text-primary tracking-tight">{name}</p>
-          <p className="text-[10px] text-text-tertiary font-bold tracking-widest uppercase">{subValue}</p>
+          <p style={labelStyle} className="!mb-0">{name}</p>
+          <p style={sectionLabel} className="!text-[9px]">{subValue}</p>
         </div>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-black ${isSuccess ? 'text-emerald-600' : 'text-primary'}`}>{value}</p>
+        <p className="text-sm font-bold" style={{ color: isSuccess ? 'var(--color-brand)' : 'var(--color-text-primary)' }}>{value}</p>
       </div>
     </div>
   );
@@ -1130,9 +1258,9 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
     'Follow-up Needed': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200/50', dot: 'bg-amber-500' },
     'Quoted': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200/50', dot: 'bg-blue-500' },
     'Confirmed': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200/50', dot: 'bg-emerald-500' },
-    'Lost': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200/50', dot: 'bg-gray-400' },
     'Payment Started': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200/50', dot: 'bg-indigo-500' },
     'Payment Complete': { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200/50', dot: 'bg-violet-500' },
+    'Lost': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200/50', dot: 'bg-gray-400' },
     'Cancelled': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200/50', dot: 'bg-rose-500' },
   };
 
@@ -1173,95 +1301,165 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
 
   const cfg = statusConfig[status] || { bg: 'bg-gray-50', text: 'text-gray-400', border: 'border-gray-200', dot: 'bg-gray-400' };
 
+  // Calculate initials
+  const initials = customer ? customer.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'QT';
+  
+  // Amount parsing
+  const totalAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
+  const paymentProgress = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+
+  const shortNames: Record<string, string> = {
+    'Quotation Sent': 'Sent',
+    'Follow-up Needed': 'Follow-up',
+    'Payment Started': 'Paying',
+    'Payment Complete': 'Paid',
+    'Cancelled': 'Cancelled'
+  };
+  const displayName = shortNames[status] || status;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className={`px-7 py-2.5 flex items-center justify-between hover:bg-[#fafbfc] transition-all group cursor-pointer relative ${isDropdownOpen ? 'z-50' : ''}`}
+      style={cardStyle}
+      className={`relative group cursor-pointer transition-all hover:border-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 !p-5 shadow-sm ${isDropdownOpen ? 'z-50' : 'z-0'}`}
     >
       {isUrgent && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-r" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-r shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
       )}
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="w-8 h-8 rounded-xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
-          <FileText size={14} />
+      
+      <div className="flex items-center gap-5 min-w-0 flex-1">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-primary font-black text-[10px] group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+          {initials}
         </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-primary leading-tight truncate">{customer}</h3>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">{route}</span>
-            <span className="text-text-tertiary text-[8px]">·</span>
-            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider">{date}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3">
+             <h3 style={labelStyle} className="!mb-0 truncate">{customer}</h3>
+             {isUrgent && <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest animate-pulse">Urgent</span>}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+            <span style={sectionLabel} className="!text-[9px] truncate">{route}</span>
+            <span className="text-text-tertiary">·</span>
+            <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1">
+              <Clock size={10} /> {date}
+            </span>
             {agent && (
               <>
-                <span className="text-text-tertiary text-[8px]">·</span>
-                <span className="text-[9px] font-bold text-primary/60 uppercase tracking-wider">{agent}</span>
+                <span className="text-text-tertiary">·</span>
+                <span className="text-[9px] font-bold text-primary/50 uppercase tracking-wider">{agent}</span>
               </>
             )}
           </div>
+          
+          {isConfirmedFlow && (
+            <div className="mt-2 w-full max-w-[200px]">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">Paid: {Math.round(paymentProgress)}%</span>
+              </div>
+              <div className="h-1 w-full bg-emerald-50 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(paymentProgress, 100)}%` }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      
-      <div className="flex items-center gap-4 shrink-0">
+
+      <div className="flex items-center gap-6 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
         <div className="relative">
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              e.nativeEvent.stopImmediatePropagation();
               setIsDropdownOpen(!isDropdownOpen);
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-sm cursor-pointer`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-sm`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-            {status}
-            <ChevronLeft size={8} className={`rotate-180 transition-transform ${isDropdownOpen ? '-rotate-90' : ''}`} />
+            {displayName}
+            <ChevronDown size={8} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           <AnimatePresence>
             {isDropdownOpen && (
-                <motion.div
-                  ref={dropdownRef}
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-1 z-[100] bg-white rounded-xl shadow-lg border border-[#e8eaed] min-w-[150px]"
-                  style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '4px' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p style={{ margin: 0, padding: '2px 8px', fontSize: '7px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', lineHeight: 1, height: '16px', display: 'flex', alignItems: 'center' }}>Update Status</p>
-                  {dropdownOptions.map(s => {
-                    const sCfg = statusConfig[s];
-                    const isActive = s === status;
+              <motion.div
+                ref={dropdownRef}
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 z-50 bg-white rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#eff1f4] w-[140px] py-1 px-0 overflow-hidden h-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-[1px] p-0 m-0">
+                  {(() => {
+                    const StatusItem = ({ s, activeColor }: { s: string, activeColor: string }) => {
+                      const isActive = status === s;
+                      return (
+                        <button
+                          onClick={() => handleStatusSelect(s)}
+                          className={`w-full status-hub-btn flex items-center justify-between px-2 m-0 border-0 outline-none transition-all ${
+                            isActive ? activeColor : 'text-text-secondary hover:text-text-primary'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 leading-none">
+                            <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-current' : (statusConfig[s]?.dot || 'bg-gray-400')}`} />
+                            <span className="text-[8px] font-bold leading-none truncate">{s}</span>
+                          </div>
+                          {isActive && <Check size={7} className="shrink-0" />}
+                        </button>
+                      );
+                    };
+
+                    const showPlanning = !isConfirmedFlow && !isDeadFlow;
+                    const showPayment = !isDeadFlow;
+
                     return (
-                      <button
-                        key={s}
-                        onClick={() => handleStatusSelect(s)}
-                        style={{ margin: 0, padding: '0 8px', height: '26px', minHeight: '26px', maxHeight: '26px', lineHeight: 1, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '6px', border: 'none', cursor: 'pointer', width: '100%' }}
-                        className={`transition-all ${
-                          isActive 
-                            ? `${sCfg.bg} ${sCfg.text}` 
-                            : 'text-text-secondary hover:bg-[#f8f9fb] bg-transparent'
-                        }`}
-                      >
-                        <span className={`shrink-0 ${sCfg.dot}`} style={{ width: '6px', height: '6px', borderRadius: '50%' }} />
-                        {s}
-                        {isActive && <CheckCircle size={10} style={{ marginLeft: 'auto' }} />}
-                      </button>
+                      <>
+                        {showPlanning && (
+                          <>
+                            {['Draft', 'Quotation Sent', 'Follow-up Needed'].map(s => (
+                              <StatusItem key={s} s={s} activeColor="text-primary" />
+                            ))}
+                            <div className="mx-2 my-1 border-t border-[#f1f3f5]" />
+                          </>
+                        )}
+
+                        {showPayment && (
+                          <>
+                            {['Confirmed', 'Payment Started', 'Payment Complete'].map(s => (
+                              <StatusItem key={s} s={s} activeColor="text-emerald-600" />
+                            ))}
+                            <div className="my-[1px] border-t border-[#f1f3f5]" />
+                          </>
+                        )}
+
+                        <div className="grid grid-cols-2">
+                          {['Lost', 'Cancelled'].map(s => (
+                            <button
+                              key={s}
+                              onClick={() => handleStatusSelect(s)}
+                              className={`flex items-center justify-center status-hub-btn flex-1 text-[7px] font-bold uppercase tracking-wider border-r last:border-r-0 border-[#f1f3f5] transition-all ${
+                                status === s 
+                                  ? 'bg-rose-50 text-rose-600' 
+                                  : 'text-rose-400 hover:bg-rose-50/50'
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     );
-                  })}
-                </motion.div>
+                  })()}
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
-        <div className="text-right min-w-[80px]">
+
+        <div className="text-right">
           <div className="text-sm font-bold text-primary">{amount}</div>
-          {totalPaid > 0 && (
-            <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mt-0.5">Paid: ₱{totalPaid.toLocaleString()}</p>
-          )}
+          {totalPaid > 0 && <p className="text-[9px] font-black text-emerald-500">Collected</p>}
         </div>
       </div>
     </motion.div>
@@ -1273,16 +1471,17 @@ function VehicleListItem({ vehicle, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-[#e8eaed] rounded-3xl px-4 md:!px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 hover:border-primary/40 transition-all group shadow-sm shadow-primary/[0.02]"
+      style={cardStyle}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
     >
-      <div className="flex items-center gap-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="flex items-center gap-5">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <CarFront size={18} />
         </div>
         <div>
-          <h3 className="text-[16px] font-bold text-primary leading-tight">{vehicle.model}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider">{vehicle.category}</span>
+          <h3 style={labelStyle} className="!mb-0.5">{vehicle.model}</h3>
+          <div className="flex items-center gap-2">
+            <span style={sectionLabel} className="!text-[10px]">{vehicle.category}</span>
             <span className="text-text-tertiary">·</span>
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
               <Users size={10} /> {vehicle.pax_capacity || 1} PAX
@@ -1291,10 +1490,10 @@ function VehicleListItem({ vehicle, onEdit, onDelete }: any) {
         </div>
       </div>
       
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
         <div className="text-right">
-          <div className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-0.5">Rate</div>
-          <div className="text-sm font-bold text-primary">P{vehicle.default_rate?.toLocaleString()} <span className="text-text-tertiary font-medium">/ Day</span></div>
+          <div style={sectionLabel} className="!text-[9px] mb-0.5">Daily Rate</div>
+          <div className="text-sm font-bold text-primary">₱{vehicle.default_rate?.toLocaleString()} <span className="text-text-tertiary font-medium text-[10px]">/ Day</span></div>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
@@ -1314,21 +1513,22 @@ function PresetListItem({ preset, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-[#e8eaed] rounded-3xl px-4 md:!px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 hover:border-primary/40 transition-all group shadow-sm shadow-primary/[0.02]"
+      style={cardStyle}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
     >
-      <div className="flex items-center gap-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="flex items-center gap-5 min-w-0">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <MapIcon size={18} />
         </div>
-        <div>
-          <h3 className="text-[16px] font-bold text-primary leading-tight">{preset.title}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">
+        <div className="min-w-0">
+          <h3 style={labelStyle} className="!mb-0.5 truncate">{preset.title}</h3>
+          <div className="flex items-center gap-2">
+            <span style={sectionLabel} className="!text-[10px]">
               {preset.default_km} KM DEFAULT
             </span>
           </div>
           {preset.tags && (
-             <div className="flex flex-wrap gap-1 mt-1.5">
+             <div className="flex flex-wrap gap-1 mt-2">
                 {parseTags(preset.tags).map(t => (
                   <span key={t} className="px-2 py-0.5 bg-primary/5 text-primary text-[8px] font-black uppercase tracking-wider rounded-md border border-primary/10">{t}</span>
                 ))}
@@ -1337,7 +1537,7 @@ function PresetListItem({ preset, onEdit, onDelete }: any) {
         </div>
       </div>
       
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
         <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
           <Settings size={16} />
         </button>
@@ -1354,25 +1554,26 @@ function MiscPresetListItem({ preset, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-[#e8eaed] rounded-3xl px-4 md:!px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 hover:border-primary/40 transition-all group shadow-sm shadow-primary/[0.02]"
+      style={cardStyle}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
     >
-      <div className="flex items-center gap-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="flex items-center gap-5">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <Banknote size={18} />
         </div>
         <div>
-          <h3 className="text-[16px] font-bold text-primary leading-tight">{preset.name}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider">Default</span>
+          <h3 style={labelStyle} className="!mb-0.5">{preset.name}</h3>
+          <div className="flex items-center gap-2">
+            <span style={sectionLabel} className="!text-[10px]">OPERATIONAL FEE</span>
             <span className="text-text-tertiary">·</span>
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-              P{preset.default_amount?.toLocaleString()}
+              ₱{preset.default_amount?.toLocaleString()}
             </span>
           </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 ml-auto sm:ml-0">
         <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
           <Settings size={16} />
         </button>
@@ -1399,30 +1600,31 @@ function PackageListItem({ packageItem, miscPresets, onEdit, onDelete }: { packa
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-[#e8eaed] rounded-3xl px-4 md:!px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 hover:border-primary/40 transition-all group shadow-sm shadow-primary/[0.02]"
+      style={cardStyle}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7"
     >
-      <div className="flex items-center gap-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="flex items-center gap-5 min-w-0">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <LayoutGrid size={18} />
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-[16px] font-bold text-primary leading-tight">{packageItem.title}</h3>
+            <h3 style={labelStyle} className="!mb-0 truncate">{packageItem.title}</h3>
             {packageItem.is_recommended && (
-              <div className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+              <div className="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
                 <Sparkles size={8} /> Recommended
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <div className="flex flex-wrap gap-1.5 mt-2">
             {inclusions.map((inc, i) => (
-              <span key={i} className="px-2 py-0.5 bg-[#f0f2f5] text-[9px] font-bold text-text-secondary rounded-full uppercase tracking-tight">{inc}</span>
+              <span key={i} className="px-2 py-0.5 bg-[#f0f2f5] text-[9px] font-bold text-text-tertiary rounded-md uppercase tracking-tight">{inc}</span>
             ))}
           </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
         <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
           <Settings size={16} />
         </button>
@@ -1439,56 +1641,77 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    // Basic Client-side Validation
     const model = formData.get('model') as string;
     const default_rate = formData.get('default_rate') as string;
-    if (!model || !default_rate) {
-      alert("Model and Default Rate are required.");
-      return;
-    }
-
+    if (!model || !default_rate) { alert("Model and Default Rate are required."); return; }
     setLoading(true);
     try {
       const res = await saveVehicle(formData, operatorId);
       if (res.success) onSuccess();
       else alert(res.error || "Failed to save vehicle.");
-    } catch (err: any) {
-      alert("An unexpected error occurred: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert("An error occurred: " + err.message); } 
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">{editingItem ? 'Edit Vehicle' : 'Register Vehicle'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-2xl">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>{editingItem ? 'Edit Vehicle' : 'Register Vehicle'}</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <form onSubmit={handleSubmit} style={modalFormSpace}>
           {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary">Basic Info</p>
-              <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Model Name</label><input name="model" defaultValue={editingItem?.model} className="input" style={{ height: '40px' }} placeholder="e.g. Toyota Hiace Grandia" required /></div>
-              <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Category</label><input name="category" defaultValue={editingItem?.category} className="input" style={{ height: '40px' }} placeholder="e.g. Premium Van" /></div>
-              <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Pax Capacity</label><input name="pax_capacity" type="number" defaultValue={editingItem?.pax_capacity || 10} className="input" style={{ height: '40px' }} required /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-6">
+              <p style={sectionLabel}>Basic Information</p>
+              <div className="space-y-1.5">
+                <label style={labelStyle}>Model Name</label>
+                <input name="model" defaultValue={editingItem?.model} style={inputStyle} placeholder="e.g. Toyota Hiace Grandia" required />
+              </div>
+              <div className="space-y-1.5">
+                <label style={labelStyle}>Category</label>
+                <input name="category" defaultValue={editingItem?.category} style={inputStyle} placeholder="e.g. Premium Van" />
+              </div>
+              <div className="space-y-1.5">
+                <label style={labelStyle}>Pax Capacity</label>
+                <input name="pax_capacity" type="number" defaultValue={editingItem?.pax_capacity || 10} style={inputStyle} required />
+              </div>
             </div>
-            <div className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary">Rate Configuration</p>
-              <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Daily Unit Rate</label><input name="default_rate" type="number" defaultValue={editingItem?.default_rate} className="input" style={{ height: '40px' }} placeholder="0" required /></div>
-              <p className="text-[10px] text-text-tertiary leading-relaxed mt-4 italic">This is the base price for the vehicle per day, independent of fuel or driver fees.</p>
+            
+            <div className="space-y-6">
+              <p style={sectionLabel}>Performance & Rate</p>
+              <div className="space-y-1.5">
+                <label style={labelStyle}>Daily Unit Rate (₱)</label>
+                <input name="default_rate" type="number" defaultValue={editingItem?.default_rate} style={inputStyle} placeholder="0" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1.5">
+                  <label style={labelStyle}>KM per Litre</label>
+                  <input name="km_per_l" type="number" step="0.1" defaultValue={editingItem?.km_per_l || 10} style={inputStyle} />
+                </div>
+                <div className="space-y-1.5">
+                  <label style={labelStyle}>Fuel Type</label>
+                  <select name="fuel_type" defaultValue={editingItem?.fuel_type || 'Diesel'} style={inputStyle} className="!appearance-none">
+                    <option>Diesel</option>
+                    <option>Gasoline</option>
+                  </select>
+                </div>
+              </div>
+              <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)] mt-4">
+                <p className="text-[11px] text-text-tertiary leading-relaxed italic">
+                  Note: This base price excludes fuel and driver fees, which are calculated dynamically in the builder.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#f0f2f5]">
-            <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">KM per Litre</label><input name="km_per_l" type="number" step="0.1" defaultValue={editingItem?.km_per_l || 10} className="input" style={{ height: '40px' }} /></div>
-            <div className="space-y-1.5 md:col-span-2"><label className="text-xs font-bold text-text-secondary ml-1">Fuel Type</label><select name="fuel_type" defaultValue={editingItem?.fuel_type || 'Diesel'} className="input" style={{ height: '40px' }}><option>Diesel</option><option>Gasoline</option></select></div>
-          </div>
-          <div className="pt-3 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Save Vehicle Configuration'}</button>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)] mt-2">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Vehicle Configuration'}
+            </button>
           </div>
         </form>
       </motion.div>
@@ -1500,52 +1723,62 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
 function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
   const [tags, setTags] = useState<string[]>(parseTags(editingItem?.tags));
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.append('tags', tags.join(', '));
-    
-    if (!formData.get('title')) {
-      alert("Title is required.");
-      return;
-    }
-
+    if (!formData.get('title')) { alert("Title is required."); return; }
     setLoading(true);
     try {
       const res = await saveItineraryPreset(formData, operatorId);
       if (res.success) onSuccess();
       else alert(res.error || "Failed to save preset.");
-    } catch (err: any) {
-      alert("An unexpected error occurred: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert("An error occurred: " + err.message); } 
+    finally { setLoading(false); }
   };
 
   const tagOptions = miscPresets.map((p: any) => p.name);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">{editingItem ? 'Edit Preset' : 'Define Preset'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-xl">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>{editingItem ? 'Edit Itinerary Preset' : 'Define Itinerary Preset'}</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <form onSubmit={handleSubmit} style={modalFormSpace}>
           {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Title / Pattern Name</label><input name="title" defaultValue={editingItem?.title} className="input" style={{ height: '40px' }} placeholder="e.g. CDO City Tour (Whole Day)" required /></div>
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Default KM (Optional)</label><input name="default_km" type="number" step="0.1" defaultValue={editingItem?.default_km} className="input" style={{ height: '40px' }} placeholder="e.g. 50" /></div>
           
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-text-secondary ml-1">Operational Tags (Fees)</label>
-            <TagSelector options={tagOptions} selectedTags={tags} onChange={setTags} />
-            <p className="text-[9px] text-text-tertiary italic">Tags are derived from your Miscellaneous Fees. Selecting a tag will automate that fee in the builder.</p>
+          <div className="space-y-6">
+            <p style={sectionLabel}>Primary Details</p>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Trip Title / Pattern Name</label>
+              <input name="title" defaultValue={editingItem?.title} style={inputStyle} className="font-bold" placeholder="e.g. CDO City Tour (Whole Day)" required />
+            </div>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Default Distance (KM)</label>
+              <input name="default_km" type="number" step="0.1" defaultValue={editingItem?.default_km} style={inputStyle} placeholder="e.g. 50" />
+            </div>
           </div>
 
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Standard Details (Optional)</label><textarea name="details" defaultValue={editingItem?.details} className="input h-32 pt-4" placeholder="Briefly describe the inclusions..." /></div>
-          <div className="pt-3 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Save Preset Definition'}</button>
+          <div className="pt-6 border-t border-[var(--color-border-default)]">
+            <div className="flex items-center justify-between mb-4">
+              <p style={sectionLabel}>Operational Multipliers (Auto-Fees)</p>
+              <span className="text-[10px] text-text-tertiary">Selecting a tag automates that fee in the builder</span>
+            </div>
+            <TagSelector options={tagOptions} selectedTags={tags} onChange={setTags} />
+          </div>
+
+          <div className="space-y-1.5 pt-6 border-t border-[var(--color-border-default)]">
+            <label style={labelStyle}>Standard Details (Inclusions)</label>
+            <textarea name="details" defaultValue={editingItem?.details} style={inputStyle} className="h-32 !py-4" placeholder="Briefly describe the inclusions..." />
+          </div>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)] mt-2">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Itinerary Configuration'}
+            </button>
           </div>
         </form>
       </motion.div>
@@ -1556,38 +1789,51 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
 
 function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-
     setLoading(true);
     try {
       const res = await saveMiscPreset(formData, operatorId);
       if (res.success) onSuccess();
       else alert(res.error || "Failed to save misc fee.");
-    } catch (err: any) {
-      alert("An unexpected error occurred: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert("An error occurred: " + err.message); } 
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">{editingItem ? 'Edit Misc Fee' : 'Add Misc Fee'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-lg">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>{editingItem ? 'Edit Misc Fee' : 'Add Misc Fee'}</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <form onSubmit={handleSubmit} style={modalFormSpace}>
           {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Fee Name</label><input name="name" defaultValue={editingItem?.name} className="input font-bold" style={{ height: '40px' }} placeholder="e.g. Driver Fee" required /></div>
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Default Amount (₱)</label><input name="default_amount" type="number" defaultValue={editingItem?.default_amount} className="input" style={{ height: '40px' }} placeholder="e.g. 1000" required /></div>
           
-          <p className="text-[10px] text-text-tertiary leading-relaxed italic">The "Fee Name" also serves as its Operational Tag in the builder.</p>
-          <div className="pt-3 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Save Misc Configuration'}</button>
+          <div className="space-y-6">
+            <p style={sectionLabel}>Fee Details</p>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Fee Name / Operational Tag</label>
+              <input name="name" defaultValue={editingItem?.name} style={inputStyle} className="font-bold" placeholder="e.g. Driver Fee" required />
+            </div>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Default Amount (₱)</label>
+              <input name="default_amount" type="number" defaultValue={editingItem?.default_amount} style={inputStyle} placeholder="e.g. 1000" required />
+            </div>
+          </div>
+          
+          <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)]">
+            <p className="text-[11px] text-text-tertiary leading-relaxed italic">
+              Note: The "Fee Name" acts as a linkable Tag in the itinerary builder.
+            </p>
+          </div>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)]">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Misc Configuration'}
+            </button>
           </div>
         </form>
       </motion.div>
@@ -1601,11 +1847,8 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    // Get all checked misc IDs
     const checkedMiscIds = Array.from(e.currentTarget.querySelectorAll('input[name="misc_ids"]:checked'))
       .map((el: any) => el.value);
-    
     formData.append('includes_misc_ids', JSON.stringify(checkedMiscIds));
     formData.append('operator_id', operatorId);
     if (editingItem) formData.append('id', editingItem.id);
@@ -1615,82 +1858,84 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
       const res = await savePackagePreset(formData);
       if (res.success) onSuccess();
       else alert(res.error || "Failed to save package.");
-    } catch (err: any) {
-      alert("An unexpected error occurred: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert("An error occurred: " + err.message); } 
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">{editingItem ? 'Edit Package' : 'Design Package'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-xl">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>{editingItem ? 'Edit Package Design' : 'New Package Design'}</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Package Title</label><input name="title" defaultValue={editingItem?.title} className="input font-bold" style={{ height: '40px' }} placeholder="e.g. Transport & Driver" required /></div>
-          
-          <div className="pt-4 border-t border-[#f0f2f5]">
-            <label className="flex items-center justify-between gap-3 px-1 cursor-pointer group w-full">
+        
+        <form onSubmit={handleSubmit} style={modalFormSpace}>
+          <div className="space-y-6">
+            <p style={sectionLabel}>Identity</p>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Package Title</label>
+              <input name="title" defaultValue={editingItem?.title} style={inputStyle} className="font-bold" placeholder="e.g. Transport & Driver" required />
+            </div>
+            
+            <label className="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer group w-full border border-transparent hover:border-emerald-200 transition-all">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-primary uppercase tracking-tight">Mark as Recommended</span>
-                <span className="text-[9px] text-text-tertiary">Features a badge in the Quote Builder.</span>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-tight">Mark as Recommended</span>
+                <span className="text-[10px] text-text-tertiary">Highlights this package in the builder</span>
               </div>
               <input 
                 type="checkbox" 
                 name="is_recommended" 
                 value="true" 
                 defaultChecked={editingItem?.is_recommended} 
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary shrink-0" 
+                className="w-5 h-5 rounded-lg border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
               />
             </label>
           </div>
 
-          <div className="flex flex-col gap-2 pt-4 border-t border-[#f0f2f5]">
-             <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Core Inclusions</p>
-             <div className="grid grid-cols-3 gap-2">
+          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-4">
+             <p style={sectionLabel}>Core Inclusions</p>
+             <div className="grid grid-cols-3 gap-3">
                 {[
                   { name: 'includes_vehicle', label: 'Vehicle Rate' },
                   { name: 'includes_fuel', label: 'Fuel Cost' },
                   { name: 'includes_accommodation', label: 'Guest Accom' }
                 ].map((item: any) => (
-                  <label key={item.name} className="flex items-center gap-2 px-3 py-2.5 bg-[#f8f9fb] rounded-xl cursor-pointer hover:bg-[#f0f2f5] transition-all">
+                  <label key={item.name} className="flex items-center justify-center gap-3 px-2 py-4 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer hover:bg-white border border-transparent hover:border-[var(--color-border-default)] transition-all group">
                     <input 
                       type="checkbox" 
                       name={item.name} 
                       value="true" 
                       defaultChecked={editingItem ? editingItem[item.name] : true} 
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" 
+                      className="w-4 h-4 rounded border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
                     />
-                    <span className="text-[9px] font-bold text-primary uppercase tracking-wide">{item.label}</span>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-tight opacity-70 group-hover:opacity-100">{item.label}</span>
                   </label>
                 ))}
              </div>
           </div>
 
-          <div className="flex flex-col gap-2 pt-4 border-t border-[#f0f2f5]">
-             <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Miscellaneous Inclusions</p>
-             <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-4">
+             <p style={sectionLabel}>Miscellaneous Fees</p>
+             <div className="grid grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                 {miscPresets.map((m: any) => (
-                  <label key={m.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#f8f9fb] rounded-xl cursor-pointer hover:bg-[#f0f2f5] transition-all">
+                  <label key={m.id} className="flex items-center gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer hover:bg-white border border-transparent hover:border-[var(--color-border-default)] transition-all group">
                     <input 
                       type="checkbox" 
                       name="misc_ids" 
                       value={m.id} 
                       defaultChecked={editingItem?.includes_misc_ids?.includes(m.id)} 
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" 
+                      className="w-4 h-4 rounded border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
                     />
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wide">{m.name}</span>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-tight opacity-70 group-hover:opacity-100 truncate">{m.name}</span>
                   </label>
                 ))}
              </div>
           </div>
 
-          <div className="pt-4 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">
-              {loading ? <Loader2 className="animate-spin" /> : 'Save Package Definition'}
+          <div className="pt-6 border-t border-[var(--color-border-default)]">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Package Definition'}
             </button>
           </div>
         </form>
@@ -1750,19 +1995,47 @@ function parseTags(tagStr: string | null) {
 
 function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword, setNewPassword, confirmPassword, setConfirmPassword, passwordError, role, onSave, loading }: any) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">Account Settings</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={modalCard} className="max-w-md">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>Account Settings</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={onSave} className="space-y-4">
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Full Name</label><input value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" style={{ height: '40px' }} required /></div>
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">New Password (Optional)</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input" style={{ height: '40px' }} placeholder="Min 6 characters" /></div>
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Confirm New Password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input" style={{ height: '40px' }} /></div>
-          {passwordError && <p className="text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100">{passwordError}</p>}
-          <div className="pt-3 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Update Profile'}</button>
+        
+        <form onSubmit={onSave} style={modalFormSpace}>
+          <div className="space-y-6">
+            <p style={sectionLabel}>Profile Info</p>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Full Name</label>
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} required />
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-6">
+            <p style={sectionLabel}>Security Update</p>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label style={labelStyle}>New Password (Optional)</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={inputStyle} placeholder="Min 6 characters" />
+              </div>
+              <div className="space-y-1.5">
+                <label style={labelStyle}>Confirm New Password</label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+          </div>
+          
+          {passwordError && (
+             <div style={alertError} className="p-4 rounded-2xl flex items-center gap-3">
+                <AlertCircle size={16} />
+                <p className="text-[11px] font-bold uppercase tracking-tight">{passwordError}</p>
+             </div>
+          )}
+
+          <div className="pt-6 border-t border-[var(--color-border-default)]">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Update Profile'}
+            </button>
           </div>
         </form>
       </motion.div>
@@ -1817,32 +2090,33 @@ function AccommodationListItem({ item, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-[#e8eaed] rounded-3xl px-4 md:!px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 hover:border-primary/40 transition-all group shadow-sm shadow-primary/[0.02]"
+      style={cardStyle}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
     >
-      <div className="flex items-center gap-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="flex items-center gap-5">
+        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <BedDouble size={18} />
         </div>
         <div>
-          <h3 className="text-[16px] font-bold text-primary leading-tight">{item.name}</h3>
-          <div className="flex items-center gap-2 mt-1">
+          <h3 style={labelStyle} className="!mb-0.5">{item.name}</h3>
+          <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
               <Users size={10} /> {item.pax_count} PAX
             </span>
             {item.description && (
               <>
                 <span className="text-text-tertiary">·</span>
-                <span className="text-[10px] font-medium text-text-tertiary truncate max-w-[200px]">{item.description}</span>
+                <span style={sectionLabel} className="!text-[10px] truncate max-w-[200px] normal-case tracking-normal">{item.description}</span>
               </>
             )}
           </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
         <div className="text-right">
-          <div className="text-[10px] font-black text-text-tertiary uppercase tracking-widest mb-0.5">Rate</div>
-          <div className="text-sm font-bold text-primary">₱{item.amount?.toLocaleString()} <span className="text-text-tertiary font-medium">/ Night</span></div>
+          <div style={sectionLabel} className="!text-[9px] mb-0.5">Rate</div>
+          <div className="text-sm font-bold text-primary">₱{item.amount?.toLocaleString()} <span className="text-text-tertiary font-medium text-[10px]">/ Night</span></div>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
@@ -1859,42 +2133,62 @@ function AccommodationListItem({ item, onEdit, onDelete }: any) {
 
 function AddAccommodationModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-
     setLoading(true);
     try {
       const res = await saveGuestAccommodation(formData, operatorId);
       if (res.success) onSuccess();
       else alert(res.error || "Failed to save accommodation.");
-    } catch (err: any) {
-      alert("An unexpected error occurred: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert("An error occurred: " + err.message); } 
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white rounded-3xl p-6 md:!p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-primary">{editingItem ? 'Edit Accommodation' : 'Add Accommodation'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#f0f2f5] rounded-full"><X size={24} /></button>
+    <div style={modalOverlay} className="p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-lg">
+        <div className="flex justify-between items-center mb-10">
+          <h3 style={modalTitle}>{editingItem ? 'Edit Accommodation' : 'Add Accommodation'}</h3>
+          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <form onSubmit={handleSubmit} style={modalFormSpace}>
           {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Name</label><input name="name" defaultValue={editingItem?.name} className="input font-bold" style={{ height: '40px' }} placeholder="e.g. Standard Room" required /></div>
-          <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Description</label><input name="description" defaultValue={editingItem?.description} className="input" style={{ height: '40px' }} placeholder="e.g. Twin sharing, AC, breakfast included" /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Pax Count</label><input name="pax_count" type="number" min="1" defaultValue={editingItem?.pax_count || 1} className="input" style={{ height: '40px' }} placeholder="e.g. 4" required /></div>
-            <div className="space-y-1.5"><label className="text-xs font-bold text-text-secondary ml-1">Amount (₱)</label><input name="amount" type="number" defaultValue={editingItem?.amount} className="input" style={{ height: '40px' }} placeholder="e.g. 2500" required /></div>
+          
+          <div className="space-y-6">
+            <p style={sectionLabel}>Room Configuration</p>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Room Name / Type</label>
+              <input name="name" defaultValue={editingItem?.name} style={inputStyle} className="font-bold" placeholder="e.g. Standard Room" required />
+            </div>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Brief Description</label>
+              <input name="description" defaultValue={editingItem?.description} style={inputStyle} placeholder="e.g. Twin sharing, AC, breakfast included" />
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)] grid grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Pax Threshold</label>
+              <input name="pax_count" type="number" min="1" defaultValue={editingItem?.pax_count || 1} style={inputStyle} placeholder="e.g. 4" required />
+            </div>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Rate (₱) / Night</label>
+              <input name="amount" type="number" defaultValue={editingItem?.amount} style={inputStyle} placeholder="e.g. 2500" required />
+            </div>
           </div>
           
-          <p className="text-[10px] text-text-tertiary leading-relaxed italic">Set the pax threshold for auto-matching. When building a quote, the closest accommodation (≥ pax count) is auto-selected per day.</p>
-          <div className="pt-3 border-t border-[#f0f2f5]">
-            <button type="submit" disabled={loading} className="w-full h-10 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 text-sm">{loading ? <Loader2 className="animate-spin" /> : 'Save Accommodation'}</button>
+          <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)]">
+            <p className="text-[11px] text-text-tertiary leading-relaxed italic px-1">
+              Note: The system auto-matches the closest accommodation (≥ pax count) per day in the builder.
+            </p>
+          </div>
+
+          <div className="pt-6 border-t border-[var(--color-border-default)]">
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
+              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Accommodation'}
+            </button>
           </div>
         </form>
       </motion.div>
