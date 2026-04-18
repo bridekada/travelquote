@@ -600,22 +600,24 @@ export function AdminPortal() {
         {/* ── ADD OPERATOR MODAL ─── */}
         <AnimatePresence>
           {isAddingOperator && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setIsAddingOperator(false)}
-                className="absolute inset-0"
-                style={modalOverlay}
-              />
+            <motion.div
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddingOperator(false)}
+              style={modalOverlay}
+              className="z-[100]"
+            >
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                className="relative w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
                 style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Register New Operator</h3>
+                  <h3 style={{ ...modalTitle, fontSize: '20px' }}>Register New Operator</h3>
                   <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                     <X size={20} />
                   </button>
@@ -689,28 +691,31 @@ export function AdminPortal() {
                   </button>
                 </form>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
+
         <AnimatePresence>
           {isSettingsOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setIsSettingsOpen(false)}
-                className="absolute inset-0"
-                style={modalOverlay}
-              />
+            <motion.div
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsOpen(false)}
+              style={modalOverlay}
+              className="z-[100]"
+            >
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                className="relative w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
                 style={{ ...modalCard, maxWidth: '400px', padding: '36px' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Account Settings</h3>
+                  <h3 style={{ ...modalTitle, fontSize: '20px' }}>Account Settings</h3>
                   <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                     <X size={20} />
                   </button>
@@ -759,9 +764,10 @@ export function AdminPortal() {
                   </button>
                 </form>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
+
       </div>
     );
 }

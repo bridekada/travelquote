@@ -1654,8 +1654,21 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   };
 
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-2xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>{editingItem ? 'Edit Vehicle' : 'Register Vehicle'}</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -1715,7 +1728,8 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }
 
@@ -1740,8 +1754,21 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
   const tagOptions = miscPresets.map((p: any) => p.name);
 
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>{editingItem ? 'Edit Itinerary Preset' : 'Define Itinerary Preset'}</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -1782,7 +1809,8 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }
 
@@ -1802,8 +1830,21 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   };
 
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-lg">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>{editingItem ? 'Edit Misc Fee' : 'Add Misc Fee'}</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -1837,7 +1878,8 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }
 
@@ -1863,8 +1905,21 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
   };
 
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>{editingItem ? 'Edit Package Design' : 'New Package Design'}</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -1940,7 +1995,8 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }
 
@@ -1995,8 +2051,21 @@ function parseTags(tagStr: string | null) {
 
 function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword, setNewPassword, confirmPassword, setConfirmPassword, passwordError, role, onSave, loading }: any) {
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={modalCard} className="max-w-md">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>Account Settings</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -2039,7 +2108,8 @@ function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }
 
@@ -2146,8 +2216,21 @@ function AddAccommodationModal({ onClose, editingItem, operatorId, onSuccess }: 
   };
 
   return (
-    <div style={modalOverlay} className="p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={modalCard} className="max-w-lg">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100]"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        onClick={(e) => e.stopPropagation()}
+        style={modalCard} 
+        className="max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         <div className="flex justify-between items-center mb-10">
           <h3 style={modalTitle}>{editingItem ? 'Edit Accommodation' : 'Add Accommodation'}</h3>
           <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
@@ -2192,6 +2275,7 @@ function AddAccommodationModal({ onClose, editingItem, operatorId, onSuccess }: 
           </div>
         </form>
       </motion.div>
-    </div>
+    </motion.div>
+
   );
 }

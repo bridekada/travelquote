@@ -145,9 +145,17 @@ export const sectionLabel: CSSProperties = {
 /* ── Modals ────────────────────────────────────── */
 
 export const modalOverlay: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 100,
   background: 'rgba(15, 23, 42, 0.4)',
-  backdropFilter: 'blur(4px)',
+  backdropFilter: 'blur(8px)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '24px',
 };
+
 
 export const modalCard: CSSProperties = {
   position: 'relative',
