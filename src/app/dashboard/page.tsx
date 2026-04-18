@@ -44,7 +44,7 @@ function DashboardContent() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
-  const validTabs = ['quotes', 'analytics', 'vehicles', 'itinerary', 'miscellaneous', 'packages', 'accommodation'] as const;
+  const validTabs = ['analytics', 'quotes', 'vehicles', 'itinerary', 'miscellaneous', 'packages', 'accommodation'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'analytics');
   const [tabLoading, setTabLoading] = useState(false);
@@ -349,12 +349,11 @@ function DashboardContent() {
 
   const filteredPresets = presets.filter(p => 
     p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    p.details?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredMiscPresets = miscPresets.filter(m => 
-    m.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    m.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    m.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredPackagePresets = packagePresets.filter(p => 

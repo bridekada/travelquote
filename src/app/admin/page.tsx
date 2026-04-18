@@ -4,9 +4,9 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus } from "lucide-react";
+import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { inviteOperatorUser, deletePersonnel, getAllPersonnel, updateProfile, getOperatorStats } from "@/app/actions/user-management";
+import { inviteOperatorUser, deletePersonnel, getAllPersonnel, updateProfile, getOperatorStats, updateOperator, updatePersonnel } from "@/app/actions/user-management";
 import {
   cardStyle, chipGreen, chipGray, btnPrimary, btnIcon,
   inputStyle, labelStyle, sectionLabel,
@@ -43,6 +43,9 @@ export function AdminPortal() {
   const [operatorStatus, setOperatorStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [newSocialLinks, setNewSocialLinks] = useState<string[]>(['']);
   const [formLoading, setFormLoading] = useState(false);
+  const [editingOperator, setEditingOperator] = useState<any | null>(null);
+  const [editingPersonnel, setEditingPersonnel] = useState<any | null>(null);
+  const [editStatus, setEditStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -222,6 +225,42 @@ export function AdminPortal() {
     setFormLoading(false);
   };
 
+  const handleEditOperatorSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingOperator) return;
+    setFormLoading(true);
+    setEditStatus(null);
+    const formData = new FormData(e.currentTarget);
+    
+    const res = await updateOperator(editingOperator.id, formData);
+    if (res.success) {
+      setEditStatus({ type: 'success', msg: 'Operator updated successfully!' });
+      fetchOperators();
+      setTimeout(() => setEditingOperator(null), 1500);
+    } else {
+      setEditStatus({ type: 'error', msg: res.error });
+    }
+    setFormLoading(false);
+  };
+
+  const handleEditPersonnelSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPersonnel) return;
+    setFormLoading(true);
+    setEditStatus(null);
+    const formData = new FormData(e.currentTarget);
+    
+    const res = await updatePersonnel(editingPersonnel.id, formData);
+    if (res.success) {
+      setEditStatus({ type: 'success', msg: 'Personnel updated successfully!' });
+      fetchPersonnel();
+      setTimeout(() => setEditingPersonnel(null), 1500);
+    } else {
+      setEditStatus({ type: 'error', msg: res.error });
+    }
+    setFormLoading(false);
+  };
+
   const copyToClipboard = () => {
     if (!generatedLink) return;
     navigator.clipboard.writeText(generatedLink);
@@ -366,12 +405,14 @@ export function AdminPortal() {
                 key={op.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between cursor-pointer group"
-                style={cardStyle}
-                onClick={() => handleSelectOperator(op.id)}
+                className="flex items-center justify-between group relative h-full"
+                style={{ ...cardStyle, cursor: 'default' }}
               >
-                {/* Left: Icon + Info */}
-                <div className="flex items-center gap-4">
+                {/* Left: Icon + Info (The clickable part) */}
+                <div 
+                  onClick={() => handleSelectOperator(op.id)}
+                  className="flex items-center gap-4 flex-1 cursor-pointer"
+                >
                   <div className="flex items-center justify-center shrink-0" style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--color-bg-subtle)', color: 'var(--color-text-muted)' }}>
                     <Building2 size={18} />
                   </div>
@@ -387,11 +428,22 @@ export function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Right: Chips + Arrow */}
-                <div className="flex items-center gap-2">
+                {/* Right: Chips + Actions */}
+                <div className="flex items-center gap-2 relative z-50">
                   <span style={chipGreen}>{op._quoteCount || 0} Quote{(op._quoteCount || 0) !== 1 ? 's' : ''}</span>
                   <span style={chipGray}>{op._profileCount || 0} Staff</span>
-                  <MoveRight size={16} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--color-text-faint)', marginLeft: '4px' }} />
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingOperator(op); setNewSocialLinks(op.social_links && op.social_links.length > 0 ? op.social_links : ['']); }}
+                      className="flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-slate-50 hover:text-brand pointer-events-auto"
+                      style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'white', position: 'relative', zIndex: 60 }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <div onClick={() => handleSelectOperator(op.id)} className="cursor-pointer flex items-center h-full px-1">
+                      <MoveRight size={16} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--color-text-faint)' }} />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -419,7 +471,7 @@ export function AdminPortal() {
                     key={p.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between group"
+                    className="flex items-center justify-between group relative"
                     style={cardStyle}
                   >
                     {/* Left: Avatar + Info */}
@@ -441,13 +493,22 @@ export function AdminPortal() {
                       {p.operators?.name && (
                         <span style={chipGray}>{p.operators.name}</span>
                       )}
-                      <button
-                        onClick={() => handleDeleteUser(p.id)}
-                        className="flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
-                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', marginLeft: '4px' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="flex items-center gap-1.5 transition-all opacity-0 group-hover:opacity-100 lg:ml-4 relative z-50">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingPersonnel(p); setEditStatus(null); }}
+                          className="flex items-center justify-center transition-all hover:bg-slate-50 hover:text-brand pointer-events-auto"
+                          style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'white', position: 'relative', zIndex: 60 }}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteUser(p.id); }}
+                          className="flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-500 pointer-events-auto"
+                          style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'white', position: 'relative', zIndex: 60 }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -467,22 +528,25 @@ export function AdminPortal() {
       {/* ── INVITE USER MODAL ─── */}
       <AnimatePresence>
           {isInviting && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
               <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setIsInviting(false)}
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
+                style={{ ...modalOverlay, zIndex: 0 }}
                 className="absolute inset-0"
-                style={modalOverlay}
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                className="relative w-full max-h-[90vh] overflow-y-auto"
-                style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
+                  <h3 style={modalTitle}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
                   <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="flex items-center justify-center hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                     <X size={20} />
                   </button>
@@ -598,26 +662,27 @@ export function AdminPortal() {
         </AnimatePresence>
 
         {/* ── ADD OPERATOR MODAL ─── */}
-        <AnimatePresence>
+      <AnimatePresence>
           {isAddingOperator && (
-            <motion.div
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAddingOperator(false)}
-              style={modalOverlay}
-              className="z-[100]"
-            >
+            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAddingOperator(false)}
+                style={{ ...modalOverlay, zIndex: 0 }}
+                className="absolute inset-0"
+              />
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 onClick={(e) => e.stopPropagation()}
                 className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
+                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={{ ...modalTitle, fontSize: '20px' }}>Register New Operator</h3>
+                  <h3 style={modalTitle}>Register New Operator</h3>
                   <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                     <X size={20} />
                   </button>
@@ -691,31 +756,32 @@ export function AdminPortal() {
                   </button>
                 </form>
               </motion.div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
 
 
         <AnimatePresence>
           {isSettingsOpen && (
-            <motion.div
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsOpen(false)}
-              style={modalOverlay}
-              className="z-[100]"
-            >
+            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSettingsOpen(false)}
+                style={{ ...modalOverlay, zIndex: 0 }}
+                className="absolute inset-0"
+              />
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 onClick={(e) => e.stopPropagation()}
                 className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, maxWidth: '400px', padding: '36px' }}
+                style={{ ...modalCard, zIndex: 1, maxWidth: '400px', padding: '36px' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={{ ...modalTitle, fontSize: '20px' }}>Account Settings</h3>
+                  <h3 style={modalTitle}>Account Settings</h3>
                   <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                     <X size={20} />
                   </button>
@@ -764,7 +830,188 @@ export function AdminPortal() {
                   </button>
                 </form>
               </motion.div>
-            </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {editingOperator && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => setEditingOperator(null)}
+                style={{ ...modalOverlay, zIndex: 0 }}
+                className="absolute inset-0"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                  <h3 style={modalTitle}>Edit Agency</h3>
+                  <button onClick={() => setEditingOperator(null)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleEditOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label style={labelStyle}>Agency Name</label>
+                      <input name="name" type="text" style={inputStyle} defaultValue={editingOperator.name} required
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Official Website</label>
+                      <input name="website" type="text" style={inputStyle} defaultValue={editingOperator.website}
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
+                      <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                        <Plus size={12} /> Add Channel
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
+                      {newSocialLinks.map((link, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <div className="relative flex-1">
+                            <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
+                              {getSocialIcon(link)}
+                            </div>
+                            <input
+                              name="socialLinks"
+                              type="text"
+                              style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
+                              placeholder="fb.com/page or ig.com/user"
+                              value={link}
+                              onChange={(e) => updateSocialField(idx, e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSocialField(idx)}
+                            className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                            style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                          >
+                            <Minus size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {editStatus && (
+                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: editStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: editStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
+                      {editStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                      {editStatus.msg}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                  >
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {editingPersonnel && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
+              <motion.div
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => setEditingPersonnel(null)}
+                style={{ ...modalOverlay, zIndex: 0 }}
+                className="absolute inset-0"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                  <h3 style={modalTitle}>Edit Staff Member</h3>
+                  <button onClick={() => setEditingPersonnel(null)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleEditPersonnelSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                  <div>
+                    <label style={labelStyle}>Full Name</label>
+                    <input name="fullName" type="text" style={inputStyle} defaultValue={editingPersonnel.full_name} required
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Email Address (Read-only)</label>
+                    <input name="email" type="email" style={{ ...inputStyle, background: 'var(--color-bg-subtle)', cursor: 'not-allowed' }} defaultValue={editingPersonnel.email} readOnly disabled />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label style={labelStyle}>Operator</label>
+                      <select
+                        name="operatorId"
+                        style={inputStyle}
+                        defaultValue={editingPersonnel.operator_id || ''}
+                      >
+                        <option value="">No Agency Assignment</option>
+                        {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Role</label>
+                      <select
+                        name="role"
+                        style={inputStyle}
+                        required
+                        defaultValue={editingPersonnel.role}
+                      >
+                        <option value="operator_sales">Sales</option>
+                        <option value="operator_admin">Manager</option>
+                        <option value="super_admin">Global Admin</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {editStatus && (
+                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: editStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: editStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
+                      {editStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                      {editStatus.msg}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                  >
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

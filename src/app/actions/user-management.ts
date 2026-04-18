@@ -202,3 +202,61 @@ export async function getOperatorStats() {
     return { error: error.message || 'Failed to fetch operator stats' };
   }
 }
+
+export async function updateOperator(operatorId: string, formData: FormData) {
+  const name = formData.get('name') as string;
+  const website = formData.get('website') as string;
+  const socialLinks = formData.getAll('socialLinks') as string[];
+
+  if (!operatorId || !name) return { error: 'Operator ID and name are required' };
+
+  const supabaseAdmin = getServiceSupabase();
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('operators')
+      .update({ 
+        name, 
+        website,
+        social_links: socialLinks.filter(link => link.trim() !== '')
+      })
+      .eq('id', operatorId);
+
+    if (error) throw error;
+    
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update operator' };
+  }
+}
+
+export async function updatePersonnel(userId: string, formData: FormData) {
+  const fullName = formData.get('fullName') as string;
+  const role = formData.get('role') as string;
+  const operatorId = formData.get('operatorId') as string;
+
+  if (!userId || !fullName || !role) {
+    return { error: 'Missing required fields' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        role,
+        operator_id: role === 'super_admin' ? null : (operatorId || null)
+      })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update personnel' };
+  }
+}
