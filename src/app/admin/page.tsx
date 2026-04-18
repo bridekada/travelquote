@@ -7,6 +7,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { inviteOperatorUser, deletePersonnel, getAllPersonnel, updateProfile, getOperatorStats } from "@/app/actions/user-management";
+import {
+  cardStyle, chipGreen, chipGray, btnPrimary, btnIcon,
+  inputStyle, labelStyle, sectionLabel,
+  modalOverlay, modalCard, modalTitle,
+  pageTitle, pageSubtitle, pageContainer, topBar, topBarInner,
+  alertSuccess, alertError, inputFocus, inputBlur,
+} from "@/lib/styles";
 
 interface AdminStats {
   totalQuotes: number;
@@ -18,7 +25,7 @@ export default function AdminPortal() {
   const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
   const [operators, setOperators] = useState<any[]>([]);
-  const [operatorConfirmed, setOperatorConfirmed] = useState<Record<string, { count: number; total: number }>>({}); 
+  const [operatorConfirmed, setOperatorConfirmed] = useState<Record<string, { count: number; total: number }>>({});
   const [personnel, setPersonnel] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [personnelLoading, setPersonnelLoading] = useState(true);
@@ -67,7 +74,7 @@ export default function AdminPortal() {
         .select('operator_id, grand_total, status')
         .in('operator_id', opIds)
         .in('status', confirmedStatuses);
-      
+
       const lookup: Record<string, { count: number; total: number }> = {};
       (confirmedQuotes || []).forEach((q: any) => {
         if (!lookup[q.operator_id]) lookup[q.operator_id] = { count: 0, total: 0 };
@@ -115,11 +122,9 @@ export default function AdminPortal() {
     setPasswordError("");
 
     try {
-      // 1. Update Profile (Name)
       const res = await updateProfile(profile.id, { fullName: newFullName });
       if (res.error) throw new Error(res.error);
 
-      // 2. Update Password if provided
       if (newPassword) {
         if (newPassword !== confirmPassword) {
           throw new Error("Passwords do not match");
@@ -143,7 +148,6 @@ export default function AdminPortal() {
   };
 
   const handleSelectOperator = (id: string) => {
-    // Update localStorage FIRST so useAuth picks up the correct operator
     localStorage.setItem('selected_operator_id', id);
     supabase.from('profiles').update({ operator_id: id }).eq('id', profile?.id).then(() => {
       window.location.href = "/dashboard";
@@ -155,11 +159,10 @@ export default function AdminPortal() {
     setFormLoading(true);
     setOperatorStatus(null);
     const formData = new FormData(e.currentTarget);
-    // Social links are already in the form as multiple 'socialLinks' inputs
-    
+
     const { createOperator } = await import('@/app/actions/user-management');
     const res = await createOperator(formData);
-    
+
     if (res.success) {
       setOperatorStatus({ type: 'success', msg: 'Operator created successfully!' });
       fetchOperators();
@@ -195,13 +198,14 @@ export default function AdminPortal() {
     if (lower.includes('linkedin.com')) return <User2 size={12} />;
     return <Globe size={12} />;
   };
+
   const handleInviteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormLoading(true);
     setInviteStatus(null);
     const formData = new FormData(e.currentTarget);
     formData.append('manual', isManualLink.toString());
-    
+
     const result = await inviteOperatorUser(formData);
     if (result.success) {
       if (result.link) {
@@ -234,49 +238,45 @@ export default function AdminPortal() {
     p.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <Loader2 className="animate-spin text-primary" size={32} />
+      <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-bg-page)' }}>
+        <Loader2 className="animate-spin" size={28} style={{ color: 'var(--color-brand)' }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex flex-col items-center">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-page)' }}>
 
-      {/* ── Slim Top Bar ─────────────────────────── */}
-      <header className="bg-white border-b border-[#e8eaed] sticky top-0 z-40 w-full flex justify-center safe-top">
-        <div className="max-w-4xl w-full px-4 md:px-6 h-16 flex items-center justify-between">
-          <div 
+      {/* ── Slim Top Bar ─── */}
+      <header className="sticky top-0 z-40 w-full" style={{ background: 'white', borderBottom: '1px solid var(--color-border-default)' }}>
+        <div className="flex items-center justify-between" style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px', height: '56px' }}>
+          <div
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 md:gap-3 cursor-pointer group hover:opacity-80 transition-all min-w-0"
+            className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
-              <LayoutGrid size={18} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--color-brand)', color: 'white' }}>
+              <LayoutGrid size={16} />
             </div>
-            <span className="text-sm md:text-base font-bold text-primary tracking-tight truncate">Command Center</span>
-            <span className="text-xs text-text-tertiary hidden sm:inline">·</span>
-            <div className="items-center gap-1.5 hidden sm:flex">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-xs text-text-tertiary">Online</span>
-            </div>
+            <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Command Center</span>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => { supabase.auth.signOut(); router.push("/"); }}
-              className="h-9 w-9 rounded-lg border border-[#e8eaed] flex items-center justify-center text-text-secondary hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all cursor-pointer active:scale-90"
+              className="flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-500"
+              style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
               title="Sign Out"
-              aria-label="Sign Out"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
             </button>
-            <div 
+            <div
               onClick={() => setIsSettingsOpen(true)}
-              className="h-9 w-12 rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold cursor-pointer hover:ring-4 hover:ring-primary/10 transition-all active:scale-95 shadow-lg shadow-primary/10"
+              className="flex items-center justify-center text-white cursor-pointer transition-all active:scale-95"
+              style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--color-brand)', fontSize: '11px', fontWeight: 700 }}
               title="Account Settings"
               role="button"
-              aria-label="Account Settings"
             >
               {profile?.full_name?.substring(0, 2).toUpperCase()}
             </div>
@@ -284,49 +284,61 @@ export default function AdminPortal() {
         </div>
       </header>
 
-      {/* ── Main Content ─────────────────────────── */}
-      <main className="max-w-4xl w-full px-4 md:px-6 py-8 md:py-14">
+      {/* ── Main Content ─── */}
+      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 24px' }}>
 
         {/* Title */}
-        <h1 className="text-2xl font-bold text-primary mb-1 tracking-tight">Admin Dashboard</h1>
-        <p className="text-sm text-text-secondary mb-10">Manage operators, personnel, and system access.</p>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+          Admin Dashboard
+        </h1>
+        <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '36px' }}>
+          Manage operators, personnel, and system access.
+        </p>
 
-        {/* Search Bar Row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6 md:mb-10">
+        {/* Search + Action */}
+        <div className="flex items-center gap-3" style={{ marginBottom: '28px' }}>
           <div className="relative flex-1">
-            <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
+            <Search className="absolute top-1/2 -translate-y-1/2" size={18} style={{ left: '16px', color: 'var(--color-text-faint)' }} />
             <input
               type="text"
               placeholder={activeTab === 'operators' ? "Search operators..." : "Search personnel..."}
-              className="w-full bg-white border border-[#e8eaed] rounded-xl py-3 md:py-4 !pl-12 md:!pl-16 pr-4 text-sm focus:outline-none focus:border-primary transition-colors focus:bg-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: '44px', height: '48px', background: 'white' }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
           {activeTab === 'personnel' ? (
             <button
               onClick={() => { setIsInviting(true); setGeneratedLink(null); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+              style={{ ...btnPrimary, height: '48px', padding: '0 24px', whiteSpace: 'nowrap' }}
             >
-              <UserPlus size={20} />
-              Invite User
+              <UserPlus size={16} />
+              <span>Invite User</span>
             </button>
           ) : (
             <button
               onClick={() => { setIsAddingOperator(true); setOperatorStatus(null); }}
-              className="h-12 md:!h-14 px-6 md:!px-10 bg-primary text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+              style={{ ...btnPrimary, height: '48px', padding: '0 24px', whiteSpace: 'nowrap' }}
             >
-              <Building2 size={20} />
-              Add Operator
+              <Plus size={16} />
+              <span>Add Operator</span>
             </button>
           )}
         </div>
 
         {/* Tab Pills */}
-        <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8" role="tablist">
+        <div className="flex items-center gap-2" style={{ marginBottom: '24px' }} role="tablist">
           <button
             onClick={() => { setActiveTab('operators'); setSearchQuery(''); }}
-            className={`px-6 md:!px-10 !py-3 rounded-full text-sm font-medium transition-all ${activeTab === 'operators' ? 'bg-primary text-white shadow-lg shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-secondary hover:border-primary hover:text-primary'}`}
+            className="transition-all"
+            style={activeTab === 'operators'
+              ? { ...btnPrimary, padding: '8px 24px', borderRadius: '9999px', fontSize: '13px' }
+              : { padding: '8px 24px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, background: 'white', border: '1px solid var(--color-border-default)', color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'inherit' }
+            }
             role="tab"
             aria-selected={activeTab === 'operators'}
           >
@@ -334,7 +346,11 @@ export default function AdminPortal() {
           </button>
           <button
             onClick={() => { setActiveTab('personnel'); setSearchQuery(''); }}
-            className={`px-6 md:!px-10 !py-3 rounded-full text-sm font-medium transition-all ${activeTab === 'personnel' ? 'bg-primary text-white shadow-lg shadow-primary/10' : 'bg-white border border-[#e8eaed] text-text-secondary hover:border-primary hover:text-primary'}`}
+            className="transition-all"
+            style={activeTab === 'personnel'
+              ? { ...btnPrimary, padding: '8px 24px', borderRadius: '9999px', fontSize: '13px' }
+              : { padding: '8px 24px', borderRadius: '9999px', fontSize: '13px', fontWeight: 500, background: 'white', border: '1px solid var(--color-border-default)', color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'inherit' }
+            }
             role="tab"
             aria-selected={activeTab === 'personnel'}
           >
@@ -342,149 +358,102 @@ export default function AdminPortal() {
           </button>
         </div>
 
-        {/* Results summary */}
-        <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-text-secondary">
-            {activeTab === 'operators' ? (
-              <>Showing <span className="font-bold text-primary">{filteredOperators.length}</span> operator{filteredOperators.length !== 1 && 's'}</>
-            ) : (
-              <>Showing <span className="font-bold text-primary">{filteredPersonnel.length}</span> team member{filteredPersonnel.length !== 1 && 's'}</>
-            )}
-          </p>
-          <div className="flex items-center gap-4 text-xs text-text-tertiary">
-            <span><span className="font-bold text-primary">{stats.totalQuotes}</span> quotes</span>
-            <span><span className="font-bold text-primary">{stats.totalUsers}</span> staff</span>
-          </div>
-        </div>
-
-        {/* ── OPERATORS LIST ──────────────────────── */}
+        {/* ── OPERATORS LIST ─── */}
         {activeTab === 'operators' && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {filteredOperators.map((op) => (
               <motion.div
                 key={op.id}
-                initial={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-[#e8eaed] rounded-xl px-4 md:px-6 py-3 flex items-center justify-between hover:border-primary/40 transition-colors group cursor-pointer shadow-sm shadow-primary/[0.02]"
+                className="flex items-center justify-between cursor-pointer group"
+                style={cardStyle}
                 onClick={() => handleSelectOperator(op.id)}
               >
                 {/* Left: Icon + Info */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
-                    <Building2 size={16} />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center shrink-0" style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--color-bg-subtle)', color: 'var(--color-text-muted)' }}>
+                    <Building2 size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-primary leading-tight">{op.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.3 }}>{op.name}</h3>
+                    <div className="flex items-center gap-1.5" style={{ marginTop: '2px' }}>
                       {op.website && (
-                        <a 
-                          href={op.website.startsWith('http') ? op.website : `https://${op.website}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-5 px-2 bg-[#f0f2f5] rounded-full text-[8px] font-bold text-primary hover:border-primary border border-transparent transition-all flex items-center gap-1"
-                        >
-                          <Globe size={9} />
-                          Website
-                        </a>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>Website</span>
                       )}
-                      
-                      {op.social_links && Array.isArray(op.social_links) && (
-                        <div className="flex items-center gap-1">
-                          {op.social_links.map((link: string, i: number) => (
-                            <a
-                              key={i}
-                              href={link.startsWith('http') ? link : `https://${link}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-5 h-5 bg-white border border-[#e8eaed] rounded-full flex items-center justify-center text-text-tertiary hover:text-primary transition-colors"
-                              title={link}
-                            >
-                              {getSocialIcon(link)}
-                            </a>
-                          ))}
-                        </div>
-                      )}
+                      {op.website && <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>·</span>}
+                      <span style={{ fontSize: '12px', color: 'var(--color-success)' }}>Active</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Stats + Arrow */}
-                <div className="flex items-center gap-6">
-                  <div className="text-right hidden sm:block">
-                    <div className="text-xs font-bold text-primary">{op._quoteCount || 0} quotes</div>
-                    <div className="text-[10px] text-text-tertiary">{op._profileCount || 0} personnel</div>
-                  </div>
-                  {(operatorConfirmed[op.id]?.count || 0) > 0 && (
-                    <div className="text-right hidden sm:block border-l border-[#f0f2f5] pl-4">
-                      <div className="text-xs font-bold text-emerald-600">{operatorConfirmed[op.id].count} confirmed</div>
-                      <div className="text-[10px] font-bold text-emerald-500/70">₱{operatorConfirmed[op.id].total.toLocaleString()}</div>
-                    </div>
-                  )}
-                  <MoveRight size={16} className="text-text-tertiary group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                {/* Right: Chips + Arrow */}
+                <div className="flex items-center gap-2">
+                  <span style={chipGreen}>{op._quoteCount || 0} Quote{(op._quoteCount || 0) !== 1 ? 's' : ''}</span>
+                  <span style={chipGray}>{op._profileCount || 0} Staff</span>
+                  <MoveRight size={16} className="transition-transform group-hover:translate-x-1" style={{ color: 'var(--color-text-faint)', marginLeft: '4px' }} />
                 </div>
               </motion.div>
             ))}
 
             {filteredOperators.length === 0 && (
-              <div className="text-center py-16 text-sm text-text-tertiary">
+              <div className="text-center" style={{ padding: '64px 0', fontSize: '14px', color: 'var(--color-text-faint)' }}>
                 No operators match your search.
               </div>
             )}
           </div>
         )}
 
-        {/* ── PERSONNEL LIST ──────────────────────── */}
+        {/* ── PERSONNEL LIST ─── */}
         {activeTab === 'personnel' && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {personnelLoading ? (
-              <div className="text-center py-16">
-                <Loader2 className="animate-spin text-text-tertiary mx-auto mb-3" size={24} />
-                <p className="text-sm text-text-tertiary">Loading personnel...</p>
+              <div className="text-center" style={{ padding: '64px 0' }}>
+                <Loader2 className="animate-spin mx-auto" size={24} style={{ color: 'var(--color-text-faint)', marginBottom: '12px' }} />
+                <p style={{ fontSize: '14px', color: 'var(--color-text-faint)' }}>Loading personnel...</p>
               </div>
             ) : (
               <>
                 {filteredPersonnel.map((p) => (
                   <motion.div
                     key={p.id}
-                    initial={{ opacity: 0, y: 4 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-[#e8eaed] rounded-xl px-4 md:px-6 py-3 flex items-center justify-between group shadow-sm shadow-primary/[0.02]"
+                    className="flex items-center justify-between group"
+                    style={cardStyle}
                   >
                     {/* Left: Avatar + Info */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center text-white uppercase shrink-0" style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--color-brand)', fontSize: '12px', fontWeight: 700 }}>
                         {p.full_name?.substring(0, 2)}
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-primary leading-tight">{p.full_name}</h3>
-                        <p className="text-[10px] text-text-tertiary mt-0.5">{p.email}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-2">
-                        <span className={`text-[9px] font-medium px-2 py-0.5 rounded-full capitalize ${p.role === 'super_admin' ? 'bg-primary text-white shadow-sm shadow-primary/20' : 'bg-accent/10 text-accent'}`}>
-                          {p.role === 'super_admin' ? 'Global Admin' : (p.role === 'operator_admin' ? 'Manager' : 'Sales')}
-                        </span>
-                        {p.operators?.name ? (
-                          <span className="text-[9px] font-medium bg-[#f0f2f5] text-text-secondary px-2 py-0.5 rounded-full">{p.operators.name}</span>
-                        ) : p.role === 'super_admin' && (
-                          <span className="text-[9px] font-medium bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">Platform</span>
-                        )}
+                        <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.3 }}>{p.full_name}</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--color-text-faint)', marginTop: '2px' }}>{p.email}</p>
                       </div>
                     </div>
 
-                    {/* Right: Delete */}
-                    <button
-                      onClick={() => handleDeleteUser(p.id)}
-                      className="h-8 w-8 rounded-lg border border-[#e8eaed] flex items-center justify-center text-text-tertiary hover:border-error hover:text-error hover:bg-error/5 transition-all opacity-0 group-hover:opacity-100 shrink-0"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {/* Right: Role + Operator + Delete */}
+                    <div className="flex items-center gap-2">
+                      <span style={p.role === 'super_admin' ? chipGreen : chipGray}>
+                        {p.role === 'super_admin' ? 'Global Admin' : (p.role === 'operator_admin' ? 'Manager' : 'Sales')}
+                      </span>
+                      {p.operators?.name && (
+                        <span style={chipGray}>{p.operators.name}</span>
+                      )}
+                      <button
+                        onClick={() => handleDeleteUser(p.id)}
+                        className="flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', marginLeft: '4px' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </motion.div>
                 ))}
 
                 {filteredPersonnel.length === 0 && (
-                  <div className="text-center py-16 text-sm text-text-tertiary">
+                  <div className="text-center" style={{ padding: '64px 0', fontSize: '14px', color: 'var(--color-text-faint)' }}>
                     No personnel found. Use &ldquo;Invite User&rdquo; to add team members.
                   </div>
                 )}
@@ -494,79 +463,90 @@ export default function AdminPortal() {
         )}
       </main>
 
-      {/* ── MODALS ───────────────────────────────── */}
+      {/* ──────────── MODALS ──────────── */}
       <AnimatePresence>
+
+        {/* ── INVITE USER MODAL ─── */}
         {isInviting && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsInviting(false)}
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              className="absolute inset-0"
+              style={modalOverlay}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl p-6 md:!p-12 shadow-2xl border border-[#e8eaed] max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-h-[90vh] overflow-y-auto"
+              style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-primary">{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
-                <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="text-text-tertiary hover:text-primary">
+              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
+                <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="flex items-center justify-center hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                   <X size={20} />
                 </button>
               </div>
 
               {generatedLink ? (
-                <div className="space-y-6 py-4">
-                  <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
+                <div className="flex flex-col" style={{ gap: '20px' }}>
+                  <div className="flex flex-col items-center text-center" style={{ padding: '24px', background: 'var(--color-brand-soft)', borderRadius: '16px' }}>
+                    <div className="flex items-center justify-center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-success)', color: 'white', marginBottom: '16px' }}>
                       <CheckCircle size={24} />
                     </div>
-                    <h4 className="text-emerald-900 font-bold mb-1">User Profile Created</h4>
-                    <p className="text-emerald-700/70 text-[11px] leading-relaxed max-w-[200px]">
-                      The profile is ready. Share the link below with the user to grant access.
+                    <h4 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', fontSize: '15px' }}>User Profile Created</h4>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.5, maxWidth: '220px' }}>
+                      Share the link below with the user to grant access.
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1">Private Access URL</label>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Private Access URL</label>
                     <div className="flex gap-2">
-                      <div className="flex-1 bg-[#f0f2f5] rounded-xl px-4 py-3 text-xs font-mono text-text-secondary truncate border border-[#e8eaed]">
+                      <div className="flex-1 truncate" style={{ ...inputStyle, height: '42px', padding: '0 14px', background: 'var(--color-bg-subtle)', fontSize: '12px', fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
                         {generatedLink}
                       </div>
-                      <button 
+                      <button
                         onClick={copyToClipboard}
-                        className={`px-6 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${copied ? 'bg-emerald-500 text-white' : 'bg-primary text-white hover:opacity-90'}`}
+                        className="flex items-center gap-2 transition-all"
+                        style={{ ...btnPrimary, padding: '0 20px', height: '42px', background: copied ? 'var(--color-success)' : 'var(--color-brand)' }}
                       >
                         {copied ? <CheckCircle size={14} /> : <Mail size={14} />}
-                        {copied ? 'Copied' : 'Copy Link'}
+                        {copied ? 'Copied' : 'Copy'}
                       </button>
                     </div>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
-                    className="w-full h-12 border border-[#e8eaed] text-text-secondary rounded-xl text-sm font-semibold hover:bg-[#f0f2f5] transition-colors"
+                    style={{ width: '100%', height: '44px', border: '1px solid var(--color-border-default)', borderRadius: '12px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', background: 'white', fontFamily: 'inherit' }}
                   >
                     Done
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleInviteSubmit} className="space-y-5">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-secondary">Full Name</label>
-                    <input name="fullName" type="text" className="input" placeholder="e.g. Gabriel Rossetti" required />
+                <form onSubmit={handleInviteSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                  <div>
+                    <label style={labelStyle}>Full Name</label>
+                    <input name="fullName" type="text" style={inputStyle} placeholder="e.g. Gabriel Rossetti" required
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-secondary">Email Address</label>
-                    <input name="email" type="email" className="input" placeholder="personnel@agency.com" required />
+                  <div>
+                    <label style={labelStyle}>Email Address</label>
+                    <input name="email" type="email" style={inputStyle} placeholder="personnel@agency.com" required
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-text-secondary">Operator</label>
-                      <select 
-                        name="operatorId" 
-                        className={`input ${inviteRole === 'super_admin' ? 'opacity-50 grayscale cursor-not-allowed' : ''}`} 
+                    <div>
+                      <label style={labelStyle}>Operator</label>
+                      <select
+                        name="operatorId"
+                        style={{ ...inputStyle, opacity: inviteRole === 'super_admin' ? 0.5 : 1 }}
                         required={inviteRole !== 'super_admin'}
                         disabled={inviteRole === 'super_admin'}
                       >
@@ -574,12 +554,12 @@ export default function AdminPortal() {
                         {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
                       </select>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-text-secondary">Role</label>
-                      <select 
-                        name="role" 
-                        className="input" 
-                        required 
+                    <div>
+                      <label style={labelStyle}>Role</label>
+                      <select
+                        name="role"
+                        style={inputStyle}
+                        required
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value)}
                       >
@@ -590,25 +570,25 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
-                  {/* Manual link mode is now the default and only option as requested */}
-
                   {inviteRole === 'super_admin' && (
-                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
-                      <p className="text-[11px] text-primary/80 leading-relaxed">
-                        <strong className="text-primary uppercase tracking-wider block mb-1">Global Admin Notice</strong>
-                        This user will have full administrative access to all operators, platform-wide. No operator restriction will be applied.
+                    <div style={{ padding: '14px 16px', background: 'var(--color-brand-soft)', borderRadius: '12px', border: '1px solid var(--color-brand-border)' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
+                        <strong style={{ display: 'block', marginBottom: '2px' }}>Global Admin Notice</strong>
+                        This user will have full administrative access to all operators.
                       </p>
                     </div>
                   )}
 
                   {inviteStatus && (
-                    <div className={`p-4 rounded-xl text-xs font-semibold flex items-center gap-2 ${inviteStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: inviteStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: inviteStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
                       {inviteStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                       {inviteStatus.msg}
                     </div>
                   )}
 
-                  <button type="submit" disabled={formLoading} className="w-full h-12 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
+                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                  >
                     {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invite Link'}
                   </button>
                 </form>
@@ -617,67 +597,75 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* ── ADD OPERATOR MODAL ───────────────────── */}
+        {/* ── ADD OPERATOR MODAL ─── */}
         {isAddingOperator && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsAddingOperator(false)}
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              className="absolute inset-0"
+              style={modalOverlay}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl p-6 md:!p-12 shadow-2xl border border-[#e8eaed] max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-h-[90vh] overflow-y-auto"
+              style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
             >
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-primary">Register New Operator</h3>
-                <button onClick={() => setIsAddingOperator(false)} className="text-text-tertiary hover:text-primary">
-                  <X size={24} />
+              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Register New Operator</h3>
+                <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                  <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddOperatorSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-text-secondary ml-1">Agency Name</label>
-                    <input name="name" type="text" className="input pr-4" placeholder="e.g. Skyline Travel" required />
+              <form onSubmit={handleAddOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label style={labelStyle}>Agency Name</label>
+                    <input name="name" type="text" style={inputStyle} placeholder="e.g. Skyline Travel" required
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-text-secondary ml-1">Official Website</label>
-                    <input name="website" type="text" className="input pr-4" placeholder="skyline-travel.com (Optional)" />
+                  <div>
+                    <label style={labelStyle}>Official Website</label>
+                    <input name="website" type="text" style={inputStyle} placeholder="e.g. skyline.com"
+                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                    />
                   </div>
                 </div>
-                
-                <div className="space-y-3 pt-2 border-t border-[#f0f2f5]">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1">Social Channels</label>
-                    <button type="button" onClick={addSocialField} className="text-[10px] font-bold text-accent px-3 py-1 bg-accent/5 rounded-full hover:bg-accent/10 transition-colors flex items-center gap-1">
-                      <Plus size={10} /> Add Channel
+
+                <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
+                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                      <Plus size={12} /> Add Channel
                     </button>
                   </div>
-                  
-                  <div className="space-y-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
                     {newSocialLinks.map((link, idx) => (
                       <div key={idx} className="flex gap-2">
-                        <div className="flex-1 relative">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary">
+                        <div className="relative flex-1">
+                          <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
                             {getSocialIcon(link)}
                           </div>
-                          <input 
+                          <input
                             name="socialLinks"
-                            type="text" 
-                            className="input !pl-11 !py-3 text-xs" 
+                            type="text"
+                            style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
                             placeholder="fb.com/page or ig.com/user"
                             value={link}
                             onChange={(e) => updateSocialField(idx, e.target.value)}
                           />
                         </div>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => removeSocialField(idx)}
-                          className="w-10 h-10 rounded-xl border border-[#e8eaed] flex items-center justify-center text-rose-500 hover:bg-rose-50 transition-colors"
+                          className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                          style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
                         >
                           <Minus size={14} />
                         </button>
@@ -687,83 +675,84 @@ export default function AdminPortal() {
                 </div>
 
                 {operatorStatus && (
-                  <div className={`p-4 rounded-xl text-xs font-semibold flex items-center gap-2 ${operatorStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                  <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: operatorStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: operatorStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
                     {operatorStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                     {operatorStatus.msg}
                   </div>
                 )}
 
-                <div className="pt-2">
-                  <button type="submit" disabled={formLoading} className="w-full h-14 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
-                    {formLoading ? <Loader2 className="animate-spin" size={20} /> : 'Register Agency'}
-                  </button>
-                </div>
+                <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                  style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                >
+                  {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Register Agency'}
+                </button>
               </form>
             </motion.div>
           </div>
         )}
 
+        {/* ── ACCOUNT SETTINGS MODAL ─── */}
         {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsSettingsOpen(false)}
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              className="absolute inset-0"
+              style={modalOverlay}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              className="relative w-full max-w-sm bg-white rounded-3xl p-6 md:!p-12 shadow-2xl border border-[#e8eaed] max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-h-[90vh] overflow-y-auto"
+              style={{ ...modalCard, maxWidth: '400px', padding: '36px' }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-primary">Account Settings</h3>
-                <button onClick={() => setIsSettingsOpen(false)} className="text-text-tertiary hover:text-primary">
+              <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Account Settings</h3>
+                <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
                   <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateProfile} className="space-y-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1">Full Name</label>
-                  <input type="text" className="input pr-4" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} required />
+              <form onSubmit={handleUpdateProfile} className="flex flex-col" style={{ gap: '20px' }}>
+                <div>
+                  <label style={labelStyle}>Full Name</label>
+                  <input type="text" style={inputStyle} value={newFullName} onChange={(e) => setNewFullName(e.target.value)} required
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                  />
                 </div>
-                
-                <div className="pt-2 border-t border-[#f0f2f5]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1 mb-4">Security Key Setup</p>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-text-secondary ml-1">New Security Key</label>
-                      <input 
-                        type="password" 
-                        className="input" 
-                        placeholder="Min. 6 characters"
-                        value={newPassword} 
-                        onChange={(e) => setNewPassword(e.target.value)} 
+
+                <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', marginBottom: '16px' }}>Security Key Setup</p>
+                  <div className="flex flex-col" style={{ gap: '14px' }}>
+                    <div>
+                      <label style={labelStyle}>New Security Key</label>
+                      <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-text-secondary ml-1">Confirm Security Key</label>
-                      <input 
-                        type="password" 
-                        className="input" 
-                        placeholder="Re-enter to confirm"
-                        value={confirmPassword} 
-                        onChange={(e) => setConfirmPassword(e.target.value)} 
+                    <div>
+                      <label style={labelStyle}>Confirm Security Key</label>
+                      <input type="password" style={inputStyle} placeholder="Re-enter to confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {passwordError && (
-                  <div className="p-4 bg-rose-50 text-rose-700 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                  <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: '#FEF2F2', color: 'var(--color-danger)' }}>
                     <AlertCircle size={14} />
                     {passwordError}
                   </div>
                 )}
 
-                <button type="submit" disabled={formLoading} className="w-full h-12 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
+                <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
+                  style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                >
                   {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Update Account'}
                 </button>
               </form>

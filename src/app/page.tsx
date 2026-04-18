@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Loader2, LayoutGrid, ShieldCheck, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, Lock, Loader2, LayoutGrid, ShieldCheck, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -16,17 +16,22 @@ export default function LandingPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) {
+          await supabase.auth.signOut().catch(() => {});
+          setLoading(false);
+          return;
+        }
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
-
         if (profile?.role === 'super_admin') router.push("/admin");
         else router.push("/dashboard");
-      } else {
+      } catch {
+        await supabase.auth.signOut().catch(() => {});
         setLoading(false);
       }
     };
@@ -37,21 +42,14 @@ export default function LandingPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setAuthError("");
-
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', authData.user.id)
         .maybeSingle();
-
       if (profile?.role === 'super_admin') router.push("/admin");
       else router.push("/dashboard");
     } catch (err: any) {
@@ -62,103 +60,167 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <Loader2 className="animate-spin text-primary" size={32} />
+      <div className="flex items-center justify-center min-h-screen"
+        style={{ background: 'var(--color-bg-page)' }}>
+        <Loader2 className="animate-spin" size={28} style={{ color: 'var(--color-brand)' }} />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f9fb] flex flex-col items-center justify-center p-6 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
-      
+    <main 
+      className="min-h-screen flex flex-col items-center justify-center"
+      style={{ 
+        padding: '24px',
+        background: 'linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-bg-page) 40%, var(--color-bg-subtle) 100%)',
+      }}
+    >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-sm"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        style={{ width: '100%', maxWidth: '400px' }}
       >
-        {/* Simplified Branding */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-primary rounded-xl shadow-lg shadow-primary/10 mb-6">
-            <LayoutGrid size={22} className="text-white" />
+        {/* Branding */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div 
+            className="inline-flex items-center justify-center"
+            style={{ 
+              width: '56px', height: '56px', 
+              background: 'var(--color-brand)', 
+              borderRadius: '16px',
+              color: 'white',
+              marginBottom: '20px',
+              boxShadow: '0 8px 24px rgba(0, 103, 79, 0.25)',
+            }}
+          >
+            <LayoutGrid size={24} />
           </div>
-          <h1 className="text-2xl font-bold text-primary tracking-tight mb-1">TravelQuote</h1>
-          <p className="text-xs font-medium text-text-tertiary uppercase tracking-widest">Authorized Access Only</p>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+            TravelQuote
+          </h1>
+          <p style={{ fontSize: '11px', fontWeight: 500, color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>
+            Authorized Access Only
+          </p>
         </div>
 
-        {/* Login Station */}
-        <div className="bg-white border border-[#e8eaed] rounded-3xl !p-12 shadow-sm">
-          <form onSubmit={handleManualAuth} className="space-y-6">
-            <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1">Email Identifier</label>
-                <div className="relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
-                  <input 
-                    type="email" 
-                    required
-                    className="input !pl-14 !rounded-xl" 
-                    placeholder="personnel@agency.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary ml-1">Security Key</label>
-                <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
-                  <input 
-                    type="password" 
-                    required
-                    className="input !pl-14 !rounded-xl" 
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
+        {/* Login Card */}
+        <div style={{ 
+          background: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border-default)',
+          borderRadius: '24px',
+          padding: '40px 36px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+        }}>
+          <form onSubmit={handleManualAuth}>
+            
+            {/* Email */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                Email Identifier
+              </label>
+              <div className="relative">
+                <Mail className="absolute top-1/2 -translate-y-1/2" size={16} style={{ left: '14px', color: 'var(--color-text-faint)' }} />
+                <input 
+                  type="email" required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="personnel@agency.com"
+                  style={{ 
+                    width: '100%', height: '48px',
+                    paddingLeft: '42px', paddingRight: '16px',
+                    border: '1px solid var(--color-border-default)',
+                    borderRadius: '12px', fontSize: '14px',
+                    color: 'var(--color-text-primary)',
+                    background: 'var(--color-bg-page)',
+                    outline: 'none', fontFamily: 'inherit',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.background = 'white'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.background = 'var(--color-bg-page)'; e.target.style.boxShadow = 'none'; }}
+                />
               </div>
             </div>
 
+            {/* Password */}
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                Security Key
+              </label>
+              <div className="relative">
+                <Lock className="absolute top-1/2 -translate-y-1/2" size={16} style={{ left: '14px', color: 'var(--color-text-faint)' }} />
+                <input 
+                  type="password" required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ 
+                    width: '100%', height: '48px',
+                    paddingLeft: '42px', paddingRight: '16px',
+                    border: '1px solid var(--color-border-default)',
+                    borderRadius: '12px', fontSize: '14px',
+                    color: 'var(--color-text-primary)',
+                    background: 'var(--color-bg-page)',
+                    outline: 'none', fontFamily: 'inherit',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.background = 'white'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.background = 'var(--color-bg-page)'; e.target.style.boxShadow = 'none'; }}
+                />
+              </div>
+            </div>
+
+            {/* Error */}
             <AnimatePresence mode="wait">
               {authError && (
                 <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-3 p-4 bg-rose-50 text-rose-700 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="flex items-center"
+                  style={{ gap: '12px', padding: '14px 16px', background: '#FEF2F2', color: 'var(--color-danger)', borderRadius: '12px', fontSize: '13px', fontWeight: 500, border: '1px solid #FECACA', marginBottom: '20px' }}
                 >
-                  <AlertCircle size={14} />
+                  <AlertCircle size={16} className="shrink-0" />
                   <span>{authError}</span>
                 </motion.div>
               )}
             </AnimatePresence>
 
+            {/* Submit */}
             <button 
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="flex items-center justify-center active:scale-[0.98] transition-transform"
+              style={{ 
+                width: '100%', height: '50px', gap: '8px',
+                background: 'var(--color-brand)', color: 'white',
+                border: 'none', borderRadius: '14px',
+                fontSize: '15px', fontWeight: 600, fontFamily: 'inherit',
+                cursor: isSubmitting ? 'wait' : 'pointer',
+                boxShadow: '0 4px 16px rgba(0, 103, 79, 0.2)',
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => { if (!isSubmitting) (e.currentTarget).style.background = 'var(--color-brand-hover)'; }}
+              onMouseLeave={(e) => { (e.currentTarget).style.background = 'var(--color-brand)'; }}
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
+              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : (
                 <>
                   <span>Sign In</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <ArrowRight size={16} style={{ opacity: 0.7 }} />
                 </>
               )}
             </button>
           </form>
         </div>
 
-        {/* System Metadata */}
-        <div className="mt-8 flex items-center justify-center gap-4">
-          <div className="flex items-center gap-1.5 opacity-40">
-            <ShieldCheck size={12} className="text-primary" />
-            <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Enclave V2.4</span>
+        {/* Footer */}
+        <div className="flex items-center justify-center" style={{ gap: '20px', marginTop: '36px' }}>
+          <div className="flex items-center" style={{ gap: '6px', opacity: 0.35, color: 'var(--color-text-muted)', minHeight: 'auto', minWidth: 'auto' }}>
+            <ShieldCheck size={12} />
+            <span style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Enclave V2.4</span>
           </div>
-          <div className="h-2.5 w-px bg-border-light" />
-          <div className="flex items-center gap-1.5 opacity-40">
-            <CheckCircle size={12} className="text-primary" />
-            <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Protected Endpoint</span>
+          <div style={{ height: '12px', width: '1px', background: 'var(--color-border-default)' }} />
+          <div className="flex items-center" style={{ gap: '6px', opacity: 0.35, color: 'var(--color-text-muted)', minHeight: 'auto', minWidth: 'auto' }}>
+            <CheckCircle size={12} />
+            <span style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Protected Endpoint</span>
           </div>
         </div>
       </motion.div>
