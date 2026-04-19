@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
+import CalendarView from "./components/CalendarView";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check } from "lucide-react";
+import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -54,7 +55,8 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const validTabs = ['analytics', 'quotes', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
-  const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'analytics');
+  const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'quotes');
+  const [quoteViewMode, setQuoteViewMode] = useState<'list' | 'calendar'>('list');
   const [tabLoading, setTabLoading] = useState(false);
   const [analyticsDays, setAnalyticsDays] = useState<7 | 30 | 90>(7);
   const [fleet, setFleet] = useState<any[]>([]);
@@ -503,15 +505,25 @@ function DashboardContent() {
             </p>
           </div>
           {activeTab === 'quotes' && (
-            <button 
-              onClick={() => router.push('/builder')}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              <span className="hidden sm:inline">Issue Quote</span>
-              <span className="sm:hidden">New</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setQuoteViewMode(prev => prev === 'list' ? 'calendar' : 'list')}
+                className="group transition-all hover:opacity-90 active:scale-95"
+                style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
+              >
+                <CalendarIcon size={16} strokeWidth={2.5} />
+                <span className="leading-none mt-0.5 ml-2">{quoteViewMode === 'list' ? 'Calendar' : 'List'}</span>
+              </button>
+              <button 
+                onClick={() => router.push('/builder')}
+                className="group transition-all hover:opacity-90 active:scale-95"
+                style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                <span className="hidden sm:inline leading-none mt-0.5">Issue Quote</span>
+                <span className="sm:hidden leading-none mt-0.5">New</span>
+              </button>
+            </div>
           )}
           {activeTab === 'vehicles' && (
             <button 
@@ -583,7 +595,7 @@ function DashboardContent() {
           ))}
         </div>
 
-        {activeTab !== 'analytics' && (
+        {activeTab !== 'analytics' && !(activeTab === 'quotes' && quoteViewMode === 'calendar') && (
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
@@ -632,7 +644,7 @@ function DashboardContent() {
             </div>
           ) : (
           <>
-        {activeTab !== 'analytics' && activeTab === 'quotes' && (
+        {activeTab !== 'analytics' && activeTab === 'quotes' && quoteViewMode === 'list' && (
           <div className="flex items-center justify-between">
             <p className="text-xs md:text-sm text-text-secondary shrink-0">
               Showing <span className="font-bold text-primary">{filteredQuotes.length}</span> record{filteredQuotes.length !== 1 && 's'}
@@ -759,7 +771,11 @@ function DashboardContent() {
               </div>
             )}
 
-          {activeTab === 'quotes' && (
+          {activeTab === 'quotes' && quoteViewMode === 'calendar' && (
+            <CalendarView quotes={quotes} />
+          )}
+
+          {activeTab === 'quotes' && quoteViewMode === 'list' && (
             quotes.length > 0 ? (
               <div className="flex flex-col gap-6">
                 {/* Status Filter Tabs */}
