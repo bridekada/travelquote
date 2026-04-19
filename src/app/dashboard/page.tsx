@@ -198,9 +198,22 @@ function DashboardContent() {
   };
 
   useEffect(() => {
+    // Only decide to redirect if auth is definitely finished loading
     if (!authLoading) {
-      if (!profile) router.push("/");
-      else fetchOperationalData();
+      if (!profile) {
+        // If no profile, we verify if there's even a user session
+        // This gives a tiny bit more time for the profile to resolve 
+        // if the session just was established (e.g. from a hash login)
+        const checkFinal = async () => {
+           const { data: { session } } = await supabase.auth.getSession();
+           if (!session) {
+             router.push("/");
+           }
+        };
+        checkFinal();
+      } else {
+        fetchOperationalData();
+      }
     }
   }, [profile, authLoading, router, selectedOperatorId, activeTab, refreshTrigger]);
 
