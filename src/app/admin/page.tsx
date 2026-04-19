@@ -152,9 +152,7 @@ export function AdminPortal() {
 
   const handleSelectOperator = (id: string) => {
     localStorage.setItem('selected_operator_id', id);
-    supabase.from('profiles').update({ operator_id: id }).eq('id', profile?.id).then(() => {
-      window.location.href = "/dashboard";
-    });
+    window.location.href = "/dashboard";
   };
 
   const handleAddOperatorSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

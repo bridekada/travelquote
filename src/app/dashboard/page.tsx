@@ -299,7 +299,7 @@ function DashboardContent() {
     
     quotes.filter(q => new Date(q.created_at) >= periodStart).forEach(q => {
       const creatorId = q.created_by;
-      const creatorName = q.profiles?.full_name || "Unknown Agent";
+      const creatorName = q.creator?.full_name || "Unknown Agent";
       
       if (!leaderboardMap[creatorId]) {
         leaderboardMap[creatorId] = { 
