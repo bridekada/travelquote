@@ -86,13 +86,29 @@ function AuthCallbackHandler() {
         // 4. Initial check for an existing session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setStatus("success");
-          setMessage("Session found! Redirecting...");
-          redirectId = setTimeout(() => router.push("/dashboard"), 800);
-          return;
-        }
+          console.log("Auth: Session confirmed, checking profile...");
+          const user = session.user;
 
-        // 5. Final Patience Loop
+          // 5. Role-based redirect
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          setStatus("success");
+          
+          if (profile?.role === 'super_admin') {
+            setMessage("Admin identity verified! Redirecting to Admin Dashboard...");
+            redirectId = setTimeout(() => router.push("/admin"), 1000);
+          } else {
+            setMessage("Authentication successful! Redirecting to Dashboard...");
+            redirectId = setTimeout(() => router.push("/dashboard"), 1000);
+          }
+          return;
+        } 
+
+        // 6. Final Patience Loop
         console.log("Auth: No session confirmed yet, waiting for processing...");
         await new Promise(resolve => {
           timeoutId = setTimeout(resolve, 3000);
@@ -100,10 +116,25 @@ function AuthCallbackHandler() {
 
         // Final check after waiting
         const { data: finalData } = await supabase.auth.getSession();
-        if (!finalData.session) {
-          const errorDesc = searchParams.get("error_description");
-          throw new Error(errorDesc || "Could not confirm your session. The link may have expired or was already used.");
+        if (finalData.session) {
+           // If we caught it here, perform the same profile check
+           const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', finalData.session.user.id)
+            .maybeSingle();
+            
+           setStatus("success");
+           if (profile?.role === 'super_admin') {
+             router.push("/admin");
+           } else {
+             router.push("/dashboard");
+           }
+           return;
         }
+        
+        const errorDesc = searchParams.get("error_description");
+        throw new Error(errorDesc || "Could not confirm your session. The link may have expired or was already used.");
       } catch (err: any) {
         console.error("Auth Callback Failure:", err.message || err);
         setStatus("error");
