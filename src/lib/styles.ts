@@ -95,6 +95,46 @@ export const btnAction: CSSProperties = {
   boxShadow: '0 8px 16px -4px rgba(5, 150, 105, 0.25), 0 4px 6px -2px rgba(5, 150, 105, 0.1)',
 };
 
+export const btnPillarPrimary: CSSProperties = {
+  height: '54px',
+  borderRadius: '9999px',
+  background: '#064E3B',
+  color: 'white',
+  fontWeight: 900,
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.25em',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  padding: '0 48px',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.2)',
+};
+
+export const btnPillarSecondary: CSSProperties = {
+  height: '54px',
+  borderRadius: '9999px',
+  background: 'white',
+  border: '2px solid #059669',
+  color: '#059669',
+  fontWeight: 900,
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.25em',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  padding: '0 40px',
+  cursor: 'pointer',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  boxShadow: '0 10px 15px -3px rgba(5, 150, 105, 0.05)',
+};
+
 export const btnSecondary: CSSProperties = {
   background: 'white',
   color: 'var(--color-text-primary)',

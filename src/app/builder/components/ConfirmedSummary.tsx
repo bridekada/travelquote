@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
   modalOverlay, modalCard, modalTitle, modalFormSpace, 
-  inputStyle, labelStyle, sectionLabel, btnPrimary, btnAction,
+  inputStyle, labelStyle, sectionLabel, btnPrimary, btnSecondary, btnAction,
+  btnPillarPrimary, btnPillarSecondary,
   inputFocus, inputBlur
 } from "@/lib/styles";
 
@@ -64,7 +65,10 @@ export default function ConfirmedSummary({
         </div>
       </header>
 
-      <main className="flex-1 w-full p-4 md:p-6 lg:!p-[40.5px] space-y-6 md:space-y-[40.5px] flex flex-col items-center">
+      <main 
+        className="flex-1 w-full pb-32 flex flex-col items-center px-4 md:px-6 lg:px-10"
+        style={{ paddingTop: 0 }}
+      >
          {/* Section 1: Agreement Info Card */}
          <div className="bg-white rounded-3xl md:rounded-[48px] p-4 md:p-6 lg:!p-[40.5px] shadow-2xl shadow-primary/[0.05] border border-[#e8eaed] relative overflow-hidden w-full max-w-4xl">
             <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50 rounded-full -mr-40 -mt-40 opacity-40 blur-3xl" />
@@ -191,117 +195,118 @@ export default function ConfirmedSummary({
          </div>
 
          {/* Section 2: Financial Command Center */}
-         <div className="w-full max-w-4xl pt-16">
+         <div 
+           className="w-full max-w-4xl mx-auto"
+           style={{ marginTop: '20px' }}
+         >
             <div className="relative">
                {/* Decorative Background Elements */}
                <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
                <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
 
-               <div className="bg-white rounded-[48px] p-2 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.08)] border border-gray-100 relative overflow-hidden">
-                  <div className="p-8 md:p-12 space-y-12">
+               <div className="bg-white rounded-3xl md:rounded-[48px] p-4 md:p-6 lg:!p-[40.5px] shadow-2xl shadow-primary/[0.05] border border-[#e8eaed] relative overflow-hidden">
+                  <div className="relative space-y-16">
                      
                      {/* Dashboard Header Blocks */}
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Card 1: Collected */}
-                        <div className="bg-gradient-to-br from-[#f8fcfb] to-white border border-emerald-100/50 rounded-[32px] p-8 relative overflow-hidden group shadow-sm shadow-emerald-500/5">
-                           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
+                        <div className="bg-emerald-50/40 rounded-2xl p-10 relative group transition-all">
+                           <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform pointer-events-none">
                               <ShieldCheck size={48} className="text-emerald-600" />
                            </div>
                            <div className="relative space-y-4">
-                              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-[0.2em] ml-1">Total Funds Collected</p>
+                              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.25em] leading-loose">Verified Collections</p>
                               <div className="flex items-baseline gap-2">
-                                 <span className="text-xl font-bold text-emerald-700 opacity-40">₱</span>
-                                 <span className="text-5xl font-black text-primary tracking-tight tabular-nums">{totalPaid.toLocaleString()}</span>
+                                 <span className="text-lg font-bold text-emerald-600 opacity-30">₱</span>
+                                 <span className="text-4xl font-black text-primary tracking-tighter tabular-nums leading-none">{totalPaid.toLocaleString()}</span>
                               </div>
-                              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/10">
-                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                 <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Verified Revenue</span>
+                              <div className="flex items-center gap-2">
+                                 <div className="px-2 py-0.5 bg-white/60 text-emerald-600 rounded text-[8px] font-black uppercase tracking-widest">
+                                    Audited Ledger
+                                 </div>
                               </div>
                            </div>
                         </div>
 
                         {/* Card 2: Balance */}
-                        <div className={`border rounded-[32px] p-8 relative overflow-hidden group transition-all shadow-sm ${
-                           balanceRemaining > 0 ? 'bg-gradient-to-br from-[#fffcf8] to-white border-amber-100/50 shadow-amber-500/5' : 'bg-gradient-to-br from-[#f8fcfb] to-white border-emerald-100/50 shadow-emerald-500/5'
+                        <div className={`rounded-2xl p-12 relative group transition-all ${
+                           balanceRemaining > 0 ? 'bg-amber-50/40' : 'bg-emerald-50/40'
                         }`}>
-                           <div className="relative space-y-4">
-                              <p className={`text-[10px] font-black uppercase tracking-[0.2em] ml-1 ${
-                                 balanceRemaining > 0 ? 'text-amber-600/60' : 'text-emerald-600/60'
-                              }`}>Outstanding Agreement Balance</p>
+                           <div className="relative space-y-5">
+                              <p className={`text-[9px] font-black uppercase tracking-[0.25em] leading-loose ${
+                                 balanceRemaining > 0 ? 'text-amber-600' : 'text-emerald-600'
+                              }`}>Outstanding Balance</p>
                               <div className="flex items-baseline gap-2">
-                                 {balanceRemaining > 0 && <span className="text-xl font-bold text-amber-700 opacity-40">₱</span>}
-                                 <span className={`text-5xl font-black tracking-tight tabular-nums ${
+                                 {balanceRemaining > 0 && <span className="text-lg font-bold text-amber-600 opacity-30">₱</span>}
+                                 <span className={`text-4xl font-black tracking-tighter tabular-nums leading-none ${
                                     balanceRemaining > 0 ? 'text-amber-600' : 'text-emerald-600'
                                  }`}>
                                     {balanceRemaining > 0 ? balanceRemaining.toLocaleString() : 'SETTLED'}
                                  </span>
                               </div>
-                              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
-                                 balanceRemaining > 0 ? 'bg-amber-500/10 border-amber-500/10' : 'bg-emerald-500/10 border-emerald-500/10'
-                              }`}>
-                                 <span className={`text-[9px] font-black uppercase tracking-widest ${
-                                    balanceRemaining > 0 ? 'text-amber-700' : 'text-emerald-700'
+                              <div className="flex items-center gap-2">
+                                 <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                    balanceRemaining > 0 ? 'bg-white/60 text-amber-600' : 'bg-white/60 text-emerald-600'
                                  }`}>
-                                    {balanceRemaining > 0 ? 'Awaiting Remittance' : 'Full Contract Settlement'}
-                                 </span>
+                                    {balanceRemaining > 0 ? 'Awaiting Remittance' : 'Contract Complete'}
+                                 </div>
                               </div>
                            </div>
                         </div>
                      </div>
 
-                     <div className="space-y-6 pt-4">
-                        <div className="flex items-center justify-between px-2">
-                           <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
-                                 <motion.div
-                                   animate={paymentProgress < 100 ? { rotate: 360 } : {}}
-                                   transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                 >
-                                   <Settings size={18} />
-                                 </motion.div>
-                              </div>
-                              <div>
-                                 <h4 className="text-xs font-black text-primary uppercase tracking-[0.15em]">Collection Milestone</h4>
-                                 <p className="text-[10px] font-medium text-text-tertiary">Billing progress for current quotation</p>
-                              </div>
-                           </div>
-                           <div className="text-right">
-                              <span className="text-3xl font-black text-primary tracking-tighter tabular-nums">{paymentProgress.toFixed(0)}%</span>
-                           </div>
-                        </div>
-
-                        <div className="relative">
-                           <div className="h-4 w-full bg-[#f8f9fb] rounded-full overflow-hidden border border-[#e8eaed]/40 p-1 shadow-inner">
-                              <motion.div 
-                                 initial={{ width: 0 }}
-                                 animate={{ width: `${paymentProgress}%` }}
-                                 transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
-                                 className={`h-full rounded-full relative group ${
-                                    isFullyPaid ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-primary/80 to-primary'
-                                 }`}
-                              >
-                                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </motion.div>
-                           </div>
-                           <div className="flex justify-between items-center mt-4 text-[9px] font-black uppercase tracking-[0.25em] text-text-tertiary/40 px-2">
-                              <div className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-current" /> Contract Initiated</div>
-                              <div className="flex items-center gap-2">Final Settlement <span className="w-1 h-1 rounded-full bg-current" /></div>
-                           </div>
-                        </div>
-                     </div>
+                     <div className="space-y-4 pt-10">
+                         <div className="flex items-end justify-between px-8">
+                            <div className="flex items-center gap-2.5">
+                               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50 shadow-sm">
+                                  <motion.div
+                                    animate={paymentProgress < 100 ? { rotate: 360 } : {}}
+                                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                                  >
+                                    <Settings size={14} strokeWidth={2.5} />
+                                  </motion.div>
+                               </div>
+                               <div>
+                                  <h4 className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Agreement Milestone</h4>
+                                  <p className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest opacity-40">Financial Progression</p>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <span className="text-2xl font-black text-primary tracking-tighter tabular-nums leading-none">{paymentProgress.toFixed(0)}%</span>
+                            </div>
+                         </div>
+ 
+                         <div className="relative pt-2">
+                            <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
+                               <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${paymentProgress}%` }}
+                                  transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
+                                  className={`h-full relative group ${
+                                     isFullyPaid ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-primary'
+                                  }`}
+                               >
+                                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                               </motion.div>
+                            </div>
+                            <div className="flex justify-between items-center mt-3 text-[7px] font-black uppercase tracking-[0.3em] text-text-tertiary/30 px-12">
+                               <span>Deposit Pending</span>
+                               <span>Full Settlement</span>
+                            </div>
+                         </div>
+                      </div>
 
                      {/* Transaction Ledger Section */}
-                     <div className="pt-12 border-t border-[#f0f2f5]">
-                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
-                           <div className="space-y-2">
-                              <h3 className="text-lg font-black text-primary uppercase tracking-widest">Transaction Ledger</h3>
-                              <div className="text-xs font-medium text-text-tertiary flex items-center gap-2">
-                                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                                 <div className="text-xs font-medium text-text-tertiary">Real-time cryptographic audit trail of all manual recordings</div>
-                              </div>
+                     <div 
+                        className="pt-16 border-t border-slate-100"
+                        style={{ marginTop: '14px' }}
+                     >
+                        <div className="flex flex-col md:flex-row items-baseline md:items-center justify-between gap-6 mb-10 px-8">
+                           <div className="space-y-1.5 font-sans">
+                              <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.25em] leading-tight">Transaction Ledger</h3>
+                              <p className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest opacity-40 leading-relaxed">Verified cryptographic audit trail of manual recordings</p>
                            </div>
-                           <div className="px-6 py-3 bg-white border-2 border-[#f0f2f5] text-primary rounded-[20px] text-[11px] font-black uppercase tracking-[0.15em] shadow-sm">
-                              {payments.length} {payments.length === 1 ? 'Installment' : 'Installments'} Recorded
+                           <div className="px-3 py-1 bg-slate-50 border border-slate-100 text-primary rounded-md text-[9px] font-black uppercase tracking-widest">
+                              {payments.length} {payments.length === 1 ? 'Entry' : 'Entries'}
                            </div>
                         </div>
 
@@ -357,13 +362,15 @@ export default function ConfirmedSummary({
                               </motion.div>
                              ))
                            ) : (
-                              <div className="py-24 bg-[#f8fcfb] rounded-[48px] border-2 border-dashed border-emerald-100/50 flex flex-col items-center justify-center text-center group">
-                                 <div className="w-24 h-24 rounded-[36px] bg-white flex items-center justify-center text-emerald-100 mb-8 border border-emerald-50 group-hover:scale-110 transition-transform shadow-sm">
-                                    <Receipt size={48} />
+                              <div className="py-20 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center group">
+                                 <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-emerald-100 mb-6 border border-slate-100 group-hover:scale-105 transition-transform shadow-sm">
+                                    <Receipt size={32} />
                                  </div>
-                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-black text-emerald-900/40 uppercase tracking-[0.25em]">No Capital Inflow Detected</h4>
-                                    <p className="text-[10px] text-emerald-800/30 font-medium max-w-[240px]">Financial ledger is currently empty. Record your first payment to initiate audit trail.</p>
+                                 <div className="space-y-2 px-6">
+                                    <h4 className="text-[12px] font-black text-primary uppercase tracking-[0.2em] opacity-80">No Capital Inflow Detected</h4>
+                                    <p className="text-[9px] text-text-tertiary font-bold uppercase tracking-widest opacity-40 max-w-[280px] leading-relaxed">
+                                       Financial ledger is currently empty. Record your first payment to initiate audit trail.
+                                    </p>
                                  </div>
                               </div>
                            )}
@@ -375,25 +382,27 @@ export default function ConfirmedSummary({
          </div>
 
          {/* Section 3: Action Buttons */}
-         <div className="pt-24 pb-20 space-y-8 w-full max-w-4xl">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
+         <div 
+           className="pb-32 space-y-10 w-full max-w-4xl"
+           style={{ marginTop: '20px' }}
+         >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-10 flex-wrap">
                {quote.status !== 'Payment Complete' && (
                <button 
                   onClick={onReconfigure}
-                  className="h-14 px-10 min-w-[220px] justify-center bg-white border border-[#e8eaed] text-text-tertiary rounded-2xl font-black text-[11px] uppercase tracking-widest hover:text-primary hover:border-primary/20 transition-all flex items-center gap-3 shadow-sm hover:shadow-xl active:scale-95 whitespace-nowrap"
+                  className="active:scale-95 group"
+                  style={btnPillarSecondary}
                >
-                  <Settings size={18} className="opacity-40" /> Reconfigure Quote
+                  <Settings size={18} className="opacity-60 group-hover:rotate-45 transition-transform" /> Reconfigure Quote
                </button>
                )}
                <button 
                   onClick={onBack}
-                  className="h-14 px-10 min-w-[220px] justify-center bg-primary text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:opacity-95 transition-all shadow-2xl shadow-primary/20 flex items-center gap-3 active:scale-95 whitespace-nowrap"
+                  className="active:scale-95 group"
+                  style={btnPillarPrimary}
                >
-                  Back to Dashboard <ArrowRight size={18} />
+                  Back to Dashboard <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
                </button>
-            </div>
-            <div className="text-center">
-               <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest opacity-40">This is a locked confirmation record. Reconfiguring will unlock the quote for adjustments.</p>
             </div>
          </div>
       </main>
