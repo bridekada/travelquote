@@ -12,6 +12,7 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [setupSuccess, setSetupSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -34,6 +35,14 @@ export default function LandingPage() {
       }
     };
     checkUser();
+
+    // Check for setup success query param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup') === 'success') {
+      setSetupSuccess(true);
+      // Clean up URL
+      router.replace("/");
+    }
   }, [router]);
 
   const handleManualAuth = async (e: React.FormEvent) => {
@@ -165,6 +174,21 @@ export default function LandingPage() {
                 />
               </div>
             </div>
+
+            {/* Success Notification */}
+            <AnimatePresence mode="wait">
+              {setupSuccess && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center"
+                  style={{ gap: '12px', padding: '14px 16px', background: '#ECFDF5', color: '#059669', borderRadius: '12px', fontSize: '13px', fontWeight: 500, border: '1px solid #A7F3D0', marginBottom: '20px' }}
+                >
+                  <CheckCircle size={16} className="shrink-0" />
+                  <span>Setup Complete! Please log in with your new password.</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Error */}
             <AnimatePresence mode="wait">

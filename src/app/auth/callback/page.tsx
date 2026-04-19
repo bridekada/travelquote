@@ -98,12 +98,35 @@ function AuthCallbackHandler() {
 
           setStatus("success");
           
+          // Identify if this is a first-time setup (Invite, Signup, or Recovery)
+          // We check both search params and the URL hash for maximum reliability
+          const urlType = searchParams.get("type");
+          const isSetupFlow = 
+            urlType === 'invite' || 
+            urlType === 'signup' || 
+            urlType === 'recovery' || 
+            window.location.hash.includes('type=invite') || 
+            window.location.hash.includes('type=recovery') ||
+            window.location.hash.includes('type=signup');
+
           if (profile?.role === 'super_admin') {
-            setMessage("Admin identity verified! Redirecting to Admin Dashboard...");
-            redirectId = setTimeout(() => router.push("/admin"), 1000);
+            if (isSetupFlow) {
+              console.log("Auth: Admin setup detected");
+              setMessage("Admin setup required. Redirecting to password setup...");
+              redirectId = setTimeout(() => router.push("/setup-password"), 1000);
+            } else {
+              setMessage("Admin identity verified! Redirecting to Admin Dashboard...");
+              redirectId = setTimeout(() => router.push("/admin"), 1000);
+            }
           } else {
-            setMessage("Authentication successful! Redirecting to Dashboard...");
-            redirectId = setTimeout(() => router.push("/dashboard"), 1000);
+            if (isSetupFlow) {
+              console.log("Auth: Operator setup detected");
+              setMessage("New account setup required. Redirecting to password setup...");
+              redirectId = setTimeout(() => router.push("/setup-password"), 1000);
+            } else {
+              setMessage("Authentication successful! Redirecting to Dashboard...");
+              redirectId = setTimeout(() => router.push("/dashboard"), 1000);
+            }
           }
           return;
         } 
@@ -125,7 +148,12 @@ function AuthCallbackHandler() {
             .maybeSingle();
             
            setStatus("success");
-           if (profile?.role === 'super_admin') {
+           const type = searchParams.get("type");
+           const isSetupFlow = type === 'invite' || type === 'signup' || type === 'recovery';
+
+           if (isSetupFlow) {
+             router.push("/setup-password");
+           } else if (profile?.role === 'super_admin') {
              router.push("/admin");
            } else {
              router.push("/dashboard");
