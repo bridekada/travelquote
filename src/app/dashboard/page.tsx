@@ -157,28 +157,35 @@ function DashboardContent() {
           }
         }
       } else if (activeTab === 'vehicles') {
-        const { data } = await getVehicles(selectedOperatorId!);
-        setFleet(data || []);
+        const res = await getVehicles(selectedOperatorId!);
+        if (res.error) console.error('Dashboard: Vehicles fetch failed', res.error);
+        setFleet(res.data || []);
       } else if (activeTab === 'itinerary') {
-        const [presetData, miscData] = await Promise.all([
+        const [presetsRes, miscRes] = await Promise.all([
           getItineraryPresets(selectedOperatorId!),
           getMiscPresets(selectedOperatorId!)
         ]);
-        setPresets(presetData.data || []);
-        setMiscPresets(miscData.data || []);
+        if (presetsRes.error) console.error('Dashboard: Itinerary fetch failed', presetsRes.error);
+        if (miscRes.error) console.error('Dashboard: Misc fetch failed (itinerary tab)', miscRes.error);
+        setPresets(presetsRes.data || []);
+        setMiscPresets(miscRes.data || []);
       } else if (activeTab === 'miscellaneous') {
-        const { data } = await getMiscPresets(selectedOperatorId!);
-        setMiscPresets(data || []);
+        const res = await getMiscPresets(selectedOperatorId!);
+        if (res.error) console.error('Dashboard: Misc fetch failed', res.error);
+        setMiscPresets(res.data || []);
       } else if (activeTab === 'packages') {
-        const [pkgs, miscs] = await Promise.all([
+        const [pkgsRes, miscsRes] = await Promise.all([
           getPackagePresets(selectedOperatorId!),
           getMiscPresets(selectedOperatorId!)
         ]);
-        setPackagePresets(pkgs.data || []);
-        setMiscPresets(miscs.data || []);
+        if (pkgsRes.error) console.error('Dashboard: Packages fetch failed', pkgsRes.error);
+        if (miscsRes.error) console.error('Dashboard: Misc fetch failed (packages tab)', miscsRes.error);
+        setPackagePresets(pkgsRes.data || []);
+        setMiscPresets(miscsRes.data || []);
       } else if (activeTab === 'accommodation') {
-        const { data } = await getGuestAccommodation(selectedOperatorId!);
-        setAccommodations(data || []);
+        const res = await getGuestAccommodation(selectedOperatorId!);
+        if (res.error) console.error('Dashboard: Accommodation fetch failed', res.error);
+        setAccommodations(res.data || []);
       }
     } catch (err) {
       console.error('Operational data fetch error:', err);

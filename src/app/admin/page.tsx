@@ -25,7 +25,7 @@ export function AdminPortal() {
   const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
   const [operators, setOperators] = useState<any[]>([]);
-  const [operatorConfirmed, setOperatorConfirmed] = useState<Record<string, { count: number; total: number }>>({});
+  const [operatorConfirmed, setOperatorConfirmed] = useState<Record<string, { count: number; total: number; commission: number }>>({});
   const [personnel, setPersonnel] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [personnelLoading, setPersonnelLoading] = useState(true);
@@ -74,15 +74,18 @@ export function AdminPortal() {
     if (opIds.length > 0) {
       const { data: confirmedQuotes } = await supabase
         .from('quotes')
-        .select('operator_id, grand_total, status')
+        .select('operator_id, grand_total, admin_commission, status')
         .in('operator_id', opIds)
         .in('status', confirmedStatuses);
 
-      const lookup: Record<string, { count: number; total: number }> = {};
+      const lookup: Record<string, { count: number; total: number; commission: number }> = {};
       (confirmedQuotes || []).forEach((q: any) => {
-        if (!lookup[q.operator_id]) lookup[q.operator_id] = { count: 0, total: 0 };
+        if (!lookup[q.operator_id]) lookup[q.operator_id] = { count: 0, total: 0, commission: 0 };
         lookup[q.operator_id].count += 1;
         lookup[q.operator_id].total += (q.grand_total || 0);
+        // Calculate amount from percentage: (total * commission_percent) / 100
+        const commAmount = ((q.grand_total || 0) * (q.admin_commission || 0)) / 100;
+        lookup[q.operator_id].commission += commAmount;
       });
       setOperatorConfirmed(lookup);
     }
@@ -421,15 +424,29 @@ export function AdminPortal() {
                         <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>Website</span>
                       )}
                       {op.website && <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>·</span>}
-                      <span style={{ fontSize: '12px', color: 'var(--color-success)' }}>Active</span>
+                        <span style={{ fontSize: '12px', color: 'var(--color-success)' }}>Active</span>
+                        <span style={{ color: 'var(--color-border-default)' }}>·</span>
+                        <div className="flex items-center gap-2 whitespace-nowrap" style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                          <span className="flex items-center gap-1">
+                            <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Confirmed:</span>
+                            <span className="font-bold text-primary">₱{(operatorConfirmed[op.id]?.total || 0).toLocaleString()}</span>
+                          </span>
+                          <span className="opacity-30">|</span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Comm:</span>
+                            <span className="font-bold text-brand">₱{(operatorConfirmed[op.id]?.commission || 0).toLocaleString()}</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right: Chips + Actions */}
-                <div className="flex items-center gap-2 relative z-50">
-                  <span style={chipGreen}>{op._quoteCount || 0} Quote{(op._quoteCount || 0) !== 1 ? 's' : ''}</span>
-                  <span style={chipGray}>{op._profileCount || 0} Staff</span>
+                  {/* Right: Chips + Actions */}
+                  <div className="flex items-center gap-4 relative z-50">
+                    <div className="flex items-center gap-2">
+                    <span style={chipGreen}>{op._quoteCount || 0} Quote{(op._quoteCount || 0) !== 1 ? 's' : ''}</span>
+                    <span style={chipGray}>{op._profileCount || 0} Staff</span>
+                  </div>
                   <div className="flex items-center gap-1.5 ml-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingOperator(op); setNewSocialLinks(op.social_links && op.social_links.length > 0 ? op.social_links : ['']); }}
