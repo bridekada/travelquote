@@ -19,7 +19,6 @@ export default function LandingPage() {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error || !session) {
-          await supabase.auth.signOut().catch(() => {});
           setLoading(false);
           return;
         }
@@ -31,7 +30,6 @@ export default function LandingPage() {
         if (profile?.role === 'super_admin') router.push("/admin");
         else router.push("/dashboard");
       } catch {
-        await supabase.auth.signOut().catch(() => {});
         setLoading(false);
       }
     };

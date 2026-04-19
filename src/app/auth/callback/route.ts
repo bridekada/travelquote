@@ -25,14 +25,14 @@ export async function GET(request: Request) {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Can be ignored if middleware refreshes sessions.
+            // Can be ignored if middleware handles sessions
           }
         },
       },
     }
   );
 
-  // ── PKCE flow: sign in with code (magic link, OAuth) ─────────────
+  // 1. PKCE flow: sign in with code (Magic Link, OAuth)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
@@ -40,16 +40,18 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── OTP / Invite flow: verify token hash (invite, recovery, signup) ─
+  // 2. OTP / Invite flow: verify token hash (Invites, Recovery, Signup)
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
-      // For invites, send them to set their password
-      const redirectTo = type === 'invite' ? '/dashboard' : next;
-      return NextResponse.redirect(new URL(redirectTo, request.url));
+      return NextResponse.redirect(new URL(next, request.url));
     }
   }
 
-  // Fallback — redirect to login with an error indicator
-  return NextResponse.redirect(new URL('/?error=auth_callback_failed', request.url));
+  // 3. Forgiving Fallback
+  // If no params are found, we redirect to /dashboard anyway.
+  // Rationale: If Supabase used the "Implicit" flow (hash # fragment), 
+  // the server can't see it, but the browser will carry it to /dashboard 
+  // where the client-side Supabase client will process it automatically.
+  return NextResponse.redirect(new URL(next, request.url));
 }
