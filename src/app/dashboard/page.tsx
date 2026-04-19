@@ -447,7 +447,7 @@ function DashboardContent() {
           >
             <div className="flex items-center gap-3">
               <LayoutGrid style={{ color: 'var(--color-brand)' }} className="group-hover:scale-110 transition-transform shrink-0" size={20} />
-              <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">Command Center</span>
+              <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">TravelQuote <span style={{ color: '#F05E33', fontWeight: 500, fontSize: '0.75em', marginLeft: '2px' }}>by JWRM</span></span>
             </div>
             <div className="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
             <div className="text-xs font-medium text-text-muted hidden sm:block truncate">

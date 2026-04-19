@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TravelQuote — Travel Agent Sales Hub",
-  description: "Generate quotes, manage vehicles, and track bookings seamlessly.",
+  title: "TravelQuote by JWRM",
+  description: "Company-wide sales hub for managing quotes, vehicles, and bookings.",
   manifest: "/manifest.json",
 };
 

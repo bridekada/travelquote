@@ -97,7 +97,7 @@ export default function LandingPage() {
             <LayoutGrid size={24} />
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
-            TravelQuote
+            TravelQuote <span style={{ color: '#F05E33', fontWeight: 500, fontSize: '0.75em', marginLeft: '2px' }}>by JWRM</span>
           </h1>
           <p style={{ fontSize: '11px', fontWeight: 500, color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>
             Authorized Access Only
