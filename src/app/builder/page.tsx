@@ -542,14 +542,35 @@ function QuoteBuilder() {
     try {
       const freshText = compileQuotationText(quote, quote.items, extraFees, discount, totals);
       const payload: any = {
-        operator_id: selectedOperatorId, created_by: profile?.id, customer_name: quote.customer_name, fb_name: quote.fb_name, contact_number: quote.contact_number,
-        pax_count: quote.pax_count, eta: quote.eta ? new Date(quote.eta).toISOString() : null, etd: quote.etd ? new Date(quote.etd).toISOString() : null,
-        vehicle_model: quote.vehicle_model, pickup_location: quote.pickup_location, dropoff_location: quote.dropoff_location,
-        notes: quote.notes, quotation_text: freshText, grand_total: totals.grandTotal, extra_fees_json: extraFees, extra_fees_total: totals.totalExtraFees,
-        discount_total: discount, status: customStatus || (quote.status === 'Confirmed' ? 'Confirmed' : (quote.status || 'Draft')),
-        admin_commission: quote.admin_commission, selected_package: selectedPackageName, selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
-        package_options_json: livePackages
+        operator_id: selectedOperatorId, 
+        customer_name: quote.customer_name, 
+        fb_name: quote.fb_name, 
+        contact_number: quote.contact_number,
+        pax_count: quote.pax_count, 
+        eta: quote.eta ? new Date(quote.eta).toISOString() : null, 
+        etd: quote.etd ? new Date(quote.etd).toISOString() : null,
+        vehicle_model: quote.vehicle_model, 
+        pickup_location: quote.pickup_location, 
+        dropoff_location: quote.dropoff_location,
+        notes: quote.notes, 
+        quotation_text: freshText, 
+        grand_total: totals.grandTotal, 
+        extra_fees_json: extraFees, 
+        extra_fees_total: totals.totalExtraFees,
+        discount_total: discount, 
+        status: customStatus || (quote.status === 'Confirmed' ? 'Confirmed' : (quote.status || 'Draft')),
+        admin_commission: quote.admin_commission, 
+        selected_package: selectedPackageName, 
+        selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
+        package_options_json: livePackages,
+        updated_by: profile?.id,
+        updated_at: new Date().toISOString()
       };
+
+      // Only set created_by on initial insert
+      if (!quote.id) {
+        payload.created_by = profile?.id;
+      }
 
       const isCurrentlyConfirmed = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(quote.status || '');
       if ((customStatus === 'Confirmed' || isCurrentlyConfirmed) && selectedPackageId) {
@@ -629,7 +650,11 @@ function QuoteBuilder() {
       type: "warning",
       confirmText: "Yes, Cancel Quote",
       onConfirm: async () => { 
-        const { error } = await supabase.from('quotes').update({ status: 'Cancelled' }).eq('id', quote.id); 
+        const { error } = await supabase.from('quotes').update({ 
+          status: 'Cancelled',
+          updated_by: profile?.id,
+          updated_at: new Date().toISOString()
+        }).eq('id', quote.id); 
         if (error) {
           openDialog({ title: "Error", message: error.message, type: "warning" });
         } else {

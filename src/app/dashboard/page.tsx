@@ -31,6 +31,13 @@ import {
   pageTitle, pageSubtitle, pageContainer, topBar, topBarInner, tabRowStyle,
   alertSuccess, alertError, inputFocus, inputBlur,
 } from "@/lib/styles";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function DashboardContent() {
   const router = useRouter();
@@ -41,6 +48,7 @@ function DashboardContent() {
   const confirmedStatuses = ['Confirmed', 'Payment Started', 'Payment Complete'];
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
+  const [agentFilter, setAgentFilter] = useState("All");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -89,7 +97,7 @@ function DashboardContent() {
       if (activeTab === 'quotes' || activeTab === 'analytics') {
         const { data, error } = await supabase
           .from('quotes')
-          .select('*, profiles:created_by(full_name)')
+          .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
           .eq('operator_id', selectedOperatorId)
           .order('eta', { ascending: true, nullsFirst: false });
           
@@ -339,7 +347,8 @@ function DashboardContent() {
   const filteredQuotes = quotes.filter(q => {
     const matchesSearch = q.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
+    return matchesSearch && matchesAgent;
   });
 
   const filteredFleet = fleet.filter(v => 
@@ -546,7 +555,7 @@ function DashboardContent() {
         </div>
 
         {activeTab !== 'analytics' && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
               <input 
@@ -557,6 +566,32 @@ function DashboardContent() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {activeTab === 'quotes' && (
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-[1px] bg-slate-200 hidden md:block mx-1"></div>
+                <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val || "All")}>
+                  <SelectTrigger 
+                    size="sm" 
+                    className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users size={14} className="text-text-tertiary opacity-60" />
+                      <SelectValue placeholder="All Agents" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="dark min-w-[180px]">
+                    <SelectItem value="All" className="text-[10px] font-bold uppercase tracking-widest py-2">
+                       All Agents
+                    </SelectItem>
+                    {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).sort().map(name => (
+                      <SelectItem key={name as string} value={name as string} className="text-[10px] font-bold uppercase tracking-widest py-2">
+                        {name as string}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         )}
 
@@ -755,7 +790,7 @@ function DashboardContent() {
                       const now = new Date();
                       const twoWeeks = new Date();
                       twoWeeks.setDate(now.getDate() + 14);
-                      const isUrgent = !confirmedStatuses.includes(quote.status || '') && quote.status !== 'Cancelled' && quote.status !== 'Lost' && quote.eta && new Date(quote.eta) > now && new Date(quote.eta) <= twoWeeks;
+                      const isUrgent = ['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(quote.status || '') && quote.eta && new Date(quote.eta) > now && new Date(quote.eta) <= twoWeeks;
 
                       return (
                         <QuoteListItem 
@@ -768,7 +803,12 @@ function DashboardContent() {
                           isUrgent={isUrgent}
                           amount={`₱${quote.grand_total?.toLocaleString()}`}
                           totalPaid={paymentTotals[quote.id] || 0}
-                          agent={quote.profiles?.full_name}
+                          adminCommission={quote.admin_commission || 0}
+                          agent={quote.creator?.full_name}
+                          createdAt={quote.created_at}
+                          modifier={quote.modifier?.full_name}
+                          updatedAt={quote.updated_at}
+                          currentUserId={profile?.id}
                           onClick={() => router.push(`/builder?id=${quote.id}`)}
                           onStatusChange={(newStatus: string) => {
                             setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
@@ -1247,7 +1287,7 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, status, amount, totalPaid, onClick, isUrgent, agent, quoteId, onStatusChange }: any) {
+function QuoteListItem({ customer, route, date, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -1275,7 +1315,11 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
 
   const handleStatusSelect = async (newStatus: string) => {
     if (newStatus === status) { setIsDropdownOpen(false); return; }
-    const { error } = await supabase.from('quotes').update({ status: newStatus }).eq('id', quoteId);
+    const { error } = await supabase.from('quotes').update({ 
+      status: newStatus,
+      updated_by: currentUserId,
+      updated_at: new Date().toISOString()
+    }).eq('id', quoteId);
     if (error) {
       console.error('Status update failed:', error);
       alert(`Status update failed: ${error.message}`);
@@ -1307,14 +1351,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
   const totalAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
   const paymentProgress = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
 
-  const shortNames: Record<string, string> = {
-    'Quotation Sent': 'Sent',
-    'Follow-up Needed': 'Follow-up',
-    'Payment Started': 'Paying',
-    'Payment Complete': 'Paid',
-    'Cancelled': 'Cancelled'
-  };
-  const displayName = shortNames[status] || status;
+  const displayName = status;
 
   return (
     <motion.div 
@@ -1335,7 +1372,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
              <h3 style={labelStyle} className="!mb-0 truncate">{customer}</h3>
-             {isUrgent && <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest animate-pulse">Urgent</span>}
+             {isUrgent && <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest animate-pulse">URGENT: Confirm this quote</span>}
           </div>
           <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
             <span style={sectionLabel} className="!text-[9px] truncate">{route}</span>
@@ -1343,24 +1380,27 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
             <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1">
               <Clock size={10} /> {date}
             </span>
-            {agent && (
+            {isConfirmedFlow && (
               <>
                 <span className="text-text-tertiary">·</span>
-                <span className="text-[9px] font-bold text-primary/50 uppercase tracking-wider">{agent}</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">Paid: {Math.round(paymentProgress)}% (₱{totalPaid.toLocaleString()})</span>
               </>
             )}
           </div>
           
-          {isConfirmedFlow && (
-            <div className="mt-2 w-full max-w-[200px]">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">Paid: {Math.round(paymentProgress)}%</span>
-              </div>
-              <div className="h-1 w-full bg-emerald-50 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(paymentProgress, 100)}%` }} />
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mt-1 opacity-60">
+            {agent && (
+              <span className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest whitespace-nowrap">
+                Created: {agent} {createdAt ? new Date(createdAt).toLocaleDateString() : ''}
+              </span>
+            )}
+            {agent && modifier && <span className="text-text-tertiary opacity-40">|</span>}
+            {modifier && (
+              <span className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest whitespace-nowrap">
+                Updated: {modifier} {updatedAt ? new Date(updatedAt).toLocaleDateString() : ''}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1397,7 +1437,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
                         <button
                           onClick={() => handleStatusSelect(s)}
                           className={`w-full status-hub-btn flex items-center justify-between px-2 m-0 border-0 outline-none transition-all ${
-                            isActive ? activeColor : 'text-text-secondary hover:text-text-primary'
+                            isActive ? (statusConfig[s]?.text || 'text-primary') : 'text-text-secondary hover:text-text-primary'
                           }`}
                         >
                           <div className="flex items-center gap-1.5 leading-none">
@@ -1426,7 +1466,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
                         {showPayment && (
                           <>
                             {['Confirmed', 'Payment Started', 'Payment Complete'].map(s => (
-                              <StatusItem key={s} s={s} activeColor="text-emerald-600" />
+                              <StatusItem key={s} s={s} activeColor="" />
                             ))}
                             <div className="my-[1px] border-t border-[#f1f3f5]" />
                           </>
@@ -1456,9 +1496,13 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, onCli
           </AnimatePresence>
         </div>
 
-        <div className="text-right">
+        <div className="text-right flex flex-col items-end">
           <div className="text-sm font-bold text-primary">{amount}</div>
-          {totalPaid > 0 && <p className="text-[9px] font-black text-emerald-500">Collected</p>}
+          {adminCommission > 0 && (
+            <div className="text-[8px] font-bold text-text-tertiary/60 uppercase tracking-widest leading-none mt-1">
+              Comm: {adminCommission}% (₱{(totalAmount * (adminCommission / 100)).toLocaleString()})
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
