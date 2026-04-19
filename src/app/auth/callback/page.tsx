@@ -23,11 +23,40 @@ function AuthCallbackHandler() {
 
     const handleAuth = async () => {
       try {
-        // 1. Set up a listener FIRST. 
-        // This catches the session the split-second Supabase processes the hash fragment.
+        console.log("Auth: Handler started. URL Hash present:", !!window.location.hash);
+
+        // 1. MANUAL FRAGMENT PARSE (The "Nuclear" Option)
+        // If Supabase background listener is silent, we manually scrape the token.
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          console.log("Auth: Manual fragment detected, parsing tokens...");
+          const hash = window.location.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            console.log("Auth: Found tokens in URL, forcing setSession...");
+            const { error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (!setSessionError) {
+              console.log("Auth: Manual setSession succeeded!");
+              setStatus("success");
+              setMessage("Identity identified! Redirecting...");
+              redirectId = setTimeout(() => router.push("/dashboard"), 500);
+              return; // Success! Exit early.
+            } else {
+              console.error("Auth: Manual setSession failed", setSessionError.message);
+            }
+          }
+        }
+
+        // 2. Set up a listener (Standard Flow fallback)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN' && session) {
-            console.log("Auth: Caught SIGNED_IN event");
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+            console.log("Auth: Caught event:", event);
             setStatus("success");
             setMessage("Authentication successful! Redirecting...");
             redirectId = setTimeout(() => router.push("/dashboard"), 800);
@@ -35,7 +64,7 @@ function AuthCallbackHandler() {
         });
         authListener = subscription;
 
-        // 2. Check for 'code' (OAuth/Magic Link)
+        // 3. Check for query parameters (PKCE Flow)
         const code = searchParams.get("code");
         if (code) {
           console.log("Auth: Exchanging code...");
@@ -43,7 +72,6 @@ function AuthCallbackHandler() {
           if (error) throw error;
         }
 
-        // 3. Check for 'token_hash' (Invites/OTP)
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
         if (token_hash && type) {
@@ -65,9 +93,7 @@ function AuthCallbackHandler() {
         }
 
         // 5. Final Patience Loop
-        // If we reach here, we're likely waiting for the browser to finish 
-        // processing a URL hash fragment. We wait up to 3 seconds before giving up.
-        console.log("Auth: No session yet, waiting for fragment processing...");
+        console.log("Auth: No session confirmed yet, waiting for processing...");
         await new Promise(resolve => {
           timeoutId = setTimeout(resolve, 3000);
         });
