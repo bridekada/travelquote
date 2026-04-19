@@ -19,22 +19,35 @@ function AuthCallbackHandler() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let redirectId: NodeJS.Timeout;
+    let authListener: any;
 
     const handleAuth = async () => {
       try {
-        // 1. Check for 'code' (OAuth/Magic Link)
+        // 1. Set up a listener FIRST. 
+        // This catches the session the split-second Supabase processes the hash fragment.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            console.log("Auth: Caught SIGNED_IN event");
+            setStatus("success");
+            setMessage("Authentication successful! Redirecting...");
+            redirectId = setTimeout(() => router.push("/dashboard"), 800);
+          }
+        });
+        authListener = subscription;
+
+        // 2. Check for 'code' (OAuth/Magic Link)
         const code = searchParams.get("code");
         if (code) {
-          console.log("Auth: Found code, exchanging...");
+          console.log("Auth: Exchanging code...");
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
         }
 
-        // 2. Check for 'token_hash' (Invites/OTP)
+        // 3. Check for 'token_hash' (Invites/OTP)
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
         if (token_hash && type) {
-          console.log(`Auth: Found ${type} token hash, verifying...`);
+          console.log(`Auth: Verifying ${type} hash...`);
           const { error } = await supabase.auth.verifyOtp({ 
             token_hash, 
             type: type as any 
@@ -42,26 +55,28 @@ function AuthCallbackHandler() {
           if (error) throw error;
         }
 
-        // 3. Buffer to allow Supabase to process URL fragments (#access_token)
-        // Fragments are handled internally by the Supabase browser client.
+        // 4. Initial check for an existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setStatus("success");
+          setMessage("Session found! Redirecting...");
+          redirectId = setTimeout(() => router.push("/dashboard"), 800);
+          return;
+        }
+
+        // 5. Final Patience Loop
+        // If we reach here, we're likely waiting for the browser to finish 
+        // processing a URL hash fragment. We wait up to 3 seconds before giving up.
+        console.log("Auth: No session yet, waiting for fragment processing...");
         await new Promise(resolve => {
-          timeoutId = setTimeout(resolve, 800);
+          timeoutId = setTimeout(resolve, 3000);
         });
 
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        
-        if (data.session) {
-          console.log("Auth: Session confirmed");
-          setStatus("success");
-          setMessage("Authentication successful! Redirecting...");
-          redirectId = setTimeout(() => router.push("/dashboard"), 1000);
-        } else {
-          // If no session, check if we're in a common error redirect state
+        // Final check after waiting
+        const { data: finalData } = await supabase.auth.getSession();
+        if (!finalData.session) {
           const errorDesc = searchParams.get("error_description");
-          if (errorDesc) throw new Error(errorDesc);
-          
-          throw new Error("Unable to establish a secure session. The link may have expired.");
+          throw new Error(errorDesc || "Could not confirm your session. The link may have expired or was already used.");
         }
       } catch (err: any) {
         console.error("Auth Callback Failure:", err.message || err);
@@ -75,6 +90,7 @@ function AuthCallbackHandler() {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (redirectId) clearTimeout(redirectId);
+      if (authListener) authListener.unsubscribe();
     };
   }, [router, searchParams]);
 
