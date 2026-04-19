@@ -37,7 +37,7 @@ export default function OperationalMatrix({
   grandTotal,
   readOnly = false
 }: OperationalMatrixProps) {
-  const accomColWidth = dbAccommodations.length > 0 ? 120 : 0;
+  const accomColWidth = 120;
   const dynamicColsWidth = dbMiscPresets.length * 100;
   const matrixWidth = Math.max(1200, 700 + accomColWidth + dynamicColsWidth);
 
@@ -66,9 +66,7 @@ export default function OperationalMatrix({
               <th className={headerStyle + " w-[70px]"}>KM/L</th>
               <th className={headerStyle + " w-[90px]"}>Fuel</th>
               
-              {dbAccommodations.length > 0 && (
-                <th className={headerStyle + " w-[110px] text-primary"}>Guest Accom</th>
-              )}
+              <th className={headerStyle + " w-[110px] text-primary"}>Guest Accom</th>
 
               {dbMiscPresets.map(p => {
                 const isIncludedInAnyPkg = livePackages.some(lp => (lp.includes_misc_ids || []).includes(p.id));
@@ -148,7 +146,6 @@ export default function OperationalMatrix({
                   </div>
                 </td>
                 
-                {dbAccommodations.length > 0 && (
                   <td className={cellStyle}>
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] font-bold text-gray-300">₱</span>
@@ -162,7 +159,6 @@ export default function OperationalMatrix({
                       />
                     </div>
                   </td>
-                )}
 
                   {dbMiscPresets.map(p => {
                     const val = item.dynamic_costs?.[p.id] || 0;
@@ -208,9 +204,7 @@ export default function OperationalMatrix({
               </td>
               <td className="px-3 py-4 text-[11px] font-black text-primary">₱{Math.round(colTotals.fuel).toLocaleString()}</td>
               
-              {dbAccommodations.length > 0 && (
                 <td className="px-3 py-4 text-[11px] font-black text-primary">₱{Math.round(colTotals.accom).toLocaleString()}</td>
-              )}
 
               {dbMiscPresets.map(p => (
                 <td key={p.id} className="px-3 py-4 text-[11px] font-black text-indigo-600">

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
   modalOverlay, modalCard, modalTitle, modalFormSpace, 
-  inputStyle, labelStyle, sectionLabel, btnPrimary,
+  inputStyle, labelStyle, sectionLabel, btnPrimary, btnAction,
   inputFocus, inputBlur
 } from "@/lib/styles";
 
@@ -52,7 +52,7 @@ export default function ConfirmedSummary({
              {!isFullyPaid && (
                <button 
                  onClick={() => setIsPaymentModalOpen(true)}
-                 className="h-10 px-5 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                 style={{ ...btnAction, height: '40px' }}
                >
                  <Plus size={16} /> Record Payment
                </button>
@@ -496,14 +496,9 @@ export default function ConfirmedSummary({
                     type="submit" 
                     disabled={isSaving}
                     style={{
-                      ...btnPrimary,
+                      ...btnAction,
                       width: '100%',
                       height: '52px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      boxShadow: '0 12px 24px -6px rgba(16, 185, 129, 0.25)'
                     }}
                   >
                     {isSaving ? (

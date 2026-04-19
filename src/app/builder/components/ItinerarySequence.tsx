@@ -27,7 +27,7 @@ function TagSelector({ options, selectedTags, onChange, readOnly = false }: TagS
   };
 
   return (
-    <div className="flex gap-1 mt-1 flex-wrap">
+    <div className="flex gap-1.5 mt-1 flex-wrap">
       {options.map(tag => {
         const isActive = selectedTags.includes(tag);
         return (
@@ -36,11 +36,11 @@ function TagSelector({ options, selectedTags, onChange, readOnly = false }: TagS
             type="button"
             disabled={readOnly}
             onClick={() => !readOnly && toggleTag(tag)}
-            className={`inline-flex items-center px-1.5 rounded text-[5.5px] font-black uppercase tracking-wide transition-all leading-none ${readOnly ? "cursor-default opacity-50 grayscale" : "cursor-pointer hover:scale-110 active:scale-95"} ${isActive
+            className={`inline-flex items-center px-2 rounded text-[9px] font-black uppercase tracking-wide transition-all leading-none ${readOnly ? "cursor-default opacity-50 grayscale" : "cursor-pointer hover:scale-110 active:scale-95"} ${isActive
                 ? "bg-rose-500 text-white shadow-sm hover:opacity-90"
                 : "bg-[#f0f2f5] text-text-tertiary/40 hover:text-text-tertiary/70 hover:bg-[#e8eaed]"
               }`}
-            style={{ height: '14px', minHeight: '14px', padding: '0 6px' }}
+            style={{ height: '20px', minHeight: '20px', padding: '0 8px' }}
           >
             {tag}
           </button>
@@ -173,8 +173,7 @@ export default function ItinerarySequence({
                       </div>
                     </div>
 
-                    {dbAccommodations.length > 0 && (
-                      <div className="col-span-8 space-y-1">
+                    <div className="col-span-8 space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0 inline-block">Accommodation</label>
                         <Select
                           value={item.guest_accommodation_id || "custom"}
@@ -218,7 +217,6 @@ export default function ItinerarySequence({
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
                   </div>
 
                   {/* Custom Accommodation Entry */}

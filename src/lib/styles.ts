@@ -75,6 +75,26 @@ export const btnPrimary: CSSProperties = {
   transition: 'all 0.2s ease',
 };
 
+export const btnAction: CSSProperties = {
+  background: 'var(--color-brand)',
+  backgroundImage: 'linear-gradient(135deg, var(--color-brand) 0%, #064E3B 100%)',
+  color: 'white',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '14px',
+  fontWeight: 800,
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  cursor: 'pointer',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '10px',
+  padding: '0 24px',
+  boxShadow: '0 8px 16px -4px rgba(5, 150, 105, 0.25), 0 4px 6px -2px rgba(5, 150, 105, 0.1)',
+};
+
 export const btnSecondary: CSSProperties = {
   background: 'white',
   color: 'var(--color-text-primary)',

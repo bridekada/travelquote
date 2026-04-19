@@ -25,7 +25,7 @@ import {
   deleteGuestAccommodation
 } from "@/app/actions/operational-config";
 import {
-  cardStyle, chipGreen, chipGray, btnPrimary, btnIcon,
+  cardStyle, chipGreen, chipGray, btnPrimary, btnSecondary, btnAction, btnIcon,
   inputStyle, labelStyle, sectionLabel, headingMd,
   modalOverlay, modalCard, modalTitle, modalFormSpace,
   pageTitle, pageSubtitle, pageContainer, topBar, topBarInner, tabRowStyle,
@@ -44,7 +44,7 @@ function DashboardContent() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
-  const validTabs = ['analytics', 'quotes', 'vehicles', 'itinerary', 'miscellaneous', 'packages', 'accommodation'] as const;
+  const validTabs = ['analytics', 'quotes', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'analytics');
   const [tabLoading, setTabLoading] = useState(false);
@@ -446,29 +446,29 @@ function DashboardContent() {
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
           <div>
             <h1 style={pageTitle}>
-              {activeTab === 'quotes' && "Operational Station"}
-              {activeTab === 'analytics' && "Ops Insights"}
-              {activeTab === 'vehicles' && "Fleet Inventory"}
-              {activeTab === 'itinerary' && "Service Presets"}
-              {activeTab === 'miscellaneous' && "Miscellaneous Fees"}
-              {activeTab === 'packages' && "Summary Packages"}
+               {activeTab === 'quotes' && "Quotation List"}
+              {activeTab === 'analytics' && "Company Insight"}
+              {activeTab === 'vehicles' && "Vehicle Inventory"}
               {activeTab === 'accommodation' && "Guest Accommodation"}
+              {activeTab === 'miscellaneous' && "Miscellaneous Fees"}
+              {activeTab === 'itinerary' && "Itinerary Presets"}
+              {activeTab === 'packages' && "Summary Packages"}
             </h1>
             <p style={pageSubtitle}>
-              {activeTab === 'quotes' && "Active mission control and trip management."}
+              {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
               {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
-              {activeTab === 'vehicles' && "Manage your vehicles and service rates."}
-              {activeTab === 'itinerary' && "Define standard trip and itinerary patterns."}
-              {activeTab === 'miscellaneous' && "Configure operator-level miscellaneous fee presets."}
-              {activeTab === 'packages' && "Configure reusable pricing packages."}
+              {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
               {activeTab === 'accommodation' && "Manage guest accommodation options with pax-based pricing."}
+              {activeTab === 'miscellaneous' && "Configure operator-level miscellaneous fee presets."}
+              {activeTab === 'itinerary' && "Create and manage reusable trip patterns and route configurations."}
+              {activeTab === 'packages' && "Configure reusable pricing packages."}
             </p>
           </div>
           {activeTab === 'quotes' && (
             <button 
               onClick={() => router.push('/builder')}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <Plus size={16} strokeWidth={2.5} />
               <span className="hidden sm:inline">Issue Quote</span>
@@ -478,8 +478,8 @@ function DashboardContent() {
           {activeTab === 'vehicles' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingVehicle(true); }}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <CarFront size={16} strokeWidth={2.5} />
               Add Vehicle
@@ -488,8 +488,8 @@ function DashboardContent() {
           {activeTab === 'itinerary' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingPreset(true); }}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <MapIcon size={16} strokeWidth={2.5} />
               Define Preset
@@ -498,8 +498,8 @@ function DashboardContent() {
           {activeTab === 'miscellaneous' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingMisc(true); }}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <Banknote size={16} strokeWidth={2.5} />
               Add Misc Fee
@@ -508,8 +508,8 @@ function DashboardContent() {
           {activeTab === 'packages' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingPackage(true); }}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <LayoutGrid size={16} strokeWidth={2.5} />
               Add Package
@@ -518,8 +518,8 @@ function DashboardContent() {
           {activeTab === 'accommodation' && (
             <button 
               onClick={() => { setEditingItem(null); setIsAddingAccommodation(true); }}
-              className="group flex items-center gap-2 px-5 transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnPrimary, height: '42px', borderRadius: '12px', whiteSpace: 'nowrap' }}
+              className="group transition-all hover:opacity-90 active:scale-95"
+              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
             >
               <BedDouble size={16} strokeWidth={2.5} />
               Add Accommodation
@@ -2020,7 +2020,7 @@ function TagSelector({ options, selectedTags, onChange }: { options: string[], s
   }
 
   return (
-    <div className="flex gap-1 mt-1 overflow-x-auto scrollbar-hide">
+    <div className="flex gap-1.5 mt-1 overflow-x-auto scrollbar-hide">
       {options.map(tag => {
         const isActive = selectedTags.includes(tag);
         return (
@@ -2028,12 +2028,12 @@ function TagSelector({ options, selectedTags, onChange }: { options: string[], s
             key={tag}
             type="button"
             onClick={() => toggleTag(tag)}
-            className={`inline-flex items-center px-1.5 rounded text-[5.5px] font-black uppercase tracking-wide transition-all leading-none cursor-pointer hover:scale-110 active:scale-95 ${
+            className={`inline-flex items-center px-2 rounded text-[9px] font-black uppercase tracking-wide transition-all leading-none cursor-pointer hover:scale-110 active:scale-95 ${
               isActive 
                 ? "bg-rose-500 text-white shadow-sm hover:bg-rose-600" 
                 : "bg-[#f0f2f5] text-text-tertiary/40 hover:text-text-tertiary/70 hover:bg-[#e8eaed]"
             }`}
-            style={{ height: '14px', minHeight: '14px', padding: '0 6px' }}
+            style={{ height: '20px', minHeight: '20px', padding: '0 8px' }}
           >
             {tag}
           </button>
