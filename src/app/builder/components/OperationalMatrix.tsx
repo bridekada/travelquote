@@ -59,14 +59,49 @@ export default function OperationalMatrix({
         <table className="w-full text-left border-collapse" style={{ minWidth: `${matrixWidth}px` }}>
           <thead>
             <tr className="bg-[#f8f9fb]">
-              <th className={headerStyle + " !pl-8 w-16"}>Day</th>
-              <th className={headerStyle + " w-[180px]"}>Destination</th>
-              <th className={headerStyle + " w-[100px]"}>Unit Rate</th>
-              <th className={headerStyle + " w-[80px]"}>Est. KM</th>
-              <th className={headerStyle + " w-[70px]"}>KM/L</th>
-              <th className={headerStyle + " w-[90px]"}>Fuel</th>
+              <th className={headerStyle + " !pl-8 w-16"}>
+                <div className="flex items-center justify-between">
+                  Day
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
+              <th className={headerStyle + " w-[180px]"}>
+                <div className="flex items-center justify-between">
+                  Destination
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
+              <th className={headerStyle + " w-[100px]"}>
+                <div className="flex items-center justify-between">
+                  Unit Rate
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
+              <th className={headerStyle + " w-[80px]"}>
+                <div className="flex items-center justify-between">
+                  Est. KM
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
+              <th className={headerStyle + " w-[70px]"}>
+                <div className="flex items-center justify-between">
+                  KM/L
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
+              <th className={headerStyle + " w-[90px]"}>
+                <div className="flex items-center justify-between">
+                  Fuel
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
               
-              <th className={headerStyle + " w-[110px] text-primary"}>Guest Accom</th>
+              <th className={headerStyle + " w-[110px] text-primary"}>
+                <div className="flex items-center justify-between">
+                  Guest Accom
+                  <span className="text-slate-300 select-none ml-2">|</span>
+                </div>
+              </th>
 
               {dbMiscPresets.map(p => {
                 const isIncludedInAnyPkg = livePackages.some(lp => (lp.includes_misc_ids || []).includes(p.id));
@@ -75,13 +110,16 @@ export default function OperationalMatrix({
 
                 return (
                   <th key={p.id} className={headerStyle + " w-[90px] text-indigo-500"}>
-                    <div className="flex items-center gap-1.5">
-                      {p.name}
-                      {showWarning && (
-                        <div className="w-3 h-3 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 animate-pulse" title="Included in package but cost is zero.">
-                          <AlertTriangle size={8} />
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {p.name}
+                        {showWarning && (
+                          <div className="w-3 h-3 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 animate-pulse" title="Included in package but cost is zero.">
+                            <AlertTriangle size={8} />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-slate-300 select-none ml-2">|</span>
                     </div>
                   </th>
                 );
@@ -94,13 +132,16 @@ export default function OperationalMatrix({
               <tr key={index} className="group hover:bg-emerald-50/30 transition-colors h-[32px]">
                 <td className={cellStyle + " !pl-8 font-black text-primary/40"}>D{item.day_number}</td>
                 <td className={cellStyle}>
-                  <input 
-                    type="text" 
-                    className={inputStyle + " disabled:opacity-50"} 
-                    value={item.destination} 
-                    onChange={(e) => onUpdateItem(index, { destination: e.target.value })} 
-                    disabled={readOnly}
-                  />
+                  <div className="flex items-center justify-between">
+                    <input 
+                      type="text" 
+                      className={inputStyle + " disabled:opacity-50"} 
+                      value={item.destination} 
+                      onChange={(e) => onUpdateItem(index, { destination: e.target.value })} 
+                      disabled={readOnly}
+                    />
+                    <span className="text-slate-300 ml-2 select-none">|</span>
+                  </div>
                 </td>
                 <td className={cellStyle}>
                   <div className="flex items-center gap-1">
@@ -112,26 +153,33 @@ export default function OperationalMatrix({
                       onChange={(e) => onUpdateItem(index, { vehicle_rate: parseFloat(e.target.value) || 0 })} 
                       disabled={readOnly}
                     />
+                    <span className="text-slate-300 ml-2 select-none">|</span>
                   </div>
                 </td>
                 <td className={cellStyle}>
-                  <input 
-                    type="number" 
-                    className={inputStyle + " disabled:opacity-50"} 
-                    value={item.km || 0} 
-                    onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })} 
-                    disabled={readOnly}
-                  />
+                  <div className="flex items-center gap-1">
+                    <input 
+                      type="number" 
+                      className={inputStyle + " disabled:opacity-50"} 
+                      value={item.km || 0} 
+                      onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })} 
+                      disabled={readOnly}
+                    />
+                    <span className="text-slate-300 ml-2 select-none">|</span>
+                  </div>
                 </td>
                 <td className={cellStyle}>
-                  <input 
-                    type="number" 
-                    className={inputStyle + " !text-text-tertiary/50 disabled:opacity-30"} 
-                    placeholder="10" 
-                    value={item.km_per_l} 
-                    onChange={(e) => onUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} 
-                    disabled={readOnly}
-                  />
+                  <div className="flex items-center gap-1">
+                    <input 
+                      type="number" 
+                      className={inputStyle + " !text-text-tertiary/50 disabled:opacity-30"} 
+                      placeholder="10" 
+                      value={item.km_per_l} 
+                      onChange={(e) => onUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} 
+                      disabled={readOnly}
+                    />
+                    <span className="text-slate-300 ml-2 select-none">|</span>
+                  </div>
                 </td>
                 <td className={cellStyle}>
                   <div className="flex items-center gap-1">
@@ -143,6 +191,7 @@ export default function OperationalMatrix({
                       onChange={(e) => onUpdateItem(index, { fuel_cost_manual: parseFloat(e.target.value) || 0 })} 
                       disabled={readOnly}
                     />
+                    <span className="text-slate-300 ml-2 select-none">|</span>
                   </div>
                 </td>
                 
@@ -157,6 +206,7 @@ export default function OperationalMatrix({
                         onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })} 
                         disabled={readOnly}
                       />
+                      <span className="text-slate-300 ml-2 select-none">|</span>
                     </div>
                   </td>
 
@@ -178,6 +228,7 @@ export default function OperationalMatrix({
                             }} 
                             disabled={readOnly}
                           />
+                          <span className="text-slate-300 ml-2 select-none">|</span>
                         </div>
                       </td>
                     );
@@ -195,20 +246,44 @@ export default function OperationalMatrix({
             <tr className="bg-[#f8f9fb] border-t-2 border-primary/10">
               <td className="!pl-8 pr-3 py-4 font-black text-primary/60 text-[9px] uppercase tracking-widest">Totals</td>
               <td className="px-3 py-4 text-[10px] font-black italic text-primary/20 tracking-tighter">Operational Sum</td>
-              <td className="px-3 py-4 text-[11px] font-black text-primary">₱{Math.round(colTotals.rate).toLocaleString()}</td>
-              <td className="px-3 py-4 text-[11px] font-black text-primary">{colTotals.km.toLocaleString()} KM</td>
-              <td className="px-3 py-4 text-center">
-                <span className="text-[12px] font-black text-primary/20">
-                  ---
-                </span>
+              <td className="px-3 py-4 text-[11px] font-black text-primary">
+                <div className="flex items-center justify-between">
+                  ₱{Math.round(colTotals.rate).toLocaleString()}
+                  <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                </div>
               </td>
-              <td className="px-3 py-4 text-[11px] font-black text-primary">₱{Math.round(colTotals.fuel).toLocaleString()}</td>
+              <td className="px-3 py-4 text-[11px] font-black text-primary">
+                <div className="flex items-center justify-between">
+                  {colTotals.km.toLocaleString()} KM
+                  <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                </div>
+              </td>
+              <td className="px-3 py-4 text-center">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-black text-primary/20 w-full">---</span>
+                  <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                </div>
+              </td>
+              <td className="px-3 py-4 text-[11px] font-black text-primary">
+                <div className="flex items-center justify-between">
+                  ₱{Math.round(colTotals.fuel).toLocaleString()}
+                  <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                </div>
+              </td>
               
-                <td className="px-3 py-4 text-[11px] font-black text-primary">₱{Math.round(colTotals.accom).toLocaleString()}</td>
+                <td className="px-3 py-4 text-[11px] font-black text-primary">
+                  <div className="flex items-center justify-between">
+                    ₱{Math.round(colTotals.accom).toLocaleString()}
+                    <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                  </div>
+                </td>
 
               {dbMiscPresets.map(p => (
                 <td key={p.id} className="px-3 py-4 text-[11px] font-black text-indigo-600">
-                  ₱{Math.round(colTotals.misc[p.id] || 0).toLocaleString()}
+                  <div className="flex items-center justify-between">
+                    ₱{Math.round(colTotals.misc[p.id] || 0).toLocaleString()}
+                    <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
+                  </div>
                 </td>
               ))}
 

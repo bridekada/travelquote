@@ -56,7 +56,7 @@ function DashboardContent() {
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'analytics');
   const [tabLoading, setTabLoading] = useState(false);
-  const [analyticsDays, setAnalyticsDays] = useState<7 | 30>(7);
+  const [analyticsDays, setAnalyticsDays] = useState<7 | 30 | 90>(7);
   const [fleet, setFleet] = useState<any[]>([]);
   const [presets, setPresets] = useState<any[]>([]);
   const [miscPresets, setMiscPresets] = useState<any[]>([]);
@@ -105,17 +105,39 @@ function DashboardContent() {
           console.error('Error fetching quotes:', error);
         } else {
           const now = new Date();
+          now.setHours(0, 0, 0, 0);
+
+          const getStatusPriority = (status: string, eta: string) => {
+            const tripDate = new Date(eta);
+            tripDate.setHours(0, 0, 0, 0);
+            const isPast = tripDate < now;
+
+            // Dead or Past Operational records go to the bottom
+            if (['Lost', 'Cancelled'].includes(status) || (isPast && !['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status))) return 2;
+            // Actionable Planning records (top priority)
+            if (['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status)) return 0;
+            // Active Operational records (medium priority)
+            if (['Confirmed', 'Payment Started', 'Payment Complete'].includes(status)) return 1;
+            return 2; // Fallback
+          };
+
           const sorted = (data || []).sort((a: any, b: any) => {
+            const pA = getStatusPriority(a.status, a.eta);
+            const pB = getStatusPriority(b.status, b.eta);
+
+            if (pA !== pB) return pA - pB;
+
             if (!a.eta && !b.eta) return 0;
             if (!a.eta) return 1;
             if (!b.eta) return -1;
-            const dateA = new Date(a.eta);
-            const dateB = new Date(b.eta);
-            const isPastA = dateA < now;
-            const isPastB = dateB < now;
-            if (isPastA !== isPastB) return isPastA ? 1 : -1;
-            if (isPastA && isPastB) return dateB.getTime() - dateA.getTime();
-            return dateA.getTime() - dateB.getTime();
+
+            const dateA = new Date(a.eta).getTime();
+            const dateB = new Date(b.eta).getTime();
+
+            // For Archived/Past, show most recent at top of that section
+            if (pA === 2) return dateB - dateA;
+            // For active ones, show soonest at top
+            return dateA - dateB;
           });
           setQuotes(sorted);
 
@@ -612,22 +634,23 @@ function DashboardContent() {
         )}
           {activeTab === 'analytics' && (
             <div className="flex flex-col gap-6">
-              <div 
-                style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border-default)' }}
-                className="flex items-center gap-1.5 p-1 rounded-2xl w-fit"
-              >
-                {[7, 30].map(days => (
-                  <button 
+              <div className="relative flex items-center bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border-default)] w-fit mb-4 overflow-hidden shadow-sm gap-1">
+                {[7, 30, 90].map((days) => (
+                  <button
                     key={days}
-                    onClick={() => setAnalyticsDays(days as 7 | 30)} 
-                    className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all`}
-                    style={{
-                      background: analyticsDays === days ? 'white' : 'transparent',
-                      color: analyticsDays === days ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                      boxShadow: analyticsDays === days ? 'var(--shadow-xs)' : 'none'
-                    }}
+                    onClick={() => setAnalyticsDays(days as 7 | 30 | 90)}
+                    className={`relative z-10 px-4 py-2 min-w-[64px] rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${
+                      analyticsDays === days ? "text-white" : "text-text-tertiary hover:text-text-primary"
+                    }`}
                   >
-                    Last {days} Days
+                    <span>{days}D</span>
+                    {analyticsDays === days && (
+                      <motion.div
+                        layoutId="activeRange"
+                        className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-lg shadow-primary/20"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -788,9 +811,16 @@ function DashboardContent() {
 
                     return displayQuotes.map((quote: any) => {
                       const now = new Date();
+                      now.setHours(0, 0, 0, 0);
                       const twoWeeks = new Date();
                       twoWeeks.setDate(now.getDate() + 14);
-                      const isUrgent = ['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(quote.status || '') && quote.eta && new Date(quote.eta) > now && new Date(quote.eta) <= twoWeeks;
+                      twoWeeks.setHours(23, 59, 59, 999);
+                      
+                      const tripDate = new Date(quote.eta);
+                      tripDate.setHours(0, 0, 0, 0);
+                      
+                      const isUrgent = ['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(quote.status || '') && 
+                        quote.eta && tripDate >= now && tripDate <= twoWeeks;
 
                       return (
                         <QuoteListItem 
