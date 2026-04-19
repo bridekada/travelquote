@@ -480,7 +480,6 @@ export default function ConfirmedSummary({
            style={{ marginTop: '20px' }}
          >
             <div className="flex flex-col sm:flex-row items-center justify-center gap-10 flex-wrap">
-               {quote.status !== 'Payment Complete' && (
                <button 
                   onClick={onReconfigure}
                   className="active:scale-95 group"
@@ -488,7 +487,6 @@ export default function ConfirmedSummary({
                >
                   <Settings size={18} className="opacity-60 group-hover:rotate-45 transition-transform" /> Reconfigure Quote
                </button>
-               )}
                <button 
                   onClick={onBack}
                   className="active:scale-95 group"

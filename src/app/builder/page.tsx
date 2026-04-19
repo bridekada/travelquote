@@ -540,7 +540,22 @@ function QuoteBuilder() {
   const finalizeSave = async (customStatus?: string, shouldNavigate = true) => {
     setIsSaving(true);
     try {
+      // Status Re-evaluation: If the price changed, check if 'Payment Complete' is still valid
+      let finalStatus = customStatus || quote.status || 'Draft';
+      const isAlreadyPaid = ['Payment Started', 'Payment Complete'].includes(quote.status || '');
+      
+      if (isAlreadyPaid) {
+        const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        // If price increased, it's no longer 'Complete'
+        if (totalPaid < totals.grandTotal) {
+          finalStatus = totalPaid > 0 ? 'Payment Started' : 'Confirmed';
+        } else {
+          finalStatus = 'Payment Complete';
+        }
+      }
+
       const freshText = compileQuotationText(quote, quote.items, extraFees, discount, totals);
+
       const payload: any = {
         operator_id: selectedOperatorId, 
         customer_name: quote.customer_name, 
@@ -558,7 +573,7 @@ function QuoteBuilder() {
         extra_fees_json: extraFees, 
         extra_fees_total: totals.totalExtraFees,
         discount_total: discount, 
-        status: customStatus || (quote.status === 'Confirmed' ? 'Confirmed' : (quote.status || 'Draft')),
+        status: finalStatus,
         admin_commission: quote.admin_commission, 
         selected_package: selectedPackageName, 
         selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
@@ -572,9 +587,9 @@ function QuoteBuilder() {
         payload.created_by = profile?.id;
       }
 
-      const isCurrentlyConfirmed = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(quote.status || '');
+      const isCurrentlyConfirmed = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(finalStatus);
       if ((customStatus === 'Confirmed' || isCurrentlyConfirmed) && selectedPackageId) {
-        payload.confirmed_at = new Date().toISOString();
+        payload.confirmed_at = quote.confirmed_at || new Date().toISOString();
         const selPkg = totals.packages.find(p => p.id === selectedPackageId);
         if (selPkg) {
           payload.selected_package_total = totals.selectedPkgPrice;

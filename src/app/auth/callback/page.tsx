@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
@@ -19,49 +19,62 @@ function AuthCallbackHandler() {
      * Centralized Redirection Logic
      * Ensures we check for 'Setup Flow' regardless of how the user authenticated.
      */
+    const isRedirecting = useRef(false);
+
+    /**
+     * Centralized Redirection Logic
+     * Ensures we check for 'Setup Flow' regardless of how the user authenticated.
+     */
     const performSmartRedirect = async (session: any) => {
-      if (!session) return;
-      const user = session.user;
+      if (!session || isRedirecting.current) return;
+      isRedirecting.current = true;
       
+      const user = session.user;
       console.log("Auth: Finalizing session for", user.email);
 
-      // 1. Identify if this is a first-time setup (Invite, Signup, or Recovery)
-      const urlType = searchParams.get("type");
-      const hashString = window.location.hash || "";
-      const isSetupFlow = 
-        urlType === 'invite' || urlType === 'signup' || urlType === 'recovery' || 
-        hashString.includes('type=invite') || hashString.includes('type=recovery') || 
-        hashString.includes('type=signup') || hashString.includes('invite');
+      try {
+        // 1. Identify if this is a first-time setup (Invite, Signup, or Recovery)
+        const urlType = searchParams.get("type");
+        const hashString = window.location.hash || "";
+        const isSetupFlow = 
+          urlType === 'invite' || urlType === 'signup' || urlType === 'recovery' || 
+          hashString.includes('type=invite') || hashString.includes('type=recovery') || 
+          hashString.includes('type=signup') || hashString.includes('invite');
 
-      if (isSetupFlow) {
-        console.log("Auth: Setup marker found. Accessing secure setup page...");
+        if (isSetupFlow) {
+          console.log("Auth: Setup marker found. Accessing secure setup page...");
+          setStatus("success");
+          setMessage("Account setup required. Redirecting...");
+          router.replace("/setup-password");
+          return;
+        }
+
+        // 2. Otherwise, check role for standard dashboard routing
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
         setStatus("success");
-        setMessage("Account setup required. Redirecting...");
-        router.replace("/setup-password");
-        return;
-      }
-
-      // 2. Otherwise, check role for standard dashboard routing
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      setStatus("success");
-      if (profile?.role === 'super_admin') {
-        setMessage("Admin verified! Opening Admin Dashboard...");
-        router.replace("/admin");
-      } else {
-        setMessage("Identity verified! Opening Dashboard...");
-        router.replace("/dashboard");
+        if (profile?.role === 'super_admin') {
+          setMessage("Admin verified! Opening Admin Dashboard...");
+          router.replace("/admin");
+        } else {
+          setMessage("Identity verified! Opening Dashboard...");
+          router.replace("/dashboard");
+        }
+      } catch (err) {
+        console.error("Auth: Smart Redirect failed", err);
+        isRedirecting.current = false; // Allow retry if something went wrong
+        throw err;
       }
     };
 
     const handleAuth = async () => {
       try {
         // A. Background Listener (Main Pathway)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
           if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
             console.log("Auth: State change event caught:", event);
             performSmartRedirect(session);
