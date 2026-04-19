@@ -33,7 +33,7 @@ export default function BuilderHeader({
 }: BuilderHeaderProps) {
   return (
     <header className={`h-16 bg-white border-b border-[#e8eaed] sticky ${isImpersonating ? 'top-[31px]' : 'top-0'} z-50 shadow-sm shadow-primary/[0.02] safe-top`}>
-      <div className="max-w-[1400px] mx-auto h-full flex items-center justify-between px-4 md:px-6 lg:px-10">
+      <div className="w-full h-full flex items-center justify-between px-4 md:px-6 lg:px-10">
         <div className="flex items-center gap-2 md:gap-4 min-w-0">
           <button 
             onClick={onBack} 

@@ -20,6 +20,7 @@ interface ConfirmedSummaryProps {
   handleAddPayment: (data: any) => void;
   handleVoidPayment: (id: string) => void;
   isSaving?: boolean;
+  dbMiscPresets?: any[];
 }
 
 export default function ConfirmedSummary({
@@ -31,7 +32,8 @@ export default function ConfirmedSummary({
   setIsPaymentModalOpen,
   handleAddPayment,
   handleVoidPayment,
-  isSaving = false
+  isSaving = false,
+  dbMiscPresets = []
 }: ConfirmedSummaryProps) {
   const details = quote.selected_package_details || {};
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -39,17 +41,62 @@ export default function ConfirmedSummary({
   const paymentProgress = details.total_amount > 0 ? (totalPaid / details.total_amount) * 100 : 0;
   const isFullyPaid = balanceRemaining <= 0;
 
+  // Derived Inclusions & Exclusions (Mirroring Quotation Text Logic)
+  const incs: string[] = [];
+  const excs: string[] = [];
+
+  // 1. Vehicle Logic
+  if (details.inclusions?.vehicle) {
+    incs.push(`Vehicle: ${quote.vehicle_model || 'Standard Unit'}`);
+  } else {
+    excs.push('Vehicle Rental');
+  }
+
+  // 2. Fuel Logic
+  if (details.inclusions?.fuel) {
+    incs.push('Fuel & Logistics included');
+  } else {
+    excs.push('Fuel Consumption');
+  }
+
+  // 3. Accommodation Logic
+  const uniqueHotels = Array.from(new Set(quote.items?.map(i => i.guest_accommodation_name).filter(Boolean)));
+  if (details.inclusions?.accommodation) {
+    const hotelLabel = uniqueHotels.length > 0 ? `Guest Accommodation (${uniqueHotels.join(", ")})` : "Guest Accommodation";
+    incs.push(hotelLabel);
+  } else {
+    excs.push('Guest Accommodation');
+  }
+
+  // 4. Misc Persistence Logic
+  dbMiscPresets.forEach(m => {
+    const isIncluded = (details.inclusions?.misc_details || []).some((md: any) => md.name === m.name);
+    if (isIncluded) {
+      incs.push(m.name);
+    } else {
+      excs.push(m.name);
+    }
+  });
+
+  // Financial Calculations
+  const commissionPercentage = quote.admin_commission || 0;
+  const commissionAmount = Math.round((details.total_amount || 0) * (commissionPercentage / 100));
+  const baseRate = (details.total_amount || 0) - commissionAmount;
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f8f9fb]">
       <header className="h-16 bg-white border-b border-[#e8eaed] sticky top-0 z-50 shadow-sm safe-top">
-        <div className="max-w-4xl mx-auto h-full flex items-center justify-between px-4 md:px-6 lg:px-10">
-          <div className="flex items-center gap-4">
+        <div className="w-full h-full grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-6 lg:px-10">
+          {/* Left Block */}
+          <div className="flex items-center gap-4 shrink-0">
             <button onClick={onBack} className="h-10 w-10 rounded-lg border border-[#e8eaed] flex items-center justify-center text-text-secondary hover:bg-[#f0f2f5] transition-all">
               <CheckCircle size={20} className="text-emerald-500" />
             </button>
             <h1 className="text-xl font-bold text-primary tracking-tight italic">Confirmed Record</h1>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Center Block - Geometric Center */}
+          <div className="flex items-center gap-3 whitespace-nowrap">
              {!isFullyPaid && (
                <button 
                  onClick={() => setIsPaymentModalOpen(true)}
@@ -62,6 +109,9 @@ export default function ConfirmedSummary({
                 <CheckCircle size={12} /> Confirmed Deal
              </div>
           </div>
+
+          {/* Right Block - Balancing Spacer */}
+          <div className="flex justify-end shrink-0" />
         </div>
       </header>
 
@@ -112,12 +162,12 @@ export default function ConfirmedSummary({
                         </div>
                      </div>
 
-                     <div className="mt-16 mb-16 pt-8 pb-10 border-t border-[#f0f2f5] space-y-4 max-w-[280px]">
+                     <div className="mt-8 mb-16 pt-8 pb-10 border-t border-[#f0f2f5] space-y-4 max-w-[280px]">
                         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-tertiary opacity-60">Bill Breakdown</p>
                         <div className="space-y-3">
                            <div className="flex justify-between items-center text-[11px] font-bold text-text-tertiary">
                               <span>Base Package Rate</span>
-                              <span className="font-mono">₱{((details.total_amount || 0) - (details.adjustments?.extra_fees?.reduce((a: any, b: any) => a + b.amount, 0) || 0) + (details.adjustments?.discount || 0)).toLocaleString()}</span>
+                              <span className="font-mono">₱{baseRate.toLocaleString()}</span>
                            </div>
                            {details.adjustments?.extra_fees?.map((f: any, i: number) => (
                              <div key={i} className="flex justify-between items-center text-[11px] font-bold text-indigo-600">
@@ -139,6 +189,11 @@ export default function ConfirmedSummary({
                                 <span className="font-mono">- ₱{details.adjustments.discount.toLocaleString()}</span>
                              </div>
                            )}
+
+                           <div className="pt-2 border-t border-dashed border-[#f0f2f5] flex justify-between items-center text-[11px] font-bold text-indigo-600">
+                              <span className="opacity-60">Admin Commission ({commissionPercentage}%)</span>
+                              <span className="font-mono">₱{commissionAmount.toLocaleString()}</span>
+                           </div>
                            
                            <div className="pt-3 border-t-2 border-primary/10 flex justify-between items-center text-[12px] font-black text-primary uppercase tracking-tight">
                               <span>Final Agreed Amount</span>
@@ -148,17 +203,36 @@ export default function ConfirmedSummary({
                      </div>
                   </div>
 
-                  <div className="space-y-8">
-                     <div className="bg-[#f8f9fb] rounded-[32px] p-10 space-y-6">
-                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-tertiary opacity-60">Verified Inclusions</p>
-                        <div className="grid grid-cols-1 gap-3">
-                           {details.inclusions?.vehicle && <div className="flex items-center gap-3 text-sm font-bold text-primary"><CheckCircle size={16} className="text-emerald-500" /> Professional Transport</div>}
-                           {details.inclusions?.fuel && <div className="flex items-center gap-3 text-sm font-bold text-primary"><CheckCircle size={16} className="text-emerald-500" /> Fuel & Logistics included</div>}
-                           {details.inclusions?.misc_details?.map((m: any, i: number) => (
-                             <div key={i} className="flex items-center gap-3 text-sm font-bold text-primary">
-                                <CheckCircle size={16} className="text-emerald-500" strokeWidth={2.5} /> {m.name}
-                             </div>
-                           ))}
+                  <div className="space-y-6">
+                     <div className="bg-[#f8f9fb] rounded-[32px] p-8 space-y-10">
+                        <div className="space-y-4">
+                           <div className="flex items-center gap-2">
+                              <CheckCircle size={14} className="text-emerald-500" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Verified Inclusions</p>
+                           </div>
+                           <div className="grid grid-cols-1 gap-1.5">
+                              {incs.map((inc, i) => (
+                                <div key={i} className="flex items-center gap-3 text-sm font-bold text-primary italic">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
+                                   {inc}
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+
+                        <div className="space-y-4 pt-8 border-t border-slate-200/50">
+                           <div className="flex items-center gap-2">
+                              <X size={14} className="text-rose-400" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 uppercase">Verified Exclusions</p>
+                           </div>
+                           <div className="grid grid-cols-1 gap-1.5 opacity-60">
+                              {excs.map((exc, i) => (
+                                 <div key={i} className="flex items-center gap-3 text-sm font-bold text-text-secondary italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                    {exc}
+                                 </div>
+                              ))}
+                           </div>
                         </div>
                      </div>
                   </div>
@@ -172,19 +246,38 @@ export default function ConfirmedSummary({
                   </div>
                   <div className="grid grid-cols-1 gap-8 relative">
                      <div className="absolute left-6 top-8 bottom-8 w-px bg-[#f0f2f5] -translate-x-1/2" />
-                     {details.itinerary_snapshot?.map((day: any, i: number) => (
-                        <div key={i} className="flex gap-10 items-start relative">
-                           <div className="w-12 h-12 rounded-[18px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10">
-                              <span className="text-[7px] font-black uppercase opacity-40 leading-none mb-0.5">D{day.day}</span>
-                              <span className="text-xs font-black text-primary leading-none">{new Date(day.date).getDate()}</span>
+                     {quote.items?.map((item: any, i: number) => (
+                        <div key={i} className="flex gap-10 items-start relative pb-4">
+                           <div className="w-12 h-12 rounded-[18px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10 sticky top-[72px]">
+                              <span className="text-[7px] font-black uppercase opacity-40 leading-none mb-0.5">D{item.day_number}</span>
+                              <span className="text-xs font-black text-primary leading-none">{new Date(item.date).getDate()}</span>
                            </div>
-                           <div className="pt-2">
-                              <p className="font-black text-primary text-base italic leading-none">{day.destination}</p>
-                              <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest mt-1 opacity-60">
-                                {new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                              </p>
-                              {day.details && (
-                                <p className="text-xs font-medium text-text-tertiary leading-relaxed mt-4 p-5 bg-[#f8f9fb] rounded-2xl border border-gray-50 max-w-2xl">{day.details}</p>
+                           <div className="flex-1 space-y-4 pt-1">
+                              <div className="space-y-1.5">
+                                 <div className="flex items-center justify-between">
+                                    <h4 className="text-base font-black text-primary tracking-tight">{item.destination}</h4>
+                                 </div>
+                                 <p className="text-[11px] font-bold text-text-tertiary leading-relaxed max-w-2xl">{item.itinerary_details}</p>
+                              </div>
+
+                              {item.guest_accommodation_name && (
+                                <div className="flex items-center gap-4 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/30 max-w-md transition-all hover:bg-emerald-50">
+                                   <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                      <Receipt size={14} />
+                                   </div>
+                                   <div>
+                                      <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Confirmed Stay</p>
+                                      <p className="text-[11px] font-black text-primary leading-none mt-0.5 italic">{item.guest_accommodation_name}</p>
+                                   </div>
+                                </div>
+                              )}
+
+                              {item.tags && item.tags.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                   {item.tags.map((tag: string, ti: number) => (
+                                     <span key={ti} className="px-2 py-0.5 bg-slate-50 text-slate-400 border border-slate-100 rounded text-[7px] font-black uppercase tracking-widest">{tag}</span>
+                                   ))}
+                                </div>
                               )}
                            </div>
                         </div>
@@ -274,7 +367,7 @@ export default function ConfirmedSummary({
                                <span className="text-2xl font-black text-primary tracking-tighter tabular-nums leading-none">{paymentProgress.toFixed(0)}%</span>
                             </div>
                          </div>
- 
+  
                          <div className="relative pt-2">
                             <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 shadow-inner">
                                <motion.div 

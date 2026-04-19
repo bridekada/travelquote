@@ -723,6 +723,7 @@ function QuoteBuilder() {
           payments={payments} isPaymentModalOpen={isPaymentModalOpen} setIsPaymentModalOpen={setIsPaymentModalOpen}
           handleAddPayment={handleAddPaymentLocal} handleVoidPayment={handleVoidPaymentLocal}
           isSaving={isPaymentSaving}
+          dbMiscPresets={dbMiscPresets}
         />
         <PremiumDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
       </>
