@@ -1566,7 +1566,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, admin
           <div className="text-sm font-bold text-primary">{amount}</div>
           {adminCommission > 0 && (
             <div className="text-[8px] font-bold text-text-tertiary/60 uppercase tracking-widest leading-none mt-1">
-              Comm: {adminCommission}% (₱{(totalAmount * (adminCommission / 100)).toLocaleString()})
+              Comm: {adminCommission}% (₱{((totalAmount * adminCommission) / (100 + adminCommission)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
             </div>
           )}
         </div>

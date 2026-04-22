@@ -83,8 +83,8 @@ export function AdminPortal() {
         if (!lookup[q.operator_id]) lookup[q.operator_id] = { count: 0, total: 0, commission: 0 };
         lookup[q.operator_id].count += 1;
         lookup[q.operator_id].total += (q.grand_total || 0);
-        // Calculate amount from percentage: (total * commission_percent) / 100
-        const commAmount = ((q.grand_total || 0) * (q.admin_commission || 0)) / 100;
+        // Calculate amount from percentage: (total * commission_percent) / (100 + commission_percent)
+        const commAmount = ((q.grand_total || 0) * (q.admin_commission || 0)) / (100 + (q.admin_commission || 0));
         lookup[q.operator_id].commission += commAmount;
       });
       setOperatorConfirmed(lookup);

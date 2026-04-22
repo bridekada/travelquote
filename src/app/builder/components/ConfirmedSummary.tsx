@@ -80,7 +80,7 @@ export default function ConfirmedSummary({
 
   // Financial Calculations
   const commissionPercentage = quote.admin_commission || 0;
-  const commissionAmount = Math.round((details.total_amount || 0) * (commissionPercentage / 100));
+  const commissionAmount = Math.round(((details.total_amount || 0) * commissionPercentage) / (100 + commissionPercentage));
   const baseRate = (details.total_amount || 0) - commissionAmount;
 
   return (
@@ -167,7 +167,7 @@ export default function ConfirmedSummary({
                         <div className="space-y-3">
                            <div className="flex justify-between items-center text-[11px] font-bold text-text-tertiary">
                               <span>Base Package Rate</span>
-                              <span className="font-mono">₱{baseRate.toLocaleString()}</span>
+                              <span className="font-mono">₱{Math.round(baseRate).toLocaleString()}</span>
                            </div>
                            {details.adjustments?.extra_fees?.map((f: any, i: number) => (
                              <div key={i} className="flex justify-between items-center text-[11px] font-bold text-indigo-600">
