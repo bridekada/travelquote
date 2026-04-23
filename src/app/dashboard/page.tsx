@@ -867,7 +867,7 @@ function DashboardContent() {
                           date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
                           status={quote.status} 
                           isUrgent={isUrgent}
-                          amount={`₱${quote.grand_total?.toLocaleString()}`}
+                          amount={`₱${Math.round(quote.grand_total || 0).toLocaleString()}`}
                           totalPaid={paymentTotals[quote.id] || 0}
                           adminCommission={quote.admin_commission || 0}
                           agent={quote.creator?.full_name}
