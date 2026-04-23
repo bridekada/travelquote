@@ -560,8 +560,6 @@ function QuoteBuilder() {
         }
       }
 
-      const freshText = overrideText || compileQuotationText(quote, quote.items, extraFees, discount, totals);
-
       const payload: any = {
         operator_id: selectedOperatorId, 
         customer_name: quote.customer_name, 
@@ -575,7 +573,6 @@ function QuoteBuilder() {
         dropoff_location: quote.dropoff_location,
         notes: quote.notes, 
         default_fuel_price: quote.default_fuel_price,
-        quotation_text: freshText, 
         grand_total: totals.grandTotal, 
         extra_fees_json: extraFees, 
         extra_fees_total: totals.totalExtraFees,
@@ -588,6 +585,11 @@ function QuoteBuilder() {
         updated_by: profile?.id,
         updated_at: new Date().toISOString()
       };
+
+      // Only update quotation_text if we are explicitly overriding it (from the modal)
+      if (overrideText) {
+        payload.quotation_text = overrideText;
+      }
 
       // Only set created_by on initial insert
       if (!quote.id) {
@@ -636,7 +638,7 @@ function QuoteBuilder() {
       }
       if (shouldNavigate) router.push('/dashboard?tab=quotes');
       else {
-          setInitialQuotationText(freshText); 
+          if (overrideText) setInitialQuotationText(overrideText); 
           setQuote(prev => ({ 
             ...prev, 
             ...payload, 
