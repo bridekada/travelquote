@@ -79,8 +79,12 @@ export default function TripDetailsSection({
               <input 
                 type="number" 
                 className="input !pl-12 !bg-[#f8f9fb] !border-[#e8eaed] text-sm font-bold disabled:opacity-50 disabled:grayscale" 
-                value={quote.pax_count}
-                onChange={(e) => setQuote({...quote, pax_count: parseInt(e.target.value) || 1})}
+                value={quote.pax_count === 0 ? "" : quote.pax_count}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? 0 : parseInt(e.target.value);
+                  if (isNaN(val)) return;
+                  setQuote({...quote, pax_count: val});
+                }}
                 disabled={readOnly}
               />
               <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary opacity-40" size={18} />
