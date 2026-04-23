@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, Info, X, Copy, Printer, Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, X, Copy, Check, Printer, Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { polishQuotation } from "@/app/actions/ai-actions";
