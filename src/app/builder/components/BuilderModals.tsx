@@ -236,26 +236,28 @@ export function QuotationPreviewModal({
               </>
             )}
 
-           <button 
-             onClick={handleSave}
-             disabled={isSaving}
-             className={`h-11 px-8 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 ${
-               showSaved 
-                 ? "bg-emerald-100 text-emerald-600 shadow-emerald-500/10" 
-                 : "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
-             }`}
-           >
-             {isSaving ? (
-               <Loader2 className="w-3 h-3 animate-spin" />
-             ) : showSaved ? (
-               <>
-                 <Check className="w-3 h-3" />
-                 Saved!
-               </>
-             ) : (
-               "Save Quotation"
-             )}
-           </button>
+            {showPolish && (
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`h-11 px-8 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 ${
+                  showSaved 
+                    ? "bg-emerald-100 text-emerald-600 shadow-emerald-500/10" 
+                    : "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
+                }`}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : showSaved ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    Saved!
+                  </>
+                ) : (
+                  "Save Quotation"
+                )}
+              </button>
+            )}
 
            <div className="w-px h-6 bg-[#e8eaed] mx-1" />
 
