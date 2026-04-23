@@ -15,7 +15,7 @@ export async function polishQuotation(rawText: string) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     const prompt = `
       You are an expert Travel Consultant for a premium private tour agency. 
