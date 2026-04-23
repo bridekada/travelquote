@@ -1,6 +1,6 @@
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 /**
  * Polishes a travel quotation text using Google Gemini AI.
@@ -14,8 +14,7 @@ export async function polishQuotation(rawText: string) {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
       You are an expert Travel Consultant for a premium private tour agency. 
@@ -44,11 +43,12 @@ export async function polishQuotation(rawText: string) {
       ${rawText}
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const polishedText = response.text();
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
 
-    return polishedText.trim();
+    return result.text.trim();
   } catch (error: any) {
     console.error('AI Polish Error:', error);
     throw new Error('Failed to polish quotation with AI: ' + (error.message || 'Unknown error'));
