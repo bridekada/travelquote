@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -28,6 +29,20 @@ export default function TripDetailsSection({
   dbVehicles,
   readOnly = false
 }: TripDetailsSectionProps) {
+  const baseOptions = useMemo(() => ({
+    dateFormat: "Y-m-d H:i",
+    enableTime: true,
+    time_24hr: false,
+    altInput: true,
+    altFormat: "F j, Y h:i K",
+    allowInput: true,
+  }), []);
+
+  const etdOptions = useMemo(() => ({
+    ...baseOptions,
+    minDate: quote.eta ? new Date(quote.eta) : undefined
+  }), [baseOptions, quote.eta]);
+
   return (
     <section className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -164,13 +179,7 @@ export default function TripDetailsSection({
                 className="input date-input-compact !pl-12 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 font-bold w-full"
                 value={quote.eta}
                 disabled={readOnly}
-                options={{
-                  dateFormat: "Y-m-d H:i",
-                  enableTime: true,
-                  time_24hr: false,
-                  altInput: true,
-                  altFormat: "F j, Y h:i K",
-                }}
+                options={baseOptions}
                 onChange={([date]) => {
                   if (!date) return;
                   const newEta = date.toISOString();
@@ -194,14 +203,7 @@ export default function TripDetailsSection({
                 className="input date-input-compact !pl-12 !pr-4 !bg-rose-50/20 !border-rose-100/50 font-bold w-full"
                 value={quote.etd}
                 disabled={readOnly}
-                options={{
-                  dateFormat: "Y-m-d H:i",
-                  enableTime: true,
-                  time_24hr: false,
-                  altInput: true,
-                  altFormat: "F j, Y h:i K",
-                  minDate: quote.eta ? new Date(quote.eta) : undefined
-                }}
+                options={etdOptions}
                 onChange={([date]) => {
                   if (!date) return;
                   setQuote({ ...quote, etd: date.toISOString() });
