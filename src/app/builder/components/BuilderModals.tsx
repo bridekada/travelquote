@@ -91,6 +91,7 @@ interface QuotationPreviewModalProps {
   isSaving: boolean;
   openDialog: (config: any) => void;
   userRole?: string;
+  showPolish?: boolean;
 }
 
 export function QuotationPreviewModal({
@@ -101,7 +102,8 @@ export function QuotationPreviewModal({
   onCancel,
   isSaving,
   openDialog,
-  userRole
+  userRole,
+  showPolish = true
 }: QuotationPreviewModalProps) {
   const [isPolishing, setIsPolishing] = useState(false);
   const originalText = useRef(text);
@@ -198,29 +200,41 @@ export function QuotationPreviewModal({
              <Printer size={16} /> Print
            </button>
 
-           {userRole === 'super_admin' && (
-             <>
-               <div className="w-px h-6 bg-[#e8eaed] mx-1" />
-               <button 
-                 onClick={handlePolish}
-                 disabled={isPolishing}
-                 className="h-11 px-6 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:border-indigo-400/30 transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
-               >
-                 {isPolishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-indigo-500" />}
-                 {isPolishing ? "Polishing..." : "Polish with AI"}
-               </button>
-               
-               {text !== originalText.current && (
-                 <button 
-                   onClick={handleRevert}
-                   className="h-11 w-11 flex items-center justify-center bg-gray-50 text-text-tertiary border border-gray-100 rounded-xl hover:bg-white hover:border-gray-200 transition-all active:scale-95"
-                   title="Revert to original"
-                 >
-                   <RotateCcw size={16} />
-                 </button>
-               )}
-             </>
-           )}
+            {userRole === 'super_admin' && showPolish && (
+              <>
+                <div className="w-px h-6 bg-[#e8eaed] mx-1" />
+                <button 
+                  onClick={handlePolish}
+                  disabled={isPolishing}
+                  className="h-11 px-8 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-black/10 hover:bg-[#1a1a1a] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-3"
+                >
+                  {isPolishing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {isPolishing ? "Polishing..." : "Polish with AI"}
+                </button>
+
+                {text !== originalText.current && (
+                  <button 
+                    onClick={handleRevert}
+                    className="h-11 w-11 flex items-center justify-center bg-gray-50 text-text-tertiary border border-gray-100 rounded-xl hover:bg-white hover:border-gray-200 transition-all active:scale-95"
+                    title="Revert to original"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                )}
+              </>
+            )}
+
+           <button 
+             onClick={onConfirm}
+             disabled={isSaving}
+             className="h-11 px-8 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50"
+           >
+             {isSaving ? "Saving..." : "Confirm & Save"}
+           </button>
 
            <div className="w-px h-6 bg-[#e8eaed] mx-1" />
 

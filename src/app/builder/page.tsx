@@ -49,6 +49,7 @@ function QuoteBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewText, setPreviewText] = useState("");
+  const [isPreviewingSaved, setIsPreviewingSaved] = useState(false);
   const [selectedPackageName, setSelectedPackageName] = useState<string | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -526,7 +527,11 @@ function QuoteBuilder() {
     return text;
   };
 
-  const handleFinish = () => { setPreviewText(compileQuotationText(quote, quote.items, extraFees, discount, totals)); setIsPreviewOpen(true); };
+  const handleFinish = () => { 
+    setPreviewText(compileQuotationText(quote, quote.items, extraFees, discount, totals)); 
+    setIsPreviewingSaved(false);
+    setIsPreviewOpen(true); 
+  };
   
   const handleViewSaved = () => {
     if (!initialQuotationText) {
@@ -534,6 +539,7 @@ function QuoteBuilder() {
       return;
     }
     setPreviewText(initialQuotationText);
+    setIsPreviewingSaved(true);
     setIsPreviewOpen(true);
   };
 
@@ -840,6 +846,7 @@ function QuoteBuilder() {
             isSaving={isSaving} 
             openDialog={openDialog} 
             userRole={profile?.role}
+            showPolish={!isPreviewingSaved}
           />
         )}
       </AnimatePresence>
