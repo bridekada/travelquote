@@ -834,6 +834,7 @@ function QuoteBuilder() {
           onPreview={handleFinish}
           onViewSaved={handleViewSaved}
           grandTotal={totals.grandTotal}
+          quoteId={quote.id}
           readOnly={isReadOnly}
         />
       </div>
@@ -843,7 +844,7 @@ function QuoteBuilder() {
             text={previewText} 
             setText={setPreviewText} 
             onClose={() => setIsPreviewOpen(false)} 
-            onConfirm={() => handleConfirmQuote(previewText)} 
+            onConfirm={() => finalizeSave(undefined, false, previewText)} 
             onCancel={handleCancelQuote} 
             isSaving={isSaving} 
             openDialog={openDialog} 

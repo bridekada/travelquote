@@ -28,6 +28,7 @@ interface PackageSidebarProps {
   onPreview: () => void;
   onViewSaved: () => void;
   grandTotal: number;
+  quoteId?: string | null;
   readOnly?: boolean;
 }
 export default function PackageSidebar({
@@ -53,6 +54,7 @@ export default function PackageSidebar({
   onPreview,
   onViewSaved,
   grandTotal,
+  quoteId,
   readOnly = false
 }: PackageSidebarProps) {
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -401,15 +403,25 @@ export default function PackageSidebar({
                       </button>
 
                       <button 
-                        onClick={() => !readOnly && onPreview()}
-                        disabled={readOnly}
-                        className={`flex-1 h-[52px] ${readOnly ? "bg-gray-100 text-text-tertiary shadow-none hover:translate-y-0 cursor-default" : "bg-[#006644] text-white shadow-xl shadow-emerald-900/10 hover:bg-[#005538] hover:-translate-y-0.5 active:scale-[0.98]"} rounded-[20px] transition-all flex items-center justify-center gap-3 px-8`}
+                        onClick={() => !readOnly && quoteId && onPreview()}
+                        disabled={readOnly || !quoteId}
+                        className={`flex-1 h-[52px] ${
+                          readOnly 
+                            ? "bg-gray-100 text-text-tertiary shadow-none cursor-default" 
+                            : !quoteId
+                            ? "bg-gray-100 text-text-tertiary border border-dashed border-gray-200 cursor-not-allowed opacity-60"
+                            : "bg-[#006644] text-white shadow-xl shadow-emerald-900/10 hover:bg-[#005538] hover:-translate-y-0.5 active:scale-[0.98]"
+                        } rounded-[20px] transition-all flex items-center justify-center gap-3 px-8`}
                       >
                          <div className="flex flex-col items-start translate-x-1">
-                           <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60">{readOnly ? "Final Price Snapshot" : "Current Live Quote"}</span>
-                           <span className="text-sm font-black italic tracking-tight">₱{Math.round(grandTotal).toLocaleString()}</span>
+                           <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60">
+                             {readOnly ? "Final Price Snapshot" : !quoteId ? "Draft Record" : "Current Live Quote"}
+                           </span>
+                           <span className="text-sm font-black italic tracking-tight">
+                             {!quoteId ? "Save Record First" : `₱${Math.round(grandTotal).toLocaleString()}`}
+                           </span>
                          </div>
-                         {!readOnly && <ArrowRight size={18} className="opacity-40" />}
+                         {!readOnly && quoteId && <ArrowRight size={18} className="opacity-40" />}
                       </button>
                    </div>
                 </div>
