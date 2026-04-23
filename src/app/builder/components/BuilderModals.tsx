@@ -1,7 +1,9 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, Info, X, Copy, Printer } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, X, Copy, Printer, Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useRef } from "react";
+import { polishQuotation } from "@/app/actions/ai-actions";
 
 interface PremiumDialogProps {
   config: {
@@ -88,6 +90,7 @@ interface QuotationPreviewModalProps {
   onCancel: () => void;
   isSaving: boolean;
   openDialog: (config: any) => void;
+  userRole?: string;
 }
 
 export function QuotationPreviewModal({
@@ -97,8 +100,31 @@ export function QuotationPreviewModal({
   onConfirm,
   onCancel,
   isSaving,
-  openDialog
+  openDialog,
+  userRole
 }: QuotationPreviewModalProps) {
+  const [isPolishing, setIsPolishing] = useState(false);
+  const originalText = useRef(text);
+
+  const handlePolish = async () => {
+    setIsPolishing(true);
+    try {
+      const result = await polishQuotation(text);
+      setText(result);
+    } catch (err: any) {
+      openDialog({
+        title: "AI Error",
+        message: err.message || "Failed to connect to AI service.",
+        type: "warning"
+      });
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
+  const handleRevert = () => {
+    setText(originalText.current);
+  };
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     openDialog({
@@ -171,6 +197,30 @@ export function QuotationPreviewModal({
            >
              <Printer size={16} /> Print
            </button>
+
+           {userRole === 'super_admin' && (
+             <>
+               <div className="w-px h-6 bg-[#e8eaed] mx-1" />
+               <button 
+                 onClick={handlePolish}
+                 disabled={isPolishing}
+                 className="h-11 px-6 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:border-indigo-400/30 transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
+               >
+                 {isPolishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-indigo-500" />}
+                 {isPolishing ? "Polishing..." : "Polish with AI"}
+               </button>
+               
+               {text !== originalText.current && (
+                 <button 
+                   onClick={handleRevert}
+                   className="h-11 w-11 flex items-center justify-center bg-gray-50 text-text-tertiary border border-gray-100 rounded-xl hover:bg-white hover:border-gray-200 transition-all active:scale-95"
+                   title="Revert to original"
+                 >
+                   <RotateCcw size={16} />
+                 </button>
+               )}
+             </>
+           )}
 
            <div className="w-px h-6 bg-[#e8eaed] mx-1" />
 
