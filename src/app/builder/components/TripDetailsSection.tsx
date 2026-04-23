@@ -240,8 +240,12 @@ export default function TripDetailsSection({
                 min="0"
                 max="100"
                 className="input !pl-12 !bg-amber-50/30 !border-amber-200 text-sm font-bold disabled:opacity-50 disabled:grayscale" 
-                value={quote.admin_commission || 0}
-                onChange={(e) => setQuote({...quote, admin_commission: parseFloat(e.target.value) || 0})}
+                value={quote.admin_commission === 0 ? "" : quote.admin_commission}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  if (isNaN(val)) return;
+                  setQuote({...quote, admin_commission: val});
+                }}
                 disabled={readOnly}
               />
               <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 opacity-60" size={18} />
