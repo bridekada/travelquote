@@ -399,7 +399,7 @@ export default function PackageSidebar({
                         className={`h-[52px] px-6 bg-white border border-gray-100 rounded-[20px] shadow-sm transition-all group flex items-center justify-center gap-3 shrink-0 ${readOnly ? "opacity-50 grayscale cursor-default" : "hover:shadow-md"}`}
                       >
                          <Layout size={14} className="text-text-tertiary group-hover:text-primary transition-colors" />
-                         <span className="text-[10px] font-black uppercase tracking-widest text-text-tertiary group-hover:text-primary transition-colors">Saved Quote</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest text-text-tertiary group-hover:text-primary transition-colors">Last Saved Quote</span>
                       </button>
 
                       <button 
@@ -415,7 +415,7 @@ export default function PackageSidebar({
                       >
                          <div className="flex flex-col items-start translate-x-1">
                            <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60">
-                             {readOnly ? "Final Price Snapshot" : !quoteId ? "Draft Record" : "Current Live Quote"}
+                             {readOnly ? "Final Price Snapshot" : !quoteId ? "Draft Record" : "Quote Generation"}
                            </span>
                            <span className="text-sm font-black italic tracking-tight">
                              {!quoteId ? "Save Record First" : `₱${Math.round(grandTotal).toLocaleString()}`}
