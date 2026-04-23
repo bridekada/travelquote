@@ -568,6 +568,7 @@ function QuoteBuilder() {
         pickup_location: quote.pickup_location, 
         dropoff_location: quote.dropoff_location,
         notes: quote.notes, 
+        default_fuel_price: quote.default_fuel_price,
         quotation_text: freshText, 
         grand_total: totals.grandTotal, 
         extra_fees_json: extraFees, 
