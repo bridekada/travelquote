@@ -867,7 +867,7 @@ function DashboardContent() {
                           date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
                           status={quote.status} 
                           isUrgent={isUrgent}
-                          amount={`₱${quote.grand_total?.toLocaleString()}`}
+                          amount={`₱${Math.round(quote.grand_total || 0).toLocaleString()}`}
                           totalPaid={paymentTotals[quote.id] || 0}
                           adminCommission={quote.admin_commission || 0}
                           agent={quote.creator?.full_name}
@@ -1566,7 +1566,7 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, admin
           <div className="text-sm font-bold text-primary">{amount}</div>
           {adminCommission > 0 && (
             <div className="text-[8px] font-bold text-text-tertiary/60 uppercase tracking-widest leading-none mt-1">
-              Comm: {adminCommission}% (₱{(totalAmount * (adminCommission / 100)).toLocaleString()})
+              Comm: {adminCommission}% (₱{Math.round((totalAmount * adminCommission) / (100 + adminCommission)).toLocaleString()})
             </div>
           )}
         </div>

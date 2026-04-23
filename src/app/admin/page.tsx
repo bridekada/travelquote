@@ -82,9 +82,9 @@ export function AdminPortal() {
       (confirmedQuotes || []).forEach((q: any) => {
         if (!lookup[q.operator_id]) lookup[q.operator_id] = { count: 0, total: 0, commission: 0 };
         lookup[q.operator_id].count += 1;
-        lookup[q.operator_id].total += (q.grand_total || 0);
-        // Calculate amount from percentage: (total * commission_percent) / 100
-        const commAmount = ((q.grand_total || 0) * (q.admin_commission || 0)) / 100;
+        lookup[q.operator_id].total += Math.round(q.grand_total || 0);
+        // Calculate amount from percentage: Math.round((total * commission_percent) / (100 + commission_percent))
+        const commAmount = Math.round(((q.grand_total || 0) * (q.admin_commission || 0)) / (100 + (q.admin_commission || 0)));
         lookup[q.operator_id].commission += commAmount;
       });
       setOperatorConfirmed(lookup);
@@ -429,12 +429,12 @@ export function AdminPortal() {
                         <div className="flex items-center gap-2 whitespace-nowrap" style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
                           <span className="flex items-center gap-1">
                             <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Confirmed:</span>
-                            <span className="font-bold text-primary">₱{(operatorConfirmed[op.id]?.total || 0).toLocaleString()}</span>
+                            <span className="font-bold text-primary">₱{Math.round(operatorConfirmed[op.id]?.total || 0).toLocaleString()}</span>
                           </span>
                           <span className="opacity-30">|</span>
                           <span className="flex items-center gap-1">
                             <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Comm:</span>
-                            <span className="font-bold text-brand">₱{(operatorConfirmed[op.id]?.commission || 0).toLocaleString()}</span>
+                            <span className="font-bold text-brand">₱{Math.round(operatorConfirmed[op.id]?.commission || 0).toLocaleString()}</span>
                           </span>
                         </div>
                       </div>

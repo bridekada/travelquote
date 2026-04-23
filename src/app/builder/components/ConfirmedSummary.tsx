@@ -80,7 +80,7 @@ export default function ConfirmedSummary({
 
   // Financial Calculations
   const commissionPercentage = quote.admin_commission || 0;
-  const commissionAmount = Math.round((details.total_amount || 0) * (commissionPercentage / 100));
+  const commissionAmount = Math.round(((details.total_amount || 0) * commissionPercentage) / (100 + commissionPercentage));
   const baseRate = (details.total_amount || 0) - commissionAmount;
 
   return (
@@ -154,11 +154,11 @@ export default function ConfirmedSummary({
                      <div className="flex items-baseline gap-10">
                         <div className="space-y-2">
                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Total Agreed Amount</label>
-                           <p className="text-4xl font-black text-primary tracking-tighter italic">₱{details.total_amount?.toLocaleString()}</p>
+                           <p className="text-4xl font-black text-primary tracking-tighter italic">₱{Math.round(details.total_amount || 0).toLocaleString()}</p>
                         </div>
                         <div className="space-y-2 translate-y-1">
                            <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 ml-1">Rate Per Pax ({details.pax_count})</label>
-                           <p className="text-xl font-bold text-emerald-600 font-mono tracking-tight bg-emerald-50 px-3 py-1 rounded-xl">₱{details.per_pax?.toLocaleString()}</p>
+                           <p className="text-xl font-bold text-emerald-600 font-mono tracking-tight bg-emerald-50 px-3 py-1 rounded-xl">₱{Math.round(details.per_pax || 0).toLocaleString()}</p>
                         </div>
                      </div>
 
@@ -167,7 +167,7 @@ export default function ConfirmedSummary({
                         <div className="space-y-3">
                            <div className="flex justify-between items-center text-[11px] font-bold text-text-tertiary">
                               <span>Base Package Rate</span>
-                              <span className="font-mono">₱{baseRate.toLocaleString()}</span>
+                              <span className="font-mono">₱{Math.round(baseRate).toLocaleString()}</span>
                            </div>
                            {details.adjustments?.extra_fees?.map((f: any, i: number) => (
                              <div key={i} className="flex justify-between items-center text-[11px] font-bold text-indigo-600">
@@ -197,7 +197,7 @@ export default function ConfirmedSummary({
                            
                            <div className="pt-3 border-t-2 border-primary/10 flex justify-between items-center text-[12px] font-black text-primary uppercase tracking-tight">
                               <span>Final Agreed Amount</span>
-                              <span className="font-mono">₱{details.total_amount?.toLocaleString()}</span>
+                              <span className="font-mono">₱{Math.round(details.total_amount || 0).toLocaleString()}</span>
                            </div>
                         </div>
                      </div>
