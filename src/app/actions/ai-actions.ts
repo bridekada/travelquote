@@ -48,6 +48,10 @@ export async function polishQuotation(rawText: string) {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
+    if (!result.text) {
+      throw new Error('AI returned an empty response.');
+    }
+
     return result.text.trim();
   } catch (error: any) {
     console.error('AI Polish Error:', error);
