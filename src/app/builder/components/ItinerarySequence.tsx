@@ -264,13 +264,13 @@ export default function ItinerarySequence({
                   )}
                 </div>
 
-                <div className="md:col-span-12 lg:col-span-7 space-y-2">
+                <div className="md:col-span-12 lg:col-span-7 space-y-2 pr-4">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
                   </div>
                   <textarea
-                    className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale"
-                    style={{ fontSize: '12px', resize: 'none' }}
+                    className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none"
+                    style={{ fontSize: '12px' }}
                     placeholder="Briefly describe the day's activities..."
                     value={item.itinerary_details || ""}
                     onChange={(e) => onUpdateItem(index, { itinerary_details: e.target.value })}
