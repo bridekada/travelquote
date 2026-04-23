@@ -537,7 +537,7 @@ function QuoteBuilder() {
     setIsPreviewOpen(true);
   };
 
-  const finalizeSave = async (customStatus?: string, shouldNavigate = true) => {
+  const finalizeSave = async (customStatus?: string, shouldNavigate = true, overrideText?: string) => {
     setIsSaving(true);
     try {
       // Status Re-evaluation: If the price changed, check if 'Payment Complete' is still valid
@@ -554,7 +554,7 @@ function QuoteBuilder() {
         }
       }
 
-      const freshText = compileQuotationText(quote, quote.items, extraFees, discount, totals);
+      const freshText = overrideText || compileQuotationText(quote, quote.items, extraFees, discount, totals);
 
       const payload: any = {
         operator_id: selectedOperatorId, 
@@ -568,6 +568,7 @@ function QuoteBuilder() {
         pickup_location: quote.pickup_location, 
         dropoff_location: quote.dropoff_location,
         notes: quote.notes, 
+        default_fuel_price: quote.default_fuel_price,
         quotation_text: freshText, 
         grand_total: totals.grandTotal, 
         extra_fees_json: extraFees, 
@@ -643,13 +644,13 @@ function QuoteBuilder() {
     } catch (e: any) { openDialog({ title: "System Error", message: e.message, type: "warning" }); } finally { setIsSaving(false); }
   };
 
-  const handleConfirmQuote = async () => {
+  const handleConfirmQuote = async (overrideText?: string) => {
     if (!selectedPackageId) { openDialog({ title: "Selection Required", message: "Please select a package first.", type: "alert" }); return; }
     openDialog({
       title: "Confirm Quotation",
       message: "Are you sure you want to lock and confirm this quotation? This will move it to the Confirmed status and lock itinerary editing.",
       type: "confirm",
-      onConfirm: () => finalizeSave('Confirmed', false)
+      onConfirm: () => finalizeSave('Confirmed', false, overrideText)
     });
   };
 
@@ -830,7 +831,16 @@ function QuoteBuilder() {
       </div>
       <AnimatePresence>
         {isPreviewOpen && (
-          <QuotationPreviewModal text={previewText} setText={setPreviewText} onClose={() => setIsPreviewOpen(false)} onConfirm={handleConfirmQuote} onCancel={handleCancelQuote} isSaving={isSaving} openDialog={openDialog} />
+          <QuotationPreviewModal 
+            text={previewText} 
+            setText={setPreviewText} 
+            onClose={() => setIsPreviewOpen(false)} 
+            onConfirm={() => handleConfirmQuote(previewText)} 
+            onCancel={handleCancelQuote} 
+            isSaving={isSaving} 
+            openDialog={openDialog} 
+            userRole={profile?.role}
+          />
         )}
       </AnimatePresence>
       <PremiumDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
