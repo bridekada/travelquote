@@ -100,9 +100,14 @@ export default function ItinerarySequence({
                   </button>
                 )}
               </div>
-              <div className="w-12 h-12 rounded-xl bg-primary text-white flex flex-col items-center justify-center shadow-lg shadow-primary/10">
-                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Day</span>
-                <span className="text-base font-bold">{item.day_number}</span>
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[11px] font-black uppercase text-primary tracking-tight whitespace-nowrap mb-[-2px]">
+                  {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+                <div className="w-12 h-12 rounded-xl bg-primary text-white flex flex-col items-center justify-center shadow-lg shadow-primary/10">
+                  <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Day</span>
+                  <span className="text-base font-bold">{item.day_number}</span>
+                </div>
               </div>
             </div>
 
@@ -262,9 +267,6 @@ export default function ItinerarySequence({
                 <div className="md:col-span-12 lg:col-span-7 space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
-                    <span className="text-[9px] font-bold text-primary bg-[#f0f2f5] px-2 py-0.5 rounded-lg">
-                      {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </span>
                   </div>
                   <textarea
                     className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale"
