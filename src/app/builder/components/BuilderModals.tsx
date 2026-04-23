@@ -115,9 +115,10 @@ export function QuotationPreviewModal({
       const result = await polishQuotation(text);
       setText(result);
     } catch (err: any) {
+      console.error('AI Polish technical error:', err);
       openDialog({
-        title: "AI Error",
-        message: err.message || "Failed to connect to AI service.",
+        title: "AI Service Busy",
+        message: "The Gemini AI service is currently experiencing high traffic or connectivity issues. Please try clicking 'Polish' again in a few seconds.",
         type: "warning"
       });
     } finally {
