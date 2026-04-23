@@ -86,7 +86,7 @@ export default function ItinerarySequence({
         {items.map((item, index) => (
           <div
             key={index}
-            className="bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] flex flex-col md:flex-row gap-4 md:gap-10 items-start p-4 md:p-6 rounded-[24px]"
+            className="bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] flex flex-col md:flex-row gap-4 md:gap-8 items-start p-4 md:p-6 rounded-[24px]"
           >
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-6 flex justify-center">
@@ -111,7 +111,7 @@ export default function ItinerarySequence({
               </div>
             </div>
 
-            <div className="flex-1 w-full">
+            <div className="flex-1 min-w-0">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4">
                 <div className="md:col-span-12 lg:col-span-5 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
@@ -270,7 +270,7 @@ export default function ItinerarySequence({
                   </div>
                   <textarea
                     className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale"
-                    style={{ fontSize: '12px', resize: 'vertical' }}
+                    style={{ fontSize: '12px', resize: 'none' }}
                     placeholder="Briefly describe the day's activities..."
                     value={item.itinerary_details || ""}
                     onChange={(e) => onUpdateItem(index, { itinerary_details: e.target.value })}
