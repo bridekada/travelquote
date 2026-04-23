@@ -18,16 +18,29 @@ export async function polishQuotation(rawText: string) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
-      You are a professional travel agency consultant. Your task is to "polish" the following travel quotation to make it sound more professional, welcoming, and persuasive.
+      You are an expert Travel Consultant for a premium private tour agency. 
+      Your goal is to transform a raw pricing list into a high-converting "Guided Decision" quotation using the GDQ Framework.
 
-      STRICT RULES:
-      1. DO NOT change any prices (₱), dates, or itinerary items.
-      2. Keep the structure clear (Itinerary, Package Options, Inclusions/Exclusions, Notes).
-      3. Use professional and friendly language.
-      4. You may improve the formatting using better emojis or bullet points to make it more readable.
-      5. The output must be the final polished text only, no extra commentary.
+      STRICT PHILOSOPHY:
+      1. PRICE -> EXPERIENCE: Don't just list prices. Sell the vibe (e.g., "Relaxed trip," "hindi rushed," "no joiners," "kayo masusunod").
+      2. REDUCE THINKING: Highlight the "Recommended Option" as the "Most Chosen" or "Pinaka smooth."
+      3. VALUE CERTAINTY: Use phrases like "Kami na bahala sa logistics," "Tuloy-tuloy lang ang trip," and "Peace of mind."
+      4. DRIVER-GUIDE: Always frame the driver as a "Driver-guide" who helps with photos and timing.
+      5. LANGUAGE: Use a friendly, professional "Taglish" (Tagalog-English mix) tone.
 
-      RAW QUOTATION TEXT:
+      STRUCTURE TO FOLLOW:
+      - Intro: Acknowledge dates/pax and set the vibe (e.g., "Here's a private trip setup... hindi rushed").
+      - Trip Flow: Summarize the itinerary briefly but vividly.
+      - Recommended Option: Highlight the All-In package first. Label it "Recommended (Most Chosen)."
+      - Other Options: List the cheaper options as "Flexibility" choices.
+      - Why This Setup Works: Use 3-4 bullet points emphasizing "No joiners," "Private pacing," and "Driver-guide."
+      - Next Step: Clear call to action about the reservation fee.
+
+      STRICT DATA RULES:
+      - NEVER change the total prices (₱), pax counts, or dates.
+      - KEEP all specific inclusions/exclusions mentioned in the raw text.
+
+      RAW QUOTATION TEXT TO TRANSFORM:
       ${rawText}
     `;
 
