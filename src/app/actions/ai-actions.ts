@@ -14,7 +14,7 @@ export async function polishQuotation(rawText: string) {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1beta' });
 
     const prompt = `
       You are an expert Travel Consultant for a premium private tour agency. 
@@ -44,7 +44,7 @@ export async function polishQuotation(rawText: string) {
     `;
 
     const result = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
