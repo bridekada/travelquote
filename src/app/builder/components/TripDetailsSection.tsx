@@ -36,10 +36,12 @@ export default function TripDetailsSection({
     altInput: true,
     altFormat: "F j, Y h:i K",
     allowInput: true,
+    altInputClass: "input date-input-compact !pl-12 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 font-bold w-full"
   }), []);
 
   const etdOptions = useMemo(() => ({
     ...baseOptions,
+    altInputClass: "input date-input-compact !pl-12 !pr-4 !bg-rose-50/20 !border-rose-100/50 font-bold w-full",
     minDate: quote.eta ? new Date(quote.eta) : undefined
   }), [baseOptions, quote.eta]);
 
@@ -176,7 +178,7 @@ export default function TripDetailsSection({
             <div className={`relative ${readOnly ? "pointer-events-none opacity-50" : ""}`}>
               <Flatpickr
                 data-enable-time
-                className="input date-input-compact !pl-12 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 font-bold w-full"
+                className="hidden"
                 value={quote.eta}
                 disabled={readOnly}
                 options={baseOptions}
@@ -200,7 +202,7 @@ export default function TripDetailsSection({
             <div className={`relative ${readOnly ? "pointer-events-none opacity-50" : ""}`}>
               <Flatpickr
                 data-enable-time
-                className="input date-input-compact !pl-12 !pr-4 !bg-rose-50/20 !border-rose-100/50 font-bold w-full"
+                className="hidden"
                 value={quote.etd}
                 disabled={readOnly}
                 options={etdOptions}
