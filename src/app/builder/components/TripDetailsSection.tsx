@@ -134,9 +134,10 @@ export default function TripDetailsSection({
               <input 
                 type="number" 
                 className="input !pl-12 !bg-[#f8f9fb] !border-[#e8eaed] text-sm font-bold disabled:opacity-50 disabled:grayscale" 
-                value={quote.default_fuel_price || 60}
+                value={quote.default_fuel_price === 0 ? "" : quote.default_fuel_price}
                 onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
+                  const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  if (isNaN(val)) return;
                   setQuote({
                     ...quote, 
                     default_fuel_price: val,
