@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, Info, X, Copy, Check, Printer, Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, X, Copy, Check, Printer, Sparkles, Loader2, RotateCcw, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { polishQuotation } from "@/app/actions/ai-actions";
@@ -159,7 +159,7 @@ export function QuotationPreviewModal({
       <motion.div 
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        style={{ ...modalCard, width: '100%', maxWidth: '1000px', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
+        style={{ ...modalCard, width: '100%', maxWidth: '1100px', maxHeight: '94vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
       >
         <div className="px-12 pt-14 pb-10 text-center relative flex flex-col items-center">
           <div className="w-16 h-16 rounded-[24px] flex items-center justify-center relative mb-6 premium-header-icon text-slate-400">
@@ -173,7 +173,7 @@ export function QuotationPreviewModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-16 pb-12 custom-scrollbar">
-          <div className="relative group paper-container rounded-[40px] px-20 py-20 min-h-[600px]">
+          <div className="relative group paper-container rounded-[40px] pl-32 pr-16 py-20 min-h-[650px]">
             <div className="absolute top-10 right-12 flex items-center gap-3 px-4 py-2 rounded-full live-badge">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
               <span className="text-[10px] uppercase font-black tracking-[0.2em] italic">Live Intelligence Editor</span>
@@ -197,21 +197,21 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-12 py-10 flex items-center justify-center gap-6 no-print shrink-0 border-t border-slate-50 bg-slate-50/50">
+        <div className="px-12 py-10 flex items-center justify-center gap-5 no-print shrink-0 border-t border-slate-50 bg-slate-50/50">
            <button 
              onClick={handleCopy}
-             style={{ ...btnSecondary, height: '54px', padding: '0 32px', borderRadius: '16px' }}
-             className="text-[10px] uppercase tracking-[0.2em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3"
+             style={{ ...btnSecondary, height: '52px', padding: '0 36px', borderRadius: '14px' }}
+             className="text-[11px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3 shadow-sm"
            >
-             <Copy size={16} /> Copy
+             <Copy size={18} className="opacity-60" /> Copy
            </button>
 
            <button 
              onClick={handlePrint}
-             style={{ ...btnSecondary, height: '54px', padding: '0 32px', borderRadius: '16px' }}
-             className="text-[10px] uppercase tracking-[0.2em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3"
+             style={{ ...btnSecondary, height: '52px', padding: '0 36px', borderRadius: '14px' }}
+             className="text-[11px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3 shadow-sm"
            >
-             <Printer size={16} /> Print
+             <Printer size={18} className="opacity-60" /> Print
            </button>
 
             {userRole === 'super_admin' && showPolish && (
@@ -220,22 +220,22 @@ export function QuotationPreviewModal({
                 <button 
                    onClick={handlePolish}
                    disabled={isPolishing}
-                   style={btnAction}
-                   className="h-[54px] px-10 rounded-2xl active:scale-[0.98] disabled:opacity-50"
+                   style={{ ...btnAction, height: '52px', padding: '0 40px', borderRadius: '14px' }}
+                   className="active:scale-[0.98] disabled:opacity-50 text-[11px]"
                 >
                    {isPolishing ? (
                      <Loader2 className="w-5 h-5 animate-spin" />
                    ) : (
-                     <Sparkles className="w-5 h-5 text-emerald-300" />
+                     <Sparkles className="w-5 h-5" />
                    )}
-                   {isPolishing ? "Polishing..." : "Polish with AI"}
+                   <span className="ml-1">{isPolishing ? "Polishing..." : "Polish with AI"}</span>
                 </button>
 
                 {text !== originalText.current && (
                   <button 
                     onClick={handleRevert}
-                    style={{ ...btnSecondary, width: '54px', height: '54px', padding: 0, borderRadius: '16px' }}
-                    className="flex items-center justify-center text-slate-400 hover:text-primary transition-all active:scale-95"
+                    style={{ ...btnSecondary, width: '52px', height: '52px', padding: 0, borderRadius: '14px' }}
+                    className="flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"
                     title="Revert to original"
                   >
                     <RotateCcw size={20} />
@@ -248,8 +248,8 @@ export function QuotationPreviewModal({
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                style={btnPillarPrimary}
-                className="shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ ...btnAction, height: '52px', padding: '0 44px', borderRadius: '14px' }}
+                className="shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50 text-[11px]"
               >
                 {isSaving ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -259,7 +259,10 @@ export function QuotationPreviewModal({
                     Saved
                   </>
                 ) : (
-                  "Commit Record"
+                  <>
+                    <Plus size={18} className="mr-1" />
+                    Commit Record
+                  </>
                 )}
               </button>
             )}
@@ -268,8 +271,8 @@ export function QuotationPreviewModal({
 
             <button 
               onClick={onClose}
-              style={btnPillarSecondary}
-              className="active:scale-[0.98] hover:bg-emerald-50"
+              style={{ ...btnSecondary, height: '52px', padding: '0 36px', borderRadius: '14px', borderColor: '#10B981', color: '#10B981' }}
+              className="text-[11px] uppercase tracking-[0.1em] font-black hover:bg-emerald-50 transition-all active:scale-[0.98] shadow-sm"
             >
               Back to Builder
             </button>
