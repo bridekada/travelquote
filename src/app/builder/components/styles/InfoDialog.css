@@ -1,0 +1,84 @@
+/* Isolated Styles for Action Feedback & Info Dialogs */
+.info-dialog-scope {
+  --dialog-bg: #ffffff;
+  --dialog-radius: 40px;
+  --dialog-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  --dialog-font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.info-dialog-scope .dialog-card {
+  background: var(--dialog-bg);
+  border-radius: var(--dialog-radius);
+  box-shadow: var(--dialog-shadow);
+  padding: 3rem 2.5rem;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  border: 1px solid rgba(241, 245, 249, 0.5);
+}
+
+.info-dialog-scope .icon-container {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1.25rem;
+  display: flex;
+  items-center: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.info-dialog-scope .dialog-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.info-dialog-scope .dialog-message {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #64748b;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+/* Pillar Button Overrides for InfoDialog */
+.info-dialog-scope .btn-pillar {
+  height: 3.5rem;
+  border-radius: 9999px;
+  padding: 0 2.5rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.info-dialog-scope .btn-pillar-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.info-dialog-scope .btn-pillar-secondary {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.info-dialog-scope .btn-pillar-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Type Specifics */
+.info-dialog-scope.type-warning .icon-container { background: #fff1f2; color: #f43f5e; }
+.info-dialog-scope.type-success .icon-container { background: #f0fdf4; color: #10b981; }
+.info-dialog-scope.type-confirm .icon-container { background: #f0f9ff; color: #0ea5e9; }

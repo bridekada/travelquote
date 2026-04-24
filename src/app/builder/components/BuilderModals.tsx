@@ -9,8 +9,9 @@ import {
   btnAction, btnSecondary, modalTitle, btnPrimary
 } from "@/lib/styles";
 import "./styles/QuotationDocument.css";
+import "./styles/InfoDialog.css";
 
-interface PremiumDialogProps {
+interface InfoDialogProps {
   config: {
     isOpen: boolean;
     title: string;
@@ -23,65 +24,54 @@ interface PremiumDialogProps {
   onClose: () => void;
 }
 
-export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
+export function InfoDialog({ config, onClose }: InfoDialogProps) {
   if (!config.isOpen) return null;
 
-  const isWarning = config.type === 'warning';
+  const isWarning = config.type === 'warning' || config.type === 'alert';
   const isSuccess = config.type === 'success';
 
   return (
-    <div style={modalOverlay}>
+    <div style={modalOverlay} className={`info-dialog-scope type-${config.type}`}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        style={{ ...modalCard, width: '100%', maxWidth: '320px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        className="dialog-card flex flex-col items-center"
       >
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative mb-4 ${
-          isWarning ? "bg-rose-50 text-rose-500" : 
-          isSuccess ? "bg-emerald-50 text-emerald-500" :
-          "bg-indigo-50 text-indigo-500"
-        }`}>
-           <div className={`absolute inset-0 rounded-2xl animate-pulse opacity-20 ${
-             isWarning ? "bg-rose-200" : isSuccess ? "bg-emerald-200" : "bg-indigo-200"
+        <div className="icon-container">
+           <div className={`absolute inset-0 rounded-[1.25rem] animate-pulse opacity-20 ${
+             isWarning ? "bg-rose-200" : isSuccess ? "bg-emerald-200" : "bg-sky-200"
            }`} />
-           {isWarning ? <AlertTriangle size={22} strokeWidth={2.5} className="relative" /> : 
-            isSuccess ? <CheckCircle size={22} strokeWidth={2.5} className="relative" /> : 
-            <Info size={22} strokeWidth={2.5} className="relative" />}
+           {isWarning ? <AlertTriangle size={26} strokeWidth={2.5} className="relative" /> : 
+            isSuccess ? <CheckCircle size={26} strokeWidth={2.5} className="relative" /> : 
+            <Info size={26} strokeWidth={2.5} className="relative" />}
         </div>
-        
-        <h3 style={modalTitle}>{config.title}</h3>
-        <p className="text-[12px] font-medium text-text-secondary leading-relaxed mt-3">{config.message}</p>
-        
-        <div className="grid grid-cols-2 gap-3 w-full mt-8">
-           {config.type === 'confirm' || config.type === 'warning' ? (
-             <>
-               <button 
-                 onClick={onClose}
-                 style={btnSecondary}
-                 className="h-10 text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-[0.98]"
-               >
-                 {config.cancelText || "No, Keep it"}
-               </button>
-               <button 
-                 onClick={() => {
-                   config.onConfirm?.();
-                   onClose();
-                 }}
-                 style={isWarning ? { ...btnPrimary, background: '#F43F5E' } : btnPrimary}
-                 className="h-10 text-[9px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-[0.98]"
-               >
-                 {config.confirmText || "Yes, Proceed"}
-               </button>
-             </>
-           ) : (
-             <button 
-               onClick={onClose}
-               style={btnPrimary}
-               className="col-span-2 h-10 text-[9px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-95"
-             >
-               Got it
-             </button>
-           )}
+
+        <h3 className="dialog-title">{config.title}</h3>
+        <p className="dialog-message">{config.message}</p>
+
+        <div className="flex flex-col w-full gap-3">
+          <button 
+            onClick={() => {
+              if (config.onConfirm) config.onConfirm();
+              onClose();
+            }}
+            className={`btn-pillar ${
+              isWarning ? "bg-rose-500 text-white shadow-rose-200" : 
+              isSuccess ? "bg-emerald-800 text-white shadow-emerald-100" : 
+              "bg-slate-900 text-white shadow-slate-200"
+            }`}
+          >
+            {config.confirmText || (isWarning ? "Yes, Proceed" : isSuccess ? "Got It" : "Confirm")}
+          </button>
+          
+          {(config.type === 'confirm' || config.type === 'warning' || config.onConfirm) && (
+            <button 
+              onClick={onClose}
+              className="btn-pillar btn-pillar-secondary"
+            >
+              {config.cancelText || "No, Keep It"}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>

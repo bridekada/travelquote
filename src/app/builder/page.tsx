@@ -14,7 +14,7 @@ import ItinerarySequence from "./components/ItinerarySequence";
 import OperationalMatrix from "./components/OperationalMatrix";
 import PackageSidebar from "./components/PackageSidebar";
 import ConfirmedSummary from "./components/ConfirmedSummary";
-import { PremiumDialog, QuotationPreviewModal } from "./components/BuilderModals";
+import { InfoDialog, QuotationPreviewModal } from "./components/BuilderModals";
 
 // Types & Utils
 import { QuoteData, QuoteItem, ExtraFee } from "./components/types";
@@ -774,7 +774,7 @@ function QuoteBuilder() {
           isSaving={isPaymentSaving}
           dbMiscPresets={dbMiscPresets}
         />
-        <PremiumDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
+        <InfoDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
       </>
     );
   }
@@ -853,7 +853,7 @@ function QuoteBuilder() {
           />
         )}
       </AnimatePresence>
-      <PremiumDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
+      <InfoDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
     </div>
   );
 }
