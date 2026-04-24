@@ -253,7 +253,7 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-10 py-6 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
+        <div className="px-10 py-12 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
            <button 
              onClick={handleCopy}
              style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px' }}
