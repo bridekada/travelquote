@@ -486,7 +486,7 @@ body .flatpickr-time {
   border-top: 1px solid #f1f5f9 !important;
   margin-top: 0px !important;
   padding-top: 0px !important;
-  height: 28px !important;
+  height: 40px !important;
 }
 
 /* Internal Container Height Fixes */
@@ -523,6 +523,11 @@ input[readonly].date-input-compact {
   font-size: 10px !important;
   height: 42px !important;
   min-height: 42px !important;
+}
+
+/* Force-hide the original input when altInput is used */
+input.flatpickr-input[type="hidden"] {
+  display: none !important;
 }
 
 /* PREMIUM DROPDOWN STYLING */

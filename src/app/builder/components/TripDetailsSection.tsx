@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -28,6 +29,22 @@ export default function TripDetailsSection({
   dbVehicles,
   readOnly = false
 }: TripDetailsSectionProps) {
+  const baseOptions = useMemo(() => ({
+    dateFormat: "Y-m-d H:i",
+    enableTime: true,
+    time_24hr: false,
+    altInput: true,
+    altFormat: "F j, Y h:i K",
+    allowInput: true,
+    altInputClass: "input date-input-compact !pl-12 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 font-bold w-full"
+  }), []);
+
+  const etdOptions = useMemo(() => ({
+    ...baseOptions,
+    altInputClass: "input date-input-compact !pl-12 !pr-4 !bg-rose-50/20 !border-rose-100/50 font-bold w-full",
+    minDate: quote.eta ? new Date(quote.eta) : undefined
+  }), [baseOptions, quote.eta]);
+
   return (
     <section className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -79,8 +96,12 @@ export default function TripDetailsSection({
               <input 
                 type="number" 
                 className="input !pl-12 !bg-[#f8f9fb] !border-[#e8eaed] text-sm font-bold disabled:opacity-50 disabled:grayscale" 
-                value={quote.pax_count}
-                onChange={(e) => setQuote({...quote, pax_count: parseInt(e.target.value) || 1})}
+                value={quote.pax_count === 0 ? "" : quote.pax_count}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? 0 : parseInt(e.target.value);
+                  if (isNaN(val)) return;
+                  setQuote({...quote, pax_count: val});
+                }}
                 disabled={readOnly}
               />
               <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary opacity-40" size={18} />
@@ -157,16 +178,10 @@ export default function TripDetailsSection({
             <div className={`relative ${readOnly ? "pointer-events-none opacity-50" : ""}`}>
               <Flatpickr
                 data-enable-time
-                className="input date-input-compact !pl-12 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 font-bold w-full"
+                className="hidden"
                 value={quote.eta}
                 disabled={readOnly}
-                options={{
-                  dateFormat: "Y-m-d H:i",
-                  enableTime: true,
-                  time_24hr: false,
-                  altInput: true,
-                  altFormat: "F j, Y h:i K",
-                }}
+                options={baseOptions}
                 onChange={([date]) => {
                   if (!date) return;
                   const newEta = date.toISOString();
@@ -187,17 +202,10 @@ export default function TripDetailsSection({
             <div className={`relative ${readOnly ? "pointer-events-none opacity-50" : ""}`}>
               <Flatpickr
                 data-enable-time
-                className="input date-input-compact !pl-12 !pr-4 !bg-rose-50/20 !border-rose-100/50 font-bold w-full"
+                className="hidden"
                 value={quote.etd}
                 disabled={readOnly}
-                options={{
-                  dateFormat: "Y-m-d H:i",
-                  enableTime: true,
-                  time_24hr: false,
-                  altInput: true,
-                  altFormat: "F j, Y h:i K",
-                  minDate: quote.eta ? new Date(quote.eta) : undefined
-                }}
+                options={etdOptions}
                 onChange={([date]) => {
                   if (!date) return;
                   setQuote({ ...quote, etd: date.toISOString() });
@@ -240,8 +248,12 @@ export default function TripDetailsSection({
                 min="0"
                 max="100"
                 className="input !pl-12 !bg-amber-50/30 !border-amber-200 text-sm font-bold disabled:opacity-50 disabled:grayscale" 
-                value={quote.admin_commission || 0}
-                onChange={(e) => setQuote({...quote, admin_commission: parseFloat(e.target.value) || 0})}
+                value={quote.admin_commission === 0 ? "" : quote.admin_commission}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  if (isNaN(val)) return;
+                  setQuote({...quote, admin_commission: val});
+                }}
                 disabled={readOnly}
               />
               <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 opacity-60" size={18} />
