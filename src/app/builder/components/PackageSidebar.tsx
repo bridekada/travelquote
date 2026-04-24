@@ -363,10 +363,20 @@ export default function PackageSidebar({
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Operational Context</span>
                   </div>
                   <textarea 
-                    className="w-full min-h-[100px] p-6 bg-gray-50 border border-gray-100 rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none shadow-inner disabled:opacity-40"
+                    className="w-full min-h-[100px] p-6 bg-gray-50 border border-gray-100 rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none shadow-inner disabled:opacity-40 overflow-hidden"
                     placeholder="Add operational details..."
                     value={notes || ""}
                     onChange={(e) => onUpdateNotes(e.target.value)}
+                    onInput={(e: any) => {
+                      e.target.style.height = "auto";
+                      e.target.style.height = Math.max(100, e.target.scrollHeight) + "px";
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = "auto";
+                        el.style.height = Math.max(100, el.scrollHeight) + "px";
+                      }
+                    }}
                     disabled={readOnly}
                   />
                 </div>
