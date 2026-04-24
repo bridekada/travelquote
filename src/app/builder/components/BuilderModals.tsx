@@ -4,7 +4,10 @@ import { AlertTriangle, CheckCircle, Info, X, Copy, Check, Printer, Sparkles, Lo
 import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { polishQuotation } from "@/app/actions/ai-actions";
-
+import { 
+  modalOverlay, modalCard, btnPillarPrimary, btnPillarSecondary, 
+  btnAction, btnSecondary, modalTitle, btnPrimary
+} from "@/lib/styles";
 import "./styles/QuotationDocument.css";
 
 interface PremiumDialogProps {
@@ -27,11 +30,11 @@ export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
   const isSuccess = config.type === 'success';
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+    <div style={modalOverlay}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-[32px] w-full max-w-xs shadow-2xl overflow-hidden border border-white/20 flex flex-col items-center text-center p-8 relative"
+        style={{ ...modalCard, width: '100%', maxWidth: '320px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative mb-4 ${
           isWarning ? "bg-rose-50 text-rose-500" : 
@@ -46,7 +49,7 @@ export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
             <Info size={22} strokeWidth={2.5} className="relative" />}
         </div>
         
-        <h3 className="text-[15px] font-bold text-primary tracking-tight">{config.title}</h3>
+        <h3 style={modalTitle}>{config.title}</h3>
         <p className="text-[12px] font-medium text-text-secondary leading-relaxed mt-3">{config.message}</p>
         
         <div className="grid grid-cols-2 gap-3 w-full mt-8">
@@ -54,7 +57,8 @@ export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
              <>
                <button 
                  onClick={onClose}
-                 className="h-10 bg-[#f8f9fb] text-primary border border-[#e8eaed] rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-white hover:border-primary/20 transition-all active:scale-[0.98]"
+                 style={btnSecondary}
+                 className="h-10 text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-[0.98]"
                >
                  {config.cancelText || "No, Keep it"}
                </button>
@@ -63,9 +67,8 @@ export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
                    config.onConfirm?.();
                    onClose();
                  }}
-                 className={`h-10 rounded-xl font-black text-[9px] uppercase tracking-[0.15em] text-white shadow-lg transition-all active:scale-[0.98] ${
-                   isWarning ? "bg-rose-500 shadow-rose-500/20 hover:bg-rose-600" : "bg-primary shadow-primary/20 hover:opacity-90"
-                 }`}
+                 style={isWarning ? { ...btnPrimary, background: '#F43F5E' } : btnPrimary}
+                 className="h-10 text-[9px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-[0.98]"
                >
                  {config.confirmText || "Yes, Proceed"}
                </button>
@@ -73,7 +76,8 @@ export function PremiumDialog({ config, onClose }: PremiumDialogProps) {
            ) : (
              <button 
                onClick={onClose}
-               className="col-span-2 h-10 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 transition-all active:scale-95"
+               style={btnPrimary}
+               className="col-span-2 h-10 text-[9px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-95"
              >
                Got it
              </button>
@@ -151,14 +155,13 @@ export function QuotationPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md quotation-document-premium">
+    <div style={modalOverlay} className="quotation-document-premium">
       <motion.div 
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.98, y: 10 }}
-        className="bg-white rounded-[48px] w-full max-w-4xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-white/60 relative"
+        style={{ ...modalCard, width: '100%', maxWidth: '1000px', maxHeight: '92vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
       >
-        <div className="px-12 pt-14 pb-10 bg-white text-center relative flex flex-col items-center">
+        <div className="px-12 pt-14 pb-10 text-center relative flex flex-col items-center">
           <div className="w-16 h-16 rounded-[24px] flex items-center justify-center relative mb-6 premium-header-icon text-slate-400">
             <Printer size={28} strokeWidth={1.5} className="relative" />
           </div>
@@ -169,9 +172,9 @@ export function QuotationPreviewModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-12 pb-12 bg-white custom-scrollbar">
-          <div className="relative group paper-container rounded-[40px] px-16 py-16 min-h-[600px]">
-            <div className="absolute top-8 right-10 flex items-center gap-3 px-4 py-2 rounded-full live-badge">
+        <div className="flex-1 overflow-y-auto px-16 pb-12 custom-scrollbar">
+          <div className="relative group paper-container rounded-[40px] px-20 py-20 min-h-[600px]">
+            <div className="absolute top-10 right-12 flex items-center gap-3 px-4 py-2 rounded-full live-badge">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
               <span className="text-[10px] uppercase font-black tracking-[0.2em] italic">Live Intelligence Editor</span>
             </div>
@@ -194,33 +197,36 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-12 py-10 bg-white flex items-center justify-center gap-6 no-print shrink-0 border-t border-slate-50">
+        <div className="px-12 py-10 flex items-center justify-center gap-6 no-print shrink-0 border-t border-slate-50 bg-slate-50/50">
            <button 
              onClick={handleCopy}
-             className="btn-premium bg-white text-slate-600 border border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] flex items-center gap-3 shadow-sm"
+             style={{ ...btnSecondary, height: '54px', padding: '0 32px', borderRadius: '16px' }}
+             className="text-[10px] uppercase tracking-[0.2em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3"
            >
-             <Copy size={18} className="opacity-40" /> Copy
+             <Copy size={16} /> Copy
            </button>
 
            <button 
              onClick={handlePrint}
-             className="btn-premium bg-white text-slate-600 border border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] flex items-center gap-3 shadow-sm"
+             style={{ ...btnSecondary, height: '54px', padding: '0 32px', borderRadius: '16px' }}
+             className="text-[10px] uppercase tracking-[0.2em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-3"
            >
-             <Printer size={18} className="opacity-40" /> Print
+             <Printer size={16} /> Print
            </button>
 
             {userRole === 'super_admin' && showPolish && (
               <>
-                <div className="w-px h-8 bg-slate-100 mx-2" />
+                <div className="w-px h-8 bg-slate-200 mx-2" />
                 <button 
                    onClick={handlePolish}
                    disabled={isPolishing}
-                   className="btn-premium bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-900/20 hover:bg-black active:scale-[0.98] disabled:opacity-50 flex items-center gap-4"
+                   style={btnAction}
+                   className="h-[54px] px-10 rounded-2xl active:scale-[0.98] disabled:opacity-50"
                 >
                    {isPolishing ? (
                      <Loader2 className="w-5 h-5 animate-spin" />
                    ) : (
-                     <Sparkles className="w-5 h-5 text-emerald-400" />
+                     <Sparkles className="w-5 h-5 text-emerald-300" />
                    )}
                    {isPolishing ? "Polishing..." : "Polish with AI"}
                 </button>
@@ -228,7 +234,8 @@ export function QuotationPreviewModal({
                 {text !== originalText.current && (
                   <button 
                     onClick={handleRevert}
-                    className="h-14 w-14 flex items-center justify-center bg-slate-50 text-slate-400 border border-slate-200 rounded-2xl hover:bg-white hover:border-primary/20 transition-all active:scale-95"
+                    style={{ ...btnSecondary, width: '54px', height: '54px', padding: 0, borderRadius: '16px' }}
+                    className="flex items-center justify-center text-slate-400 hover:text-primary transition-all active:scale-95"
                     title="Revert to original"
                   >
                     <RotateCcw size={20} />
@@ -241,18 +248,15 @@ export function QuotationPreviewModal({
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className={`btn-premium rounded-2xl shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-3 ${
-                  showSaved 
-                    ? "bg-emerald-50 text-emerald-600 shadow-emerald-500/5 border border-emerald-100" 
-                    : "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
-                }`}
+                style={btnPillarPrimary}
+                className="shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : showSaved ? (
                   <>
                     <Check className="w-5 h-5" />
-                    Saved!
+                    Saved
                   </>
                 ) : (
                   "Commit Record"
@@ -260,11 +264,12 @@ export function QuotationPreviewModal({
               </button>
             )}
 
-            <div className="w-px h-8 bg-slate-100 mx-2" />
+            <div className="w-px h-8 bg-slate-200 mx-2" />
 
             <button 
               onClick={onClose}
-              className="btn-premium bg-primary text-white rounded-2xl shadow-2xl shadow-primary/20 hover:opacity-90 active:scale-[0.98]"
+              style={btnPillarSecondary}
+              className="active:scale-[0.98] hover:bg-emerald-50"
             >
               Back to Builder
             </button>
