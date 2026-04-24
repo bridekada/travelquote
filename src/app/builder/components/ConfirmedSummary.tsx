@@ -53,7 +53,14 @@ export default function ConfirmedSummary({
   }
 
   // 2. Fuel Logic
-  if (details.inclusions?.fuel) {
+  const totalFuel = quote.items?.reduce((sum, item) => {
+    // Basic fuel calc if needed, or use row_total components if available
+    // For summary, we can approximate or check if fuel was actually a factor
+    const fuelCost = (item.km / (item.km_per_l || 10)) * (item.fuel_price || 60);
+    return sum + (item.fuel_cost_manual || fuelCost);
+  }, 0) || 0;
+
+  if (details.inclusions?.fuel && totalFuel > 0) {
     incs.push('Fuel & Logistics included');
   } else {
     excs.push('Fuel Consumption');
@@ -61,7 +68,9 @@ export default function ConfirmedSummary({
 
   // 3. Accommodation Logic
   const uniqueHotels = Array.from(new Set(quote.items?.map(i => i.guest_accommodation_name).filter(Boolean)));
-  if (details.inclusions?.accommodation) {
+  const totalAccom = quote.items?.reduce((sum, item) => sum + (item.guest_accommodation_amount || 0), 0) || 0;
+
+  if (details.inclusions?.accommodation && totalAccom > 0) {
     const hotelLabel = uniqueHotels.length > 0 ? `Guest Accommodation (${uniqueHotels.join(", ")})` : "Guest Accommodation";
     incs.push(hotelLabel);
   } else {
@@ -70,8 +79,12 @@ export default function ConfirmedSummary({
 
   // 4. Misc Persistence Logic
   dbMiscPresets.forEach(m => {
-    const isIncluded = (details.inclusions?.misc_details || []).some((md: any) => md.name === m.name);
-    if (isIncluded) {
+    const isIncludedInConfig = (details.inclusions?.misc_details || []).some((md: any) => md.name === m.name);
+    const totalValue = quote.items?.reduce((sum, item) => {
+      return sum + (item.dynamic_costs?.[m.id] || 0);
+    }, 0) || 0;
+
+    if (isIncludedInConfig && totalValue > 0) {
       incs.push(m.name);
     } else {
       excs.push(m.name);
