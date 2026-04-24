@@ -41,9 +41,9 @@ export function InfoDialog({ config, onClose }: InfoDialogProps) {
            <div className={`absolute inset-0 rounded-[1.25rem] animate-pulse opacity-20 ${
              isWarning ? "bg-rose-200" : isSuccess ? "bg-emerald-200" : "bg-sky-200"
            }`} />
-           {isWarning ? <AlertTriangle size={20} strokeWidth={2.5} className="relative" /> : 
-            isSuccess ? <CheckCircle size={20} strokeWidth={2.5} className="relative" /> : 
-            <Info size={20} strokeWidth={2.5} className="relative" />}
+           {isWarning ? <AlertTriangle size={16} strokeWidth={2.5} className="relative" /> : 
+            isSuccess ? <CheckCircle size={16} strokeWidth={2.5} className="relative" /> : 
+            <Info size={16} strokeWidth={2.5} className="relative" />}
         </div>
 
         <h3 className="dialog-title">{config.title}</h3>
