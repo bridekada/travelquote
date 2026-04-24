@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { polishQuotation } from "@/app/actions/ai-actions";
 
+import "./styles/QuotationDocument.css";
+
 interface PremiumDialogProps {
   config: {
     isOpen: boolean;
@@ -149,33 +151,32 @@ export function QuotationPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm quotation-document-premium">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-white/20 relative"
+        className="bg-white rounded-[40px] w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/40 relative"
       >
-        <div className="px-8 pt-8 pb-6 bg-white text-center relative flex flex-col items-center">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center relative mb-4 bg-primary/5 text-primary">
-            <div className="absolute inset-0 rounded-2xl animate-pulse opacity-20 bg-primary/10" />
-            <Printer size={22} strokeWidth={2.5} className="relative" />
+        <div className="px-8 pt-10 pb-8 bg-white text-center relative flex flex-col items-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center relative mb-5 premium-header-icon text-primary/70">
+            <Printer size={24} strokeWidth={2} className="relative" />
           </div>
-          <h3 className="text-xl font-black text-primary tracking-tight leading-none italic">Quotation Document</h3>
-          <p className="text-[10px] text-text-tertiary font-bold uppercase tracking-[0.15em] mt-2 opacity-60">Final Review & Edit</p>
-          <button onClick={onClose} className="absolute top-8 right-8 p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-text-tertiary">
-            <X size={16} strokeWidth={3} />
+          <h3 className="text-2xl font-black tracking-tight leading-none italic title-gradient">Quotation Document</h3>
+          <p className="text-[11px] text-text-tertiary font-black uppercase tracking-[0.25em] mt-3 opacity-40">Final Review & System Validation</p>
+          <button onClick={onClose} className="absolute top-10 right-10 p-2.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all text-text-tertiary hover:rotate-90">
+            <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 pb-8 bg-white custom-scrollbar">
-          <div className="relative group bg-[#f8f9fb] rounded-2xl p-6 border border-[#e8eaed]">
-            <div className="absolute top-4 right-6 flex items-center gap-2 transition-opacity">
-              <span className="text-[9px] uppercase font-black tracking-widest text-primary/30 italic">Live Editor</span>
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="flex-1 overflow-y-auto px-10 pb-10 bg-white custom-scrollbar">
+          <div className="relative group paper-container rounded-[28px] p-10 min-h-[500px]">
+            <div className="absolute top-6 right-8 flex items-center gap-2.5 px-3 py-1.5 rounded-full live-badge">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span className="text-[10px] uppercase font-black tracking-widest italic">Live Intelligence Editor</span>
             </div>
             <textarea 
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-[13px] leading-[1.8] text-primary/80 outline-none resize-none overflow-hidden font-medium mt-4" 
+              className="w-full bg-transparent border-none focus:ring-0 p-0 text-[14px] font-medium outline-none resize-none overflow-hidden mt-6" 
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={1}
@@ -193,44 +194,44 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-8 py-6 bg-white flex items-center justify-center gap-3 no-print shrink-0 border-t border-[#f0f2f5]">
+        <div className="px-10 py-8 bg-white flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50">
            <button 
              onClick={handleCopy}
-             className="h-11 px-6 bg-[#f8f9fb] text-primary border border-[#e8eaed] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:border-primary/20 transition-all active:scale-[0.98] flex items-center gap-2"
+             className="h-12 px-6 bg-white text-primary border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-primary/30 hover:bg-slate-50 transition-all active:scale-[0.98] flex items-center gap-2.5 shadow-sm"
            >
-             <Copy size={16} /> Copy
+             <Copy size={16} className="opacity-60" /> Copy
            </button>
 
            <button 
              onClick={handlePrint}
-             className="h-11 px-6 bg-[#f8f9fb] text-primary border border-[#e8eaed] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:border-primary/20 transition-all active:scale-[0.98] flex items-center gap-2"
+             className="h-12 px-6 bg-white text-primary border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-primary/30 hover:bg-slate-50 transition-all active:scale-[0.98] flex items-center gap-2.5 shadow-sm"
            >
-             <Printer size={16} /> Print
+             <Printer size={16} className="opacity-60" /> Print
            </button>
 
             {userRole === 'super_admin' && showPolish && (
               <>
-                <div className="w-px h-6 bg-[#e8eaed] mx-1" />
+                <div className="w-px h-6 bg-slate-200 mx-2" />
                 <button 
-                  onClick={handlePolish}
-                  disabled={isPolishing}
-                  className="h-11 px-8 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-black/10 hover:bg-[#1a1a1a] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-3"
+                   onClick={handlePolish}
+                   disabled={isPolishing}
+                   className="h-12 px-8 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-3"
                 >
-                  {isPolishing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  {isPolishing ? "Polishing..." : "Polish with AI"}
+                   {isPolishing ? (
+                     <Loader2 className="w-4 h-4 animate-spin" />
+                   ) : (
+                     <Sparkles className="w-4 h-4 text-emerald-400" />
+                   )}
+                   {isPolishing ? "Polishing..." : "Polish with AI"}
                 </button>
 
                 {text !== originalText.current && (
                   <button 
                     onClick={handleRevert}
-                    className="h-11 w-11 flex items-center justify-center bg-gray-50 text-text-tertiary border border-gray-100 rounded-xl hover:bg-white hover:border-gray-200 transition-all active:scale-95"
+                    className="h-12 w-12 flex items-center justify-center bg-slate-50 text-text-tertiary border border-slate-200 rounded-2xl hover:bg-white hover:border-primary/20 transition-all active:scale-95"
                     title="Revert to original"
                   >
-                    <RotateCcw size={16} />
+                    <RotateCcw size={18} />
                   </button>
                 )}
               </>
@@ -240,33 +241,33 @@ export function QuotationPreviewModal({
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className={`h-11 px-8 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 ${
+                className={`h-12 px-10 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2.5 ${
                   showSaved 
-                    ? "bg-emerald-100 text-emerald-600 shadow-emerald-500/10" 
+                    ? "bg-emerald-50 text-emerald-600 shadow-emerald-500/5 border border-emerald-100" 
                     : "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
                 }`}
               >
                 {isSaving ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : showSaved ? (
                   <>
-                    <Check className="w-3 h-3" />
+                    <Check className="w-4 h-4" />
                     Saved!
                   </>
                 ) : (
-                  "Save Quotation"
+                  "Commit to Records"
                 )}
               </button>
             )}
 
-           <div className="w-px h-6 bg-[#e8eaed] mx-1" />
+            <div className="w-px h-6 bg-slate-200 mx-2" />
 
-           <button 
-             onClick={onClose}
-             className="h-11 px-8 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
-           >
-             Back to Builder
-           </button>
+            <button 
+              onClick={onClose}
+              className="h-12 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:opacity-95 transition-all active:scale-[0.98]"
+            >
+              Back to Builder
+            </button>
         </div>
       </motion.div>
     </div>
