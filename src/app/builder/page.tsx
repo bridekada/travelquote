@@ -319,7 +319,17 @@ function QuoteBuilder() {
       return acc;
     }, { rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number> });
 
-    return { packages: packageTotals, grandTotal: selectedPkgPrice + adjustments, selectedPkgPrice, totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0), colTotals };
+    const rowTotals = quote.items.map(item => calculateRowTotal(item, quote.admin_commission));
+
+    return { 
+      packages: packageTotals, 
+      grandTotal: selectedPkgPrice + adjustments, 
+      selectedPkgPrice, 
+      totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0), 
+      colTotals,
+      rowTotals
+    };
+
   }, [quote.items, extraFees, discount, livePackages, dbMiscPresets, selectedPackageId, quote.admin_commission]);
 
   // Event Handlers
@@ -338,6 +348,31 @@ function QuoteBuilder() {
       newItems[index] = updated;
       return { ...prev, items: newItems };
     });
+  };
+
+  const handleUpdateCommission = (v: number) => {
+    setQuote(prev => ({
+      ...prev,
+      admin_commission: v,
+      items: prev.items.map(item => ({
+        ...item,
+        row_total: calculateRowTotal(item, v)
+      }))
+    }));
+  };
+
+  const handleUpdateDefaultFuel = (v: number) => {
+    setQuote(prev => ({
+      ...prev,
+      default_fuel_price: v,
+      items: prev.items.map(item => {
+        const updated = { ...item, fuel_price: v };
+        return {
+          ...updated,
+          row_total: calculateRowTotal(updated, prev.admin_commission || 0)
+        };
+      })
+    }));
   };
 
   const handleAddDay = () => {
@@ -363,8 +398,9 @@ function QuoteBuilder() {
         guest_accommodation_id: "",
         guest_accommodation_name: "",
         guest_accommodation_amount: 0,
-        row_total: 0
+        row_total: 0 // Will be calculated below
       };
+      newItem.row_total = calculateRowTotal(newItem, prev.admin_commission || 0);
       const nextItems = [...prev.items, newItem];
       
       // Update ETD to match the new duration
@@ -818,12 +854,13 @@ function QuoteBuilder() {
             <OperationalMatrix 
               items={quote.items} onUpdateItem={(idx, upd) => handleUpdateItem(idx, upd, true)} 
               dbMiscPresets={dbMiscPresets} adminCommission={quote.admin_commission} 
-              onUpdateCommission={(v) => setQuote(prev => ({ ...prev, admin_commission: v }))}
+              onUpdateCommission={handleUpdateCommission}
               colTotals={totals.colTotals} 
-              onUpdateDefaultFuel={(v) => setQuote(prev => ({ ...prev, default_fuel_price: v }))} 
+              onUpdateDefaultFuel={handleUpdateDefaultFuel} 
               defaultFuelPrice={quote.default_fuel_price}
               dbAccommodations={dbAccommodations} discount={discount} onUpdateDiscount={setDiscount} grandTotal={totals.grandTotal}
               livePackages={livePackages}
+              rowTotals={totals.rowTotals}
               readOnly={isReadOnly}
             />
           </div>

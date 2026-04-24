@@ -9,6 +9,7 @@ interface OperationalMatrixProps {
   dbAccommodations: any[];
   dbMiscPresets: any[];
   livePackages: any[];
+  rowTotals: number[];
   colTotals: any;
   onUpdateItem: (index: number, updates: Partial<QuoteItem>) => void;
   adminCommission: number;
@@ -26,6 +27,7 @@ export default function OperationalMatrix({
   dbAccommodations,
   dbMiscPresets,
   livePackages,
+  rowTotals,
   colTotals,
   onUpdateItem,
   adminCommission,
@@ -236,7 +238,7 @@ export default function OperationalMatrix({
 
                 <td className={cellStyle + " !pr-8 text-right"}>
                   <div className="text-[11px] font-black text-primary whitespace-nowrap">
-                    ₱{Math.round(item.row_total).toLocaleString()}
+                    ₱{Math.round(rowTotals[index] || 0).toLocaleString()}
                   </div>
                 </td>
               </tr>
