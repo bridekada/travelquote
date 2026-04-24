@@ -78,7 +78,15 @@ function QuoteBuilder() {
   });
 
   const openDialog = (config: Partial<typeof dialogConfig>) => {
-    setDialogConfig(prev => ({ ...prev, ...config, isOpen: true }));
+    setDialogConfig({
+      isOpen: true,
+      title: config.title || "",
+      message: config.message || "",
+      type: config.type || 'confirm',
+      onConfirm: config.onConfirm,
+      confirmText: config.confirmText,
+      cancelText: config.cancelText
+    });
   };
 
   // Quote Data
