@@ -10,21 +10,33 @@ function AuthCallbackHandler() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying security credentials...");
+  
+  // 1. Capture initial intent IMMEDIATELY on mount
+  // This is critical because Supabase often cleans the URL fragment (#) very quickly
+  const initialSetupRef = useRef<{ isSetup: boolean, type: string | null }>({ 
+    isSetup: false, 
+    type: null 
+  });
+
+  useEffect(() => {
+    const hash = window.location.hash || "";
+    const type = new URLSearchParams(hash.substring(1)).get("type") || searchParams.get("type");
+    const isSetup = 
+      type === 'invite' || type === 'signup' || type === 'recovery' || 
+      hash.includes('type=invite') || hash.includes('type=recovery') || 
+      hash.includes('type=signup') || hash.includes('invite');
+    
+    initialSetupRef.current = { isSetup, type };
+    if (isSetup) {
+      console.log("Auth: Detected setup flow early:", type);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let authListener: any;
-
-    /**
-     * Centralized Redirection Logic
-     * Ensures we check for 'Setup Flow' regardless of how the user authenticated.
-     */
     const isRedirecting = useRef(false);
 
-    /**
-     * Centralized Redirection Logic
-     * Ensures we check for 'Setup Flow' regardless of how the user authenticated.
-     */
     const performSmartRedirect = async (session: any) => {
       if (!session || isRedirecting.current) return;
       isRedirecting.current = true;
@@ -33,16 +45,11 @@ function AuthCallbackHandler() {
       console.log("Auth: Finalizing session for", user.email);
 
       try {
-        // 1. Identify if this is a first-time setup (Invite, Signup, or Recovery)
-        const urlType = searchParams.get("type");
-        const hashString = window.location.hash || "";
-        const isSetupFlow = 
-          urlType === 'invite' || urlType === 'signup' || urlType === 'recovery' || 
-          hashString.includes('type=invite') || hashString.includes('type=recovery') || 
-          hashString.includes('type=signup') || hashString.includes('invite');
-
-        if (isSetupFlow) {
-          console.log("Auth: Setup marker found. Accessing secure setup page...");
+        // Use the CAPTURED intent from the mount phase
+        const { isSetup, type } = initialSetupRef.current;
+        
+        if (isSetup) {
+          console.log("Auth: Redirecting to setup page (type:", type, ")");
           setStatus("success");
           setMessage("Account setup required. Redirecting...");
           router.replace("/setup-password");
@@ -50,11 +57,16 @@ function AuthCallbackHandler() {
         }
 
         // 2. Otherwise, check role for standard dashboard routing
-        const { data: profile } = await supabase
+        console.log("Auth: Checking profile for standard routing...");
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .maybeSingle();
+
+        if (profileError) {
+          console.error("Auth: Profile check error", profileError);
+        }
 
         setStatus("success");
         if (profile?.role === 'super_admin') {
@@ -66,25 +78,25 @@ function AuthCallbackHandler() {
         }
       } catch (err) {
         console.error("Auth: Smart Redirect failed", err);
-        isRedirecting.current = false; // Allow retry if something went wrong
+        isRedirecting.current = false; 
         throw err;
       }
     };
 
     const handleAuth = async () => {
       try {
-        // A. Background Listener (Main Pathway)
+        // A. Listen for auth state changes (Primary)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log("Auth: Event caught:", event, session ? "Session present" : "No session");
           if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-            console.log("Auth: State change event caught:", event);
             performSmartRedirect(session);
           }
         });
         authListener = subscription;
 
-        // B. Manual Hash Scraper (Backup for Implicit links)
+        // B. Manual Token Processing (Backup for Implicit links)
         if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("Auth: Manual URL fragment detected");
+          console.log("Auth: Processing URL fragment...");
           const hash = window.location.hash.substring(1);
           const params = new URLSearchParams(hash);
           const accessToken = params.get('access_token');
@@ -102,9 +114,10 @@ function AuthCallbackHandler() {
           }
         }
 
-        // C. Code/OTP Exchange (Backup)
+        // C. Code/OTP Exchange (OAuth/Magic Links)
         const code = searchParams.get("code");
         if (code) {
+          console.log("Auth: Exchanging code for session...");
           const { data: { session: codeSession }, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
           if (!codeError && codeSession) {
             performSmartRedirect(codeSession);
@@ -115,6 +128,7 @@ function AuthCallbackHandler() {
         // D. Initial Check
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         if (existingSession) {
+          console.log("Auth: Found existing session");
           performSmartRedirect(existingSession);
           return;
         }
@@ -122,7 +136,7 @@ function AuthCallbackHandler() {
         // E. Patience Loop
         console.log("Auth: Waiting for session resolution...");
         await new Promise(resolve => {
-          timeoutId = setTimeout(resolve, 3500); // 3.5s cushion
+          timeoutId = setTimeout(resolve, 3500); 
         });
 
         const { data: finalData } = await supabase.auth.getSession();
@@ -131,7 +145,7 @@ function AuthCallbackHandler() {
            return;
         }
         
-        throw new Error("Unable to identify your session. The link may have expired.");
+        throw new Error("Unable to identify your session. The link may have expired or was already used.");
       } catch (err: any) {
         console.error("Auth Failure:", err.message);
         setStatus("error");
@@ -146,6 +160,7 @@ function AuthCallbackHandler() {
       if (authListener) authListener.unsubscribe();
     };
   }, [router, searchParams]);
+
 
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center bg-white border border-slate-200"
