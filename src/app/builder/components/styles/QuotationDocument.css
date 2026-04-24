@@ -15,6 +15,16 @@
     linear-gradient(rgba(226, 232, 240, 0.3) 1px, transparent 1px);
   background-size: 100% 2.8rem;
   padding-top: 0.5rem;
+  padding-left: 4rem !important; /* Explicitly forced 64px indentation */
+  padding-right: 1.5rem !important;
+}
+
+/* Override the global * { margin: 0; padding: 0; } for this modal's internal components */
+.quotation-document-premium button,
+.quotation-document-premium div,
+.quotation-document-premium span {
+  margin: unset;
+  padding: unset;
 }
 
 .quotation-document-premium .paper-container {

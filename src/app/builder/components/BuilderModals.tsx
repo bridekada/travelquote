@@ -167,6 +167,62 @@ export function QuotationPreviewModal({
           </div>
           <h3 className="text-2xl font-black tracking-tight leading-none italic title-gradient">Quotation Document</h3>
           <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mt-3 opacity-60">Final Review & System Validation</p>
+          
+          <div className="flex items-center gap-3 mt-8 no-print">
+            {userRole === 'super_admin' && showPolish && (
+              <>
+                <button 
+                   onClick={handlePolish}
+                   disabled={isPolishing}
+                   style={{ ...btnAction, height: '42px', padding: '0 24px', borderRadius: '10px' }}
+                   className="active:scale-[0.98] disabled:opacity-50 text-[10px]"
+                >
+                   {isPolishing ? (
+                     <Loader2 className="w-4 h-4 animate-spin" />
+                   ) : (
+                     <Sparkles className="w-4 h-4" />
+                   )}
+                   <span className="ml-2">{isPolishing ? "Polishing..." : "Polish with AI"}</span>
+                </button>
+
+                {text !== originalText.current && (
+                  <button 
+                    onClick={handleRevert}
+                    style={{ ...btnSecondary, width: '42px', height: '42px', padding: 0, borderRadius: '10px' }}
+                    className="flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm bg-white"
+                    title="Revert to original"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                )}
+                <div className="w-px h-6 bg-slate-200 mx-1" />
+              </>
+            )}
+
+            {showPolish && (
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                style={{ ...btnAction, height: '42px', padding: '0 28px', borderRadius: '10px' }}
+                className="shadow-xl transition-all active:scale-[0.98] disabled:opacity-50 text-[10px]"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : showSaved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} className="mr-1.5" />
+                    Save Quotation
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
           <button onClick={onClose} className="absolute top-10 right-10 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400 hover:rotate-90">
             <X size={18} strokeWidth={2} />
           </button>
@@ -197,82 +253,29 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-10 py-8 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
+        <div className="px-10 py-6 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
            <button 
              onClick={handleCopy}
-             style={{ ...btnSecondary, height: '46px', padding: '0 28px', borderRadius: '12px' }}
-             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2.5 shadow-sm"
+             style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px' }}
+             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2 shadow-sm bg-white"
            >
-             <Copy size={16} className="opacity-60" /> Copy
+             <Copy size={14} className="opacity-60" /> Copy
            </button>
 
            <button 
              onClick={handlePrint}
-             style={{ ...btnSecondary, height: '46px', padding: '0 28px', borderRadius: '12px' }}
-             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2.5 shadow-sm"
+             style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px' }}
+             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2 shadow-sm bg-white"
            >
-             <Printer size={16} className="opacity-60" /> Print
+             <Printer size={14} className="opacity-60" /> Print
            </button>
-
-            {userRole === 'super_admin' && showPolish && (
-              <>
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-                <button 
-                   onClick={handlePolish}
-                   disabled={isPolishing}
-                   style={{ ...btnAction, height: '46px', padding: '0 32px', borderRadius: '12px' }}
-                   className="active:scale-[0.98] disabled:opacity-50 text-[10px]"
-                >
-                   {isPolishing ? (
-                     <Loader2 className="w-4 h-4 animate-spin" />
-                   ) : (
-                     <Sparkles className="w-4 h-4" />
-                   )}
-                   <span className="ml-2">{isPolishing ? "Polishing..." : "Polish with AI"}</span>
-                </button>
-
-                {text !== originalText.current && (
-                  <button 
-                    onClick={handleRevert}
-                    style={{ ...btnSecondary, width: '46px', height: '46px', padding: 0, borderRadius: '12px' }}
-                    className="flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"
-                    title="Revert to original"
-                  >
-                    <RotateCcw size={18} />
-                  </button>
-                )}
-              </>
-            )}
-
-            {showPolish && (
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                style={{ ...btnAction, height: '46px', padding: '0 36px', borderRadius: '12px' }}
-                className="shadow-xl transition-all active:scale-[0.98] disabled:opacity-50 text-[10px]"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : showSaved ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Plus size={16} className="mr-1.5" />
-                    Commit Record
-                  </>
-                )}
-              </button>
-            )}
 
             <div className="w-px h-6 bg-slate-200 mx-1" />
 
             <button 
               onClick={onClose}
-              style={{ ...btnSecondary, height: '46px', padding: '0 28px', borderRadius: '12px', borderColor: '#10B981', color: '#10B981' }}
-              className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-emerald-50 transition-all active:scale-[0.98] shadow-sm"
+              style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px', borderColor: '#10B981', color: '#10B981' }}
+              className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-emerald-50 transition-all active:scale-[0.98] shadow-sm bg-white"
             >
               Back
             </button>
