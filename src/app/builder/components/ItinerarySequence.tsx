@@ -269,11 +269,21 @@ export default function ItinerarySequence({
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
                   </div>
                   <textarea
-                    className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none"
+                    className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
                     style={{ fontSize: '12px' }}
                     placeholder="Briefly describe the day's activities..."
                     value={item.itinerary_details || ""}
                     onChange={(e) => onUpdateItem(index, { itinerary_details: e.target.value })}
+                    onInput={(e: any) => {
+                      e.target.style.height = "auto";
+                      e.target.style.height = Math.max(72, e.target.scrollHeight) + "px";
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = "auto";
+                        el.style.height = Math.max(72, el.scrollHeight) + "px";
+                      }
+                    }}
                     disabled={readOnly}
                   />
                 </div>
