@@ -11,156 +11,135 @@ function AuthCallbackHandler() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying security credentials...");
   
-  // 1. Capture initial intent IMMEDIATELY on mount
-  // This is critical because Supabase often cleans the URL fragment (#) very quickly
-  const initialSetupRef = useRef<{ isSetup: boolean, type: string | null }>({ 
-    isSetup: false, 
-    type: null 
-  });
-
-  useEffect(() => {
+  // 1. Safe, Instant Detection
+  const [setupIntent] = useState(() => {
+    if (typeof window === 'undefined') return { isSetup: false, type: null as string | null };
+    
     const hash = window.location.hash || "";
-    const type = new URLSearchParams(hash.substring(1)).get("type") || searchParams.get("type");
+    const search = window.location.search || "";
+    const fullUrl = window.location.href;
+    
+    const type = new URLSearchParams(hash.substring(1)).get("type") || 
+                 new URLSearchParams(search).get("type");
+                 
     const isSetup = 
       type === 'invite' || type === 'signup' || type === 'recovery' || 
-      hash.includes('type=invite') || hash.includes('type=recovery') || 
-      hash.includes('type=signup') || hash.includes('invite');
+      fullUrl.includes('invite') || fullUrl.includes('type=invite');
     
-    initialSetupRef.current = { isSetup, type };
-    if (isSetup) {
-      console.log("Auth: Detected setup flow early:", type);
-    }
-  }, [searchParams]);
+    return { isSetup, type: type || (fullUrl.includes('invite') ? 'invite' : null) };
+  });
+
+  const isRedirecting = useRef(false);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let authListener: any;
-    const isRedirecting = useRef(false);
 
-    const performSmartRedirect = async (session: any) => {
+    const performRedirect = async (session: any) => {
       if (!session || isRedirecting.current) return;
       isRedirecting.current = true;
       
-      const user = session.user;
-      console.log("Auth: Finalizing session for", user.email);
+      console.log("Auth: Session identified. Determining destination...");
 
       try {
-        // Use the CAPTURED intent from the mount phase
-        const { isSetup, type } = initialSetupRef.current;
-        
-        if (isSetup) {
-          console.log("Auth: Redirecting to setup page (type:", type, ")");
+        // PRIORITY: Setup Flow
+        if (setupIntent.isSetup) {
+          console.log("Auth: Invite/Setup detected. Moving to setup page.");
           setStatus("success");
           setMessage("Account setup required. Redirecting...");
           router.replace("/setup-password");
           return;
         }
 
-        // 2. Otherwise, check role for standard dashboard routing
-        console.log("Auth: Checking profile for standard routing...");
-        const { data: profile, error: profileError } = await supabase
+        // SECONDARY: Standard Role-based Flow
+        console.log("Auth: Normal login detected. Fetching profile...");
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', user.id)
+          .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profileError) {
-          console.error("Auth: Profile check error", profileError);
-        }
+        if (error) console.error("Auth: Profile fetch error", error);
 
         setStatus("success");
         if (profile?.role === 'super_admin') {
-          setMessage("Admin verified! Opening Admin Dashboard...");
+          setMessage("Admin access granted. Redirecting...");
           router.replace("/admin");
         } else {
-          setMessage("Identity verified! Opening Dashboard...");
+          setMessage("Identity verified. Opening dashboard...");
           router.replace("/dashboard");
         }
       } catch (err) {
-        console.error("Auth: Smart Redirect failed", err);
+        console.error("Auth: Redirection failed", err);
         isRedirecting.current = false; 
-        throw err;
+        setStatus("error");
+        setMessage("Failed to route to your destination.");
       }
     };
 
-    const handleAuth = async () => {
+    const runAuth = async () => {
       try {
-        // A. Listen for auth state changes (Primary)
+        // A. Token Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log("Auth: Event caught:", event, session ? "Session present" : "No session");
           if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-            performSmartRedirect(session);
+            performRedirect(session);
           }
         });
         authListener = subscription;
 
-        // B. Manual Token Processing (Backup for Implicit links)
-        if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("Auth: Processing URL fragment...");
-          const hash = window.location.hash.substring(1);
-          const params = new URLSearchParams(hash);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
+        // B. Manual Hash Check
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          const params = new URLSearchParams(window.location.hash.substring(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
 
-          if (accessToken && refreshToken) {
-            const { data: { session: manualSession }, error: setSessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
+          if (access_token && refresh_token) {
+            const { data: { session: manualSession } } = await supabase.auth.setSession({
+              access_token,
+              refresh_token
             });
-            if (!setSessionError && manualSession) {
-              performSmartRedirect(manualSession);
-              return; 
+            if (manualSession) {
+              performRedirect(manualSession);
+              return;
             }
           }
         }
 
-        // C. Code/OTP Exchange (OAuth/Magic Links)
-        const code = searchParams.get("code");
-        if (code) {
-          console.log("Auth: Exchanging code for session...");
-          const { data: { session: codeSession }, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (!codeError && codeSession) {
-            performSmartRedirect(codeSession);
-            return;
-          }
-        }
-
-        // D. Initial Check
+        // C. Existing Session Check
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         if (existingSession) {
-          console.log("Auth: Found existing session");
-          performSmartRedirect(existingSession);
+          performRedirect(existingSession);
           return;
         }
 
-        // E. Patience Loop
-        console.log("Auth: Waiting for session resolution...");
+        // D. Timeout Loop
         await new Promise(resolve => {
-          timeoutId = setTimeout(resolve, 3500); 
+          timeoutId = setTimeout(resolve, 4000); 
         });
 
-        const { data: finalData } = await supabase.auth.getSession();
-        if (finalData.session) {
-           performSmartRedirect(finalData.session);
+        const { data: final } = await supabase.auth.getSession();
+        if (final.session) {
+           performRedirect(final.session);
            return;
         }
         
-        throw new Error("Unable to identify your session. The link may have expired or was already used.");
+        throw new Error("Your session could not be established. The link may have expired.");
       } catch (err: any) {
-        console.error("Auth Failure:", err.message);
+        console.error("Auth: Verification failed", err);
         setStatus("error");
-        setMessage(err.message || "Failed to authenticate.");
+        setMessage(err.message || "Failed to verify credentials.");
       }
     };
 
-    handleAuth();
+    runAuth();
 
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
-      if (authListener) authListener.unsubscribe();
+      if (authListener?.unsubscribe) {
+        authListener.unsubscribe();
+      }
     };
-  }, [router, searchParams]);
-
+  }, [router, setupIntent, searchParams]);
 
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center bg-white border border-slate-200"
