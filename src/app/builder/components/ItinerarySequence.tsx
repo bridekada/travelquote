@@ -136,11 +136,11 @@ export default function ItinerarySequence({
                           <SelectValue>
                             {item.applied_preset_id 
                               ? dbPresets.find(p => p.id === item.applied_preset_id)?.title 
-                              : "-- Custom Destination --"}
+                              : "Custom Destination"}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="dark min-w-[280px]">
-                          <SelectItem value="custom" className="text-[12px] font-bold py-2">-- Custom Destination --</SelectItem>
+                          <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Destination</SelectItem>
                           {dbPresets.map(p => (
                             <SelectItem key={p.id} value={p.id} className="text-[12px] font-medium py-2">
                               {p.title}
@@ -212,11 +212,11 @@ export default function ItinerarySequence({
                             <SelectValue>
                               {item.guest_accommodation_id 
                                 ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
-                                : "-- Custom Accommodation --"}
+                                : "Custom Accommodation"}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent className="dark min-w-[320px]">
-                            <SelectItem value="custom" className="text-[12px] font-bold py-2">-- Custom Accommodation --</SelectItem>
+                            <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Accommodation</SelectItem>
                             {dbAccommodations.map(a => (
                               <SelectItem key={a.id} value={a.id} className="text-[12px] font-medium py-2">
                                 {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
