@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -50,13 +50,13 @@ function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
   const [agentFilter, setAgentFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("Created Today");
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
-  const validTabs = ['analytics', 'quotes', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
+  const validTabs = ['analytics', 'quotes', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'quotes');
-  const [quoteViewMode, setQuoteViewMode] = useState<'list' | 'calendar'>('list');
   const [tabLoading, setTabLoading] = useState(false);
   const [analyticsDays, setAnalyticsDays] = useState<7 | 30 | 90>(7);
   const [fleet, setFleet] = useState<any[]>([]);
@@ -392,7 +392,28 @@ function DashboardContent() {
     const matchesSearch = q.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
-    return matchesSearch && matchesAgent;
+    const matchesStatus = quoteStatusFilter === "All" || q.status === quoteStatusFilter;
+      
+      // Date Filtering Logic
+      let matchesDate = true;
+      if (dateFilter !== "All Time" && q.created_at) {
+        const createdDate = new Date(q.created_at);
+        const now = new Date();
+        
+        if (dateFilter === "Created Today") {
+          matchesDate = createdDate.toDateString() === now.toDateString();
+        } else if (dateFilter === "Last 7 Days") {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(now.getDate() - 7);
+          matchesDate = createdDate >= sevenDaysAgo;
+        } else if (dateFilter === "This Month") {
+          matchesDate = createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
+        } else if (dateFilter === "This Year") {
+          matchesDate = createdDate.getFullYear() === now.getFullYear();
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesAgent && matchesDate;
   });
 
   const filteredFleet = fleet.filter(v => 
@@ -456,18 +477,45 @@ function DashboardContent() {
       {/* ── Slim Top Bar ─────────────────────────── */}
       <header style={topBar} className="sticky top-0 z-40 w-full flex justify-center safe-top">
         <div style={topBarInner} className="flex items-center justify-between">
-          <div 
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-6 cursor-pointer group hover:opacity-80 transition-all min-w-0"
-          >
+          <div className="flex items-center gap-6 min-w-0">
             <div className="flex items-center gap-3">
-              <LayoutGrid style={{ color: 'var(--color-brand)' }} className="group-hover:scale-110 transition-transform shrink-0" size={20} />
+              {activeTab === 'calendar' && (
+                <button 
+                  onClick={() => setActiveTab('quotes')}
+                  className="mr-1 p-1.5 rounded-lg hover:bg-slate-100 transition-all text-slate-500 hover:text-primary flex items-center gap-2 group"
+                  title="Back to Dashboard"
+                >
+                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Back</span>
+                </button>
+              )}
+              <LayoutGrid style={{ color: 'var(--color-brand)' }} className="shrink-0" size={20} />
               <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">TravelQuote <span style={{ color: '#F05E33', fontWeight: 500, fontSize: '0.75em', marginLeft: '2px' }}>by JWRM</span></span>
             </div>
             <div className="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
             <div className="text-xs font-medium text-text-muted hidden sm:block truncate">
               Station: <span style={{ color: 'var(--color-brand)', fontWeight: 700 }}>{profile?.operators?.name}</span>
             </div>
+            {/* Persistent Calendar Button */}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab('calendar');
+              }}
+              style={{ 
+                ...btnAction, 
+                height: '34px', 
+                padding: '0 12px', 
+                backgroundColor: activeTab === 'calendar' ? '#064E3B' : 'var(--color-brand)',
+                backgroundImage: activeTab === 'calendar' ? 'none' : undefined
+              }}
+              className="ml-4 transition-all hover:opacity-90 active:scale-95 flex items-center gap-2 shrink-0"
+            >
+              <CalendarIcon size={14} strokeWidth={2.5} />
+              <span className="text-[10px] font-bold uppercase tracking-wider hidden md:inline leading-none mt-0.5">
+                Calendar
+              </span>
+            </button>
           </div>
           
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
@@ -499,7 +547,8 @@ function DashboardContent() {
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
           <div>
             <h1 style={pageTitle}>
-               {activeTab === 'quotes' && "Quotation List"}
+              {activeTab === 'quotes' && "Quotation List"}
+              {activeTab === 'calendar' && "Operational Calendar"}
               {activeTab === 'analytics' && "Company Insight"}
               {activeTab === 'vehicles' && "Vehicle Inventory"}
               {activeTab === 'accommodation' && "Guest Accommodation"}
@@ -509,6 +558,7 @@ function DashboardContent() {
             </h1>
             <p style={pageSubtitle}>
               {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
+              {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
               {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
               {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
               {activeTab === 'accommodation' && "Manage guest accommodation options with pax-based pricing."}
@@ -519,14 +569,6 @@ function DashboardContent() {
           </div>
           {activeTab === 'quotes' && (
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setQuoteViewMode(prev => prev === 'list' ? 'calendar' : 'list')}
-                className="group transition-all hover:opacity-90 active:scale-95"
-                style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-              >
-                <CalendarIcon size={16} strokeWidth={2.5} />
-                <span className="leading-none mt-0.5 ml-2">{quoteViewMode === 'list' ? 'Calendar' : 'List'}</span>
-              </button>
               <button 
                 onClick={() => router.push('/builder')}
                 className="group transition-all hover:opacity-90 active:scale-95"
@@ -590,25 +632,27 @@ function DashboardContent() {
           )}
         </div>
 
-        <div style={tabRowStyle} className="no-scrollbar" role="tablist">
-          {validTabs.map(tab => (
-            <button 
-              key={tab}
-              onClick={() => setActiveTab(tab)} 
-              className={`!px-5 !py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 border`}
-              style={{
-                background: activeTab === tab ? 'var(--color-brand)' : 'white',
-                borderColor: activeTab === tab ? 'var(--color-brand)' : 'var(--color-border-default)',
-                color: activeTab === tab ? 'white' : 'var(--color-text-muted)',
-                boxShadow: activeTab === tab ? 'var(--shadow-xs)' : 'none'
-              }}
-            >
-              {tab === 'accommodation' ? 'Guest Accom' : tab === 'miscellaneous' ? 'Misc. Fees' : tab}
-            </button>
-          ))}
-        </div>
+        {activeTab !== 'calendar' && (
+          <div style={tabRowStyle} className="no-scrollbar" role="tablist">
+            {validTabs.filter(t => t !== 'calendar').map(tab => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab)} 
+                className={`!px-5 !py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 border`}
+                style={{
+                  background: activeTab === tab ? 'var(--color-brand)' : 'white',
+                  borderColor: activeTab === tab ? 'var(--color-border-default)' : 'var(--color-border-default)',
+                  color: activeTab === tab ? 'white' : 'var(--color-text-muted)',
+                  boxShadow: activeTab === tab ? 'var(--shadow-xs)' : 'none'
+                }}
+              >
+                {tab === 'accommodation' ? 'Guest Accom' : tab === 'miscellaneous' ? 'Misc. Fees' : tab}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {activeTab !== 'analytics' && !(activeTab === 'quotes' && quoteViewMode === 'calendar') && (
+        {activeTab !== 'analytics' && activeTab !== 'calendar' && (
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
@@ -622,7 +666,29 @@ function DashboardContent() {
             </div>
             {activeTab === 'quotes' && (
               <div className="flex items-center gap-3">
-                <div className="h-8 w-[1px] bg-slate-200 hidden md:block mx-1"></div>
+                {/* Date Filter */}
+                <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "Created Today")}>
+                  <SelectTrigger 
+                    className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon size={14} className="text-emerald-500 opacity-80" />
+                      <SelectValue placeholder="Created Today" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 min-w-[180px]">
+                    {['All Time', 'Created Today', 'Last 7 Days', 'This Month', 'This Year'].map(opt => (
+                      <SelectItem 
+                        key={opt} 
+                        value={opt} 
+                        className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors font-medium mb-0.5 last:mb-0"
+                      >
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Agent Filter */}
                 <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val || "All")}>
                   <SelectTrigger 
                     size="sm" 
@@ -633,12 +699,14 @@ function DashboardContent() {
                       <SelectValue placeholder="All Agents" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="dark min-w-[180px]">
-                    <SelectItem value="All" className="text-[10px] font-bold uppercase tracking-widest py-2">
-                       All Agents
-                    </SelectItem>
-                    {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).sort().map(name => (
-                      <SelectItem key={name as string} value={name as string} className="text-[10px] font-bold uppercase tracking-widest py-2">
+                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 min-w-[200px]">
+                    <SelectItem value="All" className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl font-medium mb-0.5">All Agents</SelectItem>
+                    {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).map(name => (
+                      <SelectItem 
+                        key={name as string} 
+                        value={name as string} 
+                        className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl font-medium mb-0.5 last:mb-0"
+                      >
                         {name as string}
                       </SelectItem>
                     ))}
@@ -657,7 +725,7 @@ function DashboardContent() {
             </div>
           ) : (
           <>
-        {activeTab !== 'analytics' && activeTab === 'quotes' && quoteViewMode === 'list' && (
+        {activeTab === 'quotes' && (
           <div className="flex items-center justify-between">
             <p className="text-xs md:text-sm text-text-secondary shrink-0">
               Showing <span className="font-bold text-primary">{filteredQuotes.length}</span> record{filteredQuotes.length !== 1 && 's'}
@@ -784,11 +852,11 @@ function DashboardContent() {
               </div>
             )}
 
-          {activeTab === 'quotes' && quoteViewMode === 'calendar' && (
+          {activeTab === 'calendar' && (
             <CalendarView quotes={quotes} />
           )}
 
-          {activeTab === 'quotes' && quoteViewMode === 'list' && (
+          {activeTab === 'quotes' && (
             quotes.length > 0 ? (
               <div className="flex flex-col gap-6">
                 {/* Status Filter Tabs */}
@@ -831,9 +899,7 @@ function DashboardContent() {
 
                 <div className="flex flex-col gap-3">
                   {(() => {
-                    const displayQuotes = quoteStatusFilter === "All" 
-                      ? filteredQuotes 
-                      : filteredQuotes.filter(q => q.status === quoteStatusFilter);
+                    const displayQuotes = filteredQuotes;
                     
                     if (displayQuotes.length === 0) {
                       return (

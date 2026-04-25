@@ -14,29 +14,18 @@ interface CalendarProps {
   quotes: any[];
 }
 
-// ── 3-Group Color Scheme ──────────────────────────
-// Green  → Confirmed, Payment Started, Payment Complete
-// Red    → Draft, Quotation Sent, Follow-up Needed
-// Gray   → Lost, Cancelled, or trip start date is in the past
-const COLOR_GREEN = { bg: '#ECFDF5', text: '#065F46', bar: '#059669', dot: '#10B981' };
-const COLOR_RED   = { bg: '#FEF2F2', text: '#991B1B', bar: '#DC2626', dot: '#F87171' };
-const COLOR_GRAY  = { bg: '#F1F5F9', text: '#64748B', bar: '#94A3B8', dot: '#CBD5E1' };
-
-const STATUS_GROUP: Record<string, typeof COLOR_GREEN> = {
-  'Confirmed':        COLOR_GREEN,
-  'Payment Started':  COLOR_GREEN,
-  'Payment Complete': COLOR_GREEN,
-  'Draft':            COLOR_RED,
-  'Quotation Sent':   COLOR_RED,
-  'Follow-up Needed': COLOR_RED,
-  'Lost':             COLOR_GRAY,
-  'Cancelled':        COLOR_GRAY,
-};
+// ── Status Color Definitions ──────────────────────────
+const GREEN_CONFIRMED = { bg: '#F0FDF4', text: '#166534', bar: '#4ADE80', dot: '#4ADE80' };
+const GREEN_STARTED   = { bg: '#ECFDF5', text: '#065F46', bar: '#10B981', dot: '#10B981' };
+const GREEN_COMPLETE  = { bg: '#DCFCE7', text: '#14532D', bar: '#059669', dot: '#059669' };
+const COLOR_GRAY      = { bg: '#F1F5F9', text: '#64748B', bar: '#94A3B8', dot: '#CBD5E1' };
 
 function getStatusConfig(status: string, parsedEta?: Date) {
-  // If the trip start date is in the past, always gray
   if (parsedEta && parsedEta < startOfDay(new Date())) return COLOR_GRAY;
-  return STATUS_GROUP[status] ?? COLOR_GRAY;
+  if (status === 'Confirmed') return GREEN_CONFIRMED;
+  if (status === 'Payment Started') return GREEN_STARTED;
+  if (status === 'Payment Complete') return GREEN_COMPLETE;
+  return COLOR_GRAY;
 }
 
 export default function CalendarView({ quotes }: CalendarProps) {
@@ -46,8 +35,7 @@ export default function CalendarView({ quotes }: CalendarProps) {
 
   const activeQuotes = useMemo(() => {
     const filtered = quotes.filter(q =>
-      q.status !== 'Cancelled' &&
-      q.status !== 'Lost' &&
+      (q.status === 'Confirmed' || q.status === 'Payment Started' || q.status === 'Payment Complete') &&
       q.eta && q.etd
     ).map(q => ({
       ...q,
@@ -142,7 +130,12 @@ export default function CalendarView({ quotes }: CalendarProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Legend */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '8px' }}>
-            {[{ label: 'Confirmed / Paid', color: COLOR_GREEN }, { label: 'Pending / Draft', color: COLOR_RED }, { label: 'Past / Inactive', color: COLOR_GRAY }].map(({ label, color }) => (
+            {[
+              { label: 'Confirmed', color: GREEN_CONFIRMED },
+              { label: 'Pay Started', color: GREEN_STARTED },
+              { label: 'Pay Complete', color: GREEN_COMPLETE },
+              { label: 'Past Trips', color: COLOR_GRAY }
+            ].map(({ label, color }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color.dot, display: 'inline-block', flexShrink: 0 }} />
                 <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-faint)', whiteSpace: 'nowrap' }}>{label}</span>
