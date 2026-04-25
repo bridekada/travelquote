@@ -74,19 +74,23 @@ export default function ItinerarySequence({
   readOnly = false
 }: ItinerarySequenceProps) {
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] text-primary flex items-center justify-center">
-          <MapPin size={18} />
+    <div className="w-full !px-4 md:!px-6 lg:!px-8 !mt-6 md:!mt-10">
+      <section className="space-y-6">
+        <div className="flex items-center gap-3 mb-4 px-2">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+            <MapPin size={18} />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none">Itinerary Sequence</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route & Accommodation Details</p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold text-primary">Itinerary Sequence</h2>
-      </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {items.map((item, index) => (
           <div
             key={index}
-            className="bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] flex flex-col md:flex-row gap-4 md:gap-8 items-start p-4 md:p-6 rounded-[24px]"
+            className="bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] flex flex-col md:flex-row gap-3 md:gap-6 items-start !p-3 md:!p-4 rounded-[24px]"
           >
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-6 flex justify-center">
@@ -116,7 +120,7 @@ export default function ItinerarySequence({
                 <div className="md:col-span-12 lg:col-span-5 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0 inline-block">Destination Preset</label>
+                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Destination Preset</label>
                       <Select 
                         value={item.applied_preset_id || "custom"}
                         disabled={readOnly}
@@ -126,7 +130,7 @@ export default function ItinerarySequence({
                         }}
                       >
                         <SelectTrigger 
-                          className={`!h-[36px] !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary text-[10px] w-full ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
+                          className={`!h-[34px] !px-4 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
                         >
                           <SelectValue>
                             {item.applied_preset_id 
@@ -147,11 +151,10 @@ export default function ItinerarySequence({
 
                     {!item.applied_preset_id && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-emerald-600 ml-1 mb-0 inline-block">Custom Destination</label>
+                        <label className="!text-[10px] font-black uppercase tracking-widest text-emerald-600 ml-4 mb-0 inline-block">Custom Destination</label>
                         <input
                           type="text"
-                          className="input !py-1.5 !px-3 !bg-emerald-50/20 !border-emerald-100 font-bold text-primary disabled:opacity-50 disabled:grayscale transition-all"
-                          style={{ height: '36px', fontSize: '12px' }}
+                          className="input !h-[34px] !px-4 !bg-emerald-50/20 !border-emerald-100 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
                           placeholder="e.g. Siargao Island"
                           value={item.destination || ""}
                           onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
@@ -163,49 +166,48 @@ export default function ItinerarySequence({
 
                   <div className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-4 space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0 inline-block">Est. KM</label>
+                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Est. KM</label>
                       <div className="relative">
                         <input
                           type="number"
-                          className="input !py-0 !px-3 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary pr-8 !rounded-lg disabled:opacity-50 disabled:grayscale transition-all"
-                          style={{ fontSize: '11px', height: '32px' }}
+                          className="input !h-[34px] !pl-4 !pr-10 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !rounded-xl disabled:opacity-50 disabled:grayscale transition-all !text-[11px]"
                           value={item.km || ""}
                           onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })}
                           placeholder="0"
                           disabled={readOnly}
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-text-tertiary opacity-40 uppercase">KM</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 !text-[9px] font-black text-text-tertiary opacity-40 uppercase">KM</span>
                       </div>
                     </div>
 
                     <div className="col-span-8 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0 inline-block">Accommodation</label>
-                        <Select
-                          value={item.guest_accommodation_id || "custom"}
-                          disabled={readOnly}
-                          onValueChange={(val) => {
-                            if (!val) return;
-                            const actualVal = val === "custom" ? "" : val;
-                            const isTransitioningToCustom = actualVal === "" && item.guest_accommodation_id !== "";
-                            
-                            const accom = dbAccommodations.find(a => a.id === actualVal);
-                            
-                            const updates: any = { guest_accommodation_id: actualVal };
-                            
-                            if (accom) {
-                              // Filling from preset
-                              updates.guest_accommodation_name = accom.name;
-                              updates.guest_accommodation_amount = accom.amount;
-                            } else if (isTransitioningToCustom) {
-                              // Clean slate for new manual entry
-                              updates.guest_accommodation_name = "";
-                              updates.guest_accommodation_amount = 0;
-                            }
-                            
-                            onUpdateItem(index, updates);
-                          }}
-                        >
-                          <SelectTrigger className={`!h-[32px] !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary text-[10px] w-full !rounded-lg ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
+                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Accommodation</label>
+                      <Select
+                        value={item.guest_accommodation_id || "custom"}
+                        disabled={readOnly}
+                        onValueChange={(val) => {
+                          if (!val) return;
+                          const actualVal = val === "custom" ? "" : val;
+                          const isTransitioningToCustom = actualVal === "" && item.guest_accommodation_id !== "";
+                          
+                          const accom = dbAccommodations.find(a => a.id === actualVal);
+                          
+                          const updates: any = { guest_accommodation_id: actualVal };
+                          
+                          if (accom) {
+                            // Filling from preset
+                            updates.guest_accommodation_name = accom.name;
+                            updates.guest_accommodation_amount = accom.amount;
+                          } else if (isTransitioningToCustom) {
+                            // Clean slate for new manual entry
+                            updates.guest_accommodation_name = "";
+                            updates.guest_accommodation_amount = 0;
+                          }
+                          
+                          onUpdateItem(index, updates);
+                        }}
+                      >
+                        <SelectTrigger className={`!h-[34px] !px-4 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
                             <SelectValue>
                               {item.guest_accommodation_id 
                                 ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
@@ -228,11 +230,10 @@ export default function ItinerarySequence({
                   {!item.guest_accommodation_id && (
                     <div className="grid grid-cols-12 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div className="col-span-8 space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-emerald-600 ml-1 mb-0 inline-block">Custom Accommodation</label>
+                        <label className="!text-[10px] font-black uppercase tracking-widest text-emerald-600 ml-4 mb-0 inline-block">Custom Accommodation</label>
                         <input
                           type="text"
-                          className="input !py-1 !px-3 !bg-emerald-50/10 !border-emerald-100/50 font-bold text-primary !rounded-lg disabled:opacity-50 disabled:grayscale transition-all"
-                          style={{ height: '32px', fontSize: '11px' }}
+                          className="input !h-[34px] !px-4 !bg-emerald-50/10 !border-emerald-100/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
                           placeholder="Name of Hotel/Stay"
                           value={item.guest_accommodation_name || ""}
                           onChange={(e) => {
@@ -269,8 +270,8 @@ export default function ItinerarySequence({
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
                   </div>
                   <textarea
-                    className="w-full min-h-[72px] p-3 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
-                    style={{ fontSize: '12px' }}
+                    className="w-full min-h-[72px] !p-4 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
+                    style={{ fontSize: '11px' }}
                     placeholder="Briefly describe the day's activities..."
                     value={item.itinerary_details || ""}
                     onChange={(e) => onUpdateItem(index, { itinerary_details: e.target.value })}
@@ -313,6 +314,7 @@ export default function ItinerarySequence({
           </button>
         </div>
       )}
-    </section>
+      </section>
+    </div>
   );
 }

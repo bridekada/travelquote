@@ -45,17 +45,21 @@ export default function OperationalMatrix({
 
   // High-Density Styles (Emerald surgical theme)
   const cellStyle = "px-3 py-1.5 border-none text-[11px]";
-  const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[9px] font-black uppercase tracking-[0.15em] text-text-tertiary whitespace-nowrap";
+  const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[10px] font-black uppercase tracking-[0.15em] text-text-tertiary whitespace-nowrap";
   const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20";
 
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] text-primary flex items-center justify-center">
-          <Calculator size={18} />
+    <div className="w-full !px-4 md:!px-6 lg:!px-8 pb-20">
+      <section className="space-y-6">
+        <div className="flex items-center gap-3 mb-4 px-2">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+            <Calculator size={18} />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none">Operational Matrix</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Spreadsheet View & Cost Breakdown</p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold text-primary">Operational Matrix (Spreadsheet)</h2>
-      </div>
 
       <div className="bg-white rounded-[24px] border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse" style={{ minWidth: `${matrixWidth}px` }}>
@@ -309,6 +313,7 @@ export default function OperationalMatrix({
           </tfoot>
         </table>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
