@@ -149,13 +149,13 @@ export function QuotationPreviewModal({
       <motion.div 
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        style={{ ...modalCard, width: '100%', maxWidth: '860px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
+        style={{ ...modalCard, width: '100%', maxWidth: '740px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
       >
-        <div className="px-10 pt-10 pb-6 text-center relative flex flex-col items-center">
+        <div className="px-12 pt-12 pb-8 text-center relative flex flex-col items-center">
           <div className="w-14 h-14 rounded-[20px] flex items-center justify-center relative mb-4 premium-header-icon text-slate-400">
             <Printer size={24} strokeWidth={1.5} className="relative" />
           </div>
-          <h3 className="text-2xl font-black tracking-tight leading-none italic title-gradient">Quotation Document</h3>
+          <h3 className="text-2xl font-black tracking-tight leading-tight title-gradient">Quotation Document</h3>
           <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mt-3 opacity-60">Final Review & System Validation</p>
           
           <div className="flex items-center gap-3 mt-8 no-print">
@@ -165,7 +165,7 @@ export function QuotationPreviewModal({
                    onClick={handlePolish}
                    disabled={isPolishing}
                    style={{ ...btnAction, height: '42px', padding: '0 24px', borderRadius: '10px' }}
-                   className="active:scale-[0.98] disabled:opacity-50 text-[10px]"
+                   className="transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-[10px]"
                 >
                    {isPolishing ? (
                      <Loader2 className="w-4 h-4 animate-spin" />
@@ -194,7 +194,7 @@ export function QuotationPreviewModal({
                 onClick={handleSave}
                 disabled={isSaving}
                 style={{ ...btnAction, height: '42px', padding: '0 28px', borderRadius: '10px' }}
-                className="shadow-xl transition-all active:scale-[0.98] disabled:opacity-50 text-[10px]"
+                className="shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-[10px]"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -218,8 +218,8 @@ export function QuotationPreviewModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar">
-          <div className="relative group paper-container rounded-[32px] px-12 py-16 min-h-[500px]">
+        <div className="flex-1 overflow-y-auto !px-6 pb-12 custom-scrollbar">
+          <div className="relative group paper-container rounded-[32px] !my-5 px-12 py-16 min-h-[500px]">
             <div className="absolute top-8 right-10 flex items-center gap-2.5 px-3 py-1.5 rounded-full live-badge">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
               <span className="text-[9px] uppercase font-black tracking-[0.2em] italic">Live Intelligence Editor</span>
@@ -243,29 +243,29 @@ export function QuotationPreviewModal({
           </div>
         </div>
 
-        <div className="px-10 py-12 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
-           <button 
-             onClick={handleCopy}
-             style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px' }}
-             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2 shadow-sm bg-white"
-           >
-             <Copy size={14} className="opacity-60" /> Copy
-           </button>
+        <div className="!px-6 !pt-6 !pb-4 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
+            <button 
+              onClick={handleCopy}
+              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px' }}
+              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] flex items-center gap-2 !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
+            >
+              <Copy size={12} className="opacity-80" /> Copy
+            </button>
 
-           <button 
-             onClick={handlePrint}
-             style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px' }}
-             className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-white transition-all active:scale-[0.98] flex items-center gap-2 shadow-sm bg-white"
-           >
-             <Printer size={14} className="opacity-60" /> Print
-           </button>
+            <button 
+              onClick={handlePrint}
+              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px' }}
+              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] flex items-center gap-2 !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
+            >
+              <Printer size={12} className="opacity-80" /> Print
+            </button>
 
             <div className="w-px h-6 bg-slate-200 mx-1" />
 
             <button 
               onClick={onClose}
-              style={{ ...btnSecondary, height: '42px', padding: '0 24px', borderRadius: '10px', borderColor: '#10B981', color: '#10B981' }}
-              className="text-[10px] uppercase tracking-[0.1em] font-black hover:bg-emerald-50 transition-all active:scale-[0.98] shadow-sm bg-white"
+              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px', borderColor: '#10B981', color: '#10B981' }}
+              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
             >
               Back
             </button>

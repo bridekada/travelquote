@@ -49,19 +49,20 @@ export default function OperationalMatrix({
   const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20";
 
   return (
-    <div className="w-full !px-4 md:!px-6 lg:!px-8 pb-20">
-      <section className="space-y-6">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-            <Calculator size={18} />
+    <div className="w-full !px-2 md:!px-4 lg:!px-6 pb-20 !mt-4 md:!mt-6">
+      <div className="bg-white rounded-[24px] border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
+        {/* In-Card Header */}
+        <div className="bg-slate-50/50 border-b border-slate-100 !pt-2 !pb-2 md:!pt-3 md:!pb-3 !pl-2 md:!pl-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm ml-2">
+            <Calculator size={14} />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none">Operational Matrix</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Spreadsheet View & Cost Breakdown</p>
+            <h2 className="text-[13px] font-black text-slate-800 tracking-tight leading-none uppercase">Operational Matrix</h2>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Spreadsheet View & Cost Breakdown</p>
           </div>
         </div>
 
-      <div className="bg-white rounded-[24px] border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-x-auto custom-scrollbar">
+        <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse" style={{ minWidth: `${matrixWidth}px` }}>
           <thead>
             <tr className="bg-[#f8f9fb]">
@@ -130,7 +131,7 @@ export default function OperationalMatrix({
                   </th>
                 );
               })}
-              <th className={headerStyle + " !pr-8 text-right w-[120px]"}>Row Total</th>
+              <th className={headerStyle + " !pr-8 text-right w-[120px] bg-rose-50/30 border-l border-rose-100/50"}>Row Total</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f0f2f5]">
@@ -155,7 +156,8 @@ export default function OperationalMatrix({
                     <input 
                       type="number" 
                       className={inputStyle + " font-black disabled:opacity-50"} 
-                      value={item.vehicle_rate || 0} 
+                      placeholder="0"
+                      value={item.vehicle_rate === 0 ? "" : item.vehicle_rate} 
                       onChange={(e) => onUpdateItem(index, { vehicle_rate: parseFloat(e.target.value) || 0 })} 
                       disabled={readOnly}
                     />
@@ -167,7 +169,8 @@ export default function OperationalMatrix({
                     <input 
                       type="number" 
                       className={inputStyle + " disabled:opacity-50"} 
-                      value={item.km || 0} 
+                      placeholder="0"
+                      value={item.km === 0 ? "" : item.km} 
                       onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })} 
                       disabled={readOnly}
                     />
@@ -178,9 +181,9 @@ export default function OperationalMatrix({
                   <div className="flex items-center gap-1">
                     <input 
                       type="number" 
-                      className={inputStyle + " !text-text-tertiary/50 disabled:opacity-30"} 
+                      className={inputStyle + " disabled:opacity-50"} 
                       placeholder="10" 
-                      value={item.km_per_l} 
+                      value={item.km_per_l === 0 ? "" : item.km_per_l} 
                       onChange={(e) => onUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} 
                       disabled={readOnly}
                     />
@@ -193,7 +196,8 @@ export default function OperationalMatrix({
                     <input 
                       type="number" 
                       className={inputStyle + " font-black disabled:opacity-50"} 
-                      value={Math.round(item.fuel_cost_manual ?? calculateFuelCost(item))} 
+                      placeholder="0"
+                      value={(item.fuel_cost_manual ?? calculateFuelCost(item)) === 0 ? "" : Math.round(item.fuel_cost_manual ?? calculateFuelCost(item))} 
                       onChange={(e) => onUpdateItem(index, { fuel_cost_manual: parseFloat(e.target.value) || 0 })} 
                       disabled={readOnly}
                     />
@@ -208,7 +212,7 @@ export default function OperationalMatrix({
                         type="number" 
                         className={inputStyle + " disabled:opacity-50"} 
                         placeholder="0" 
-                        value={item.guest_accommodation_amount || 0} 
+                        value={item.guest_accommodation_amount === 0 ? "" : item.guest_accommodation_amount} 
                         onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })} 
                         disabled={readOnly}
                       />
@@ -225,9 +229,9 @@ export default function OperationalMatrix({
                           <span className={`text-[9px] font-bold ${isTagDriven && val > 0 ? 'text-indigo-400' : 'text-gray-200'}`}>₱</span>
                           <input 
                             type="number" 
-                            className={`${inputStyle} ${isTagDriven && val > 0 ? 'text-indigo-600' : 'text-text-tertiary/30'} disabled:opacity-50`}
+                            className={`${inputStyle} ${isTagDriven && val > 0 ? 'text-indigo-600' : 'text-primary'} disabled:opacity-50`}
                             placeholder="0" 
-                            value={val} 
+                            value={val === 0 ? "" : val} 
                             onChange={(e) => {
                               const newCosts = { ...(item.dynamic_costs || {}), [p.id]: parseFloat(e.target.value) || 0 };
                               onUpdateItem(index, { dynamic_costs: newCosts });
@@ -240,7 +244,7 @@ export default function OperationalMatrix({
                     );
                   })}
 
-                <td className={cellStyle + " !pr-8 text-right"}>
+                <td className={cellStyle + " !pr-8 text-right bg-rose-50/20 border-l border-rose-100/50"}>
                   <div className="text-[11px] font-black text-primary whitespace-nowrap">
                     ₱{Math.round(rowTotals[index] || 0).toLocaleString()}
                   </div>
@@ -249,7 +253,7 @@ export default function OperationalMatrix({
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-[#f8f9fb] border-t-2 border-primary/10">
+            <tr className="bg-rose-50/50 border-t-2 border-rose-100/50">
               <td className="!pl-8 pr-3 py-4 font-black text-primary/60 text-[9px] uppercase tracking-widest">Totals</td>
               <td className="px-3 py-4 text-[10px] font-black italic text-primary/20 tracking-tighter">Operational Sum</td>
               <td className="px-3 py-4 text-[11px] font-black text-primary">
@@ -313,7 +317,7 @@ export default function OperationalMatrix({
           </tfoot>
         </table>
       </div>
-      </section>
     </div>
+  </div>
   );
 }

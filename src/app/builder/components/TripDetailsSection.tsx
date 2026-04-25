@@ -50,10 +50,10 @@ export default function TripDetailsSection({
   }), [baseOptions, quote.eta]);
 
   return (
-    <div className="w-full !px-4 md:!px-6 lg:!px-8 !mt-4 md:!mt-6">
+    <div className="w-full !px-2 md:!px-4 lg:!px-6 !mt-4 md:!mt-6">
       <section>
         
-        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
           {/* Premium In-Card Header */}
           <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-2 md:!pl-3 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
