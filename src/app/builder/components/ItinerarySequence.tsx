@@ -2,6 +2,7 @@
 
 import { Plus, Minus, MapPin } from "lucide-react";
 import { QuoteItem } from "./types";
+import { btnAction } from "@/lib/styles";
 import {
   Select,
   SelectContent,
@@ -308,9 +309,11 @@ export default function ItinerarySequence({
             <div className="p-4 bg-slate-50/30 border-t border-slate-100 flex justify-center">
               <button
                 onClick={onAddDay}
-                className="h-9 px-6 bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-2 rounded-xl shadow-sm active:scale-95"
+                style={{ ...btnAction, height: '38px', padding: '0 20px' }}
+                className="group transition-all hover:opacity-90 active:scale-95"
               >
-                <Plus size={14} /> Add Day to Trip
+                <Plus size={16} strokeWidth={2.5} /> 
+                <span>Add Day to Trip</span>
               </button>
             </div>
           )}
