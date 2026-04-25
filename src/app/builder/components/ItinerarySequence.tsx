@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Minus, MapPin } from "lucide-react";
+import { Plus, Minus, MapPin, Trash2 } from "lucide-react";
 import { QuoteItem } from "./types";
 import { btnAction } from "@/lib/styles";
 import {
@@ -108,10 +108,10 @@ export default function ItinerarySequence({
                 {index === items.length - 1 && items.length > 1 && !readOnly && (
                   <button
                     onClick={onRemoveLastDay}
-                    className="h-6 w-6 rounded-full text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center active:scale-95 mt-1"
+                    className="h-7 w-7 rounded-full text-rose-500 hover:text-rose-600 bg-rose-50/50 hover:bg-rose-100/50 transition-all flex items-center justify-center active:scale-90 mt-1 shadow-sm border border-rose-100/50"
                     title="Remove Last Day"
                   >
-                    <Minus size={14} strokeWidth={4} />
+                    <Trash2 size={13} strokeWidth={2.5} />
                   </button>
                 )}
               </div>
