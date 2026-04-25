@@ -19,6 +19,8 @@ import {
 interface TripDetailsSectionProps {
   quote: QuoteData;
   setQuote: (val: QuoteData) => void;
+  onEtaChangeRequest: (date: Date, iso: string) => void;
+  onEtdChange: (date: Date, iso: string) => void;
   dbVehicles: any[];
   readOnly?: boolean;
 }
@@ -26,6 +28,8 @@ interface TripDetailsSectionProps {
 export default function TripDetailsSection({
   quote,
   setQuote,
+  onEtaChangeRequest,
+  onEtdChange,
   dbVehicles,
   readOnly = false
 }: TripDetailsSectionProps) {
@@ -181,17 +185,28 @@ export default function TripDetailsSection({
                 className="hidden"
                 value={quote.eta}
                 disabled={readOnly}
-                options={baseOptions}
-                onChange={([date]) => {
-                  if (!date) return;
-                  const newEta = date.toISOString();
-                  let newEtd = quote.etd;
-                  if (newEta && newEtd && new Date(newEta) >= new Date(newEtd)) {
-                    const adjustedEtd = new Date(newEta);
-                    adjustedEtd.setHours(adjustedEtd.getHours() + 1);
-                    newEtd = adjustedEtd.toISOString();
+                options={{
+                  ...baseOptions,
+                  onOpen: () => { (window as any)._isEtaPickerOpen = true; },
+                  onClose: () => { 
+                    // Small delay to ensure the final onChange fires before we lock the door
+                    setTimeout(() => { (window as any)._isEtaPickerOpen = false; }, 100); 
                   }
-                  setQuote({ ...quote, eta: newEta, etd: newEtd });
+                }}
+                onChange={([date]) => {
+                  if (!date || !(window as any)._isEtaPickerOpen) return;
+                  
+                  const newIso = date.toISOString();
+                  const d1 = new Date(date);
+                  const d2 = new Date(quote.eta);
+                  const isSameDay = 
+                    d1.getFullYear() === d2.getFullYear() &&
+                    d1.getMonth() === d2.getMonth() &&
+                    d1.getDate() === d2.getDate();
+
+                  if (!isSameDay) {
+                    onEtaChangeRequest(date, newIso);
+                  }
                 }}
               />
               <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 opacity-40" size={18} />
@@ -208,7 +223,7 @@ export default function TripDetailsSection({
                 options={etdOptions}
                 onChange={([date]) => {
                   if (!date) return;
-                  setQuote({ ...quote, etd: date.toISOString() });
+                  onEtdChange(date, date.toISOString());
                 }}
               />
               <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-600 opacity-40" size={18} />

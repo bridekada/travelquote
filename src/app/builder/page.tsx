@@ -248,6 +248,29 @@ function QuoteBuilder() {
     if (!authLoading && profile) loadQuote();
   }, [quoteId, selectedOperatorId, authLoading, profile, isLoaded]);
 
+  const handleEtaChangeRequest = (newDate: Date, iso: string) => {
+    // If no End Date exists yet, just update the Start Date normally
+    if (!quote.etd) {
+      setQuote(prev => ({ ...prev, eta: iso }));
+      return;
+    }
+
+    openDialog({
+      title: "Reset Itinerary?",
+      message: "Changing the Start Date will clear your End Date and reset the itinerary. Proceed?",
+      type: 'warning',
+      confirmText: "Reset & Continue",
+      onConfirm: () => {
+        setQuote(prev => ({ 
+          ...prev, 
+          eta: iso, 
+          etd: "", 
+          items: [] as QuoteItem[] 
+        }));
+      }
+    });
+  };
+
   // Date/Timeline Synchronization
   useEffect(() => {
     if (!hasHydrated.current || (quoteId && !isLoaded)) return;
@@ -842,6 +865,10 @@ function QuoteBuilder() {
             <TripDetailsSection 
               quote={quote} 
               setQuote={setQuote} 
+              onEtdChange={(date, iso) => {
+                setQuote(prev => ({ ...prev, etd: iso }));
+              }}
+              onEtaChangeRequest={handleEtaChangeRequest}
               dbVehicles={dbVehicles} 
               readOnly={isReadOnly}
             />
