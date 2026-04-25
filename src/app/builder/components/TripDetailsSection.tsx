@@ -51,18 +51,23 @@ export default function TripDetailsSection({
 
   return (
     <div className="w-full !px-4 md:!px-6 lg:!px-8 !mt-4 md:!mt-6">
-      <section className="space-y-6">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-            <Users size={18} />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none">Trip Details</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passenger & Logistics Information</p>
-          </div>
-        </div>
+      <section>
         
-        <div className="bg-white rounded-[24px] border border-slate-100 !p-3 md:!p-5 shadow-xl shadow-slate-200/30 space-y-4 md:space-y-7">
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+          {/* Premium In-Card Header */}
+          <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-8 md:!pl-12 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Users size={16} />
+              </div>
+              <div>
+                <h2 className="text-[13px] font-black text-slate-800 tracking-tight leading-none uppercase">Trip Details</h2>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passenger & Logistics Information</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="!p-3 md:!p-5 space-y-4 md:space-y-7">
         {/* Row 1: Identity & Contact */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 lg:gap-10">
           <div className="md:col-span-2 space-y-1.5">
@@ -296,8 +301,9 @@ export default function TripDetailsSection({
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  </div>
+          </div>
+        </div>
+      </section>
+    </div>
 );
 }

@@ -75,23 +75,27 @@ export default function ItinerarySequence({
 }: ItinerarySequenceProps) {
   return (
     <div className="w-full !px-4 md:!px-6 lg:!px-8 !mt-6 md:!mt-10">
-      <section className="space-y-6">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-            <MapPin size={18} />
+      <section>
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+          {/* Premium In-Card Header */}
+          <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-8 md:!pl-12 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <MapPin size={16} />
+              </div>
+              <div>
+                <h2 className="text-[13px] font-black text-slate-800 tracking-tight leading-none uppercase">Itinerary Sequence</h2>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route & Accommodation Details</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none">Itinerary Sequence</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Route & Accommodation Details</p>
-          </div>
-        </div>
 
-      <div className="flex flex-col gap-1.5">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="bg-white border border-[#e8eaed] shadow-sm shadow-primary/[0.02] flex flex-col md:flex-row gap-3 md:gap-6 items-start !p-3 md:!p-4 rounded-[24px]"
-          >
+          <div className="divide-y divide-slate-100">
+            {items.map((item, index) => (
+              <div
+                key={index}
+                className="flex flex-col md:flex-row gap-3 md:gap-6 items-start !p-4 md:!p-6 transition-colors hover:bg-slate-50/30"
+              >
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-6 flex justify-center">
                 {index === items.length - 1 && items.length > 1 && !readOnly && (
@@ -301,19 +305,20 @@ export default function ItinerarySequence({
               </div>
             </div>
           </div>
-        ))}
-      </div>
+            ))}
+          </div>
 
-      {!readOnly && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={onAddDay}
-            className="h-10 px-8 bg-white border border-[#e8eaed] text-text-tertiary font-black text-[10px] uppercase tracking-widest hover:text-primary hover:border-primary/20 transition-all flex items-center justify-center gap-2 rounded-xl shadow-sm active:scale-95"
-          >
-            <Plus size={14} /> Add Day to Trip
-          </button>
+          {!readOnly && (
+            <div className="p-4 bg-slate-50/30 border-t border-slate-100 flex justify-center">
+              <button
+                onClick={onAddDay}
+                className="h-9 px-6 bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-2 rounded-xl shadow-sm active:scale-95"
+              >
+                <Plus size={14} /> Add Day to Trip
+              </button>
+            </div>
+          )}
         </div>
-      )}
       </section>
     </div>
   );
