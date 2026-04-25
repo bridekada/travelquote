@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Loader2, LayoutGrid, ShieldCheck, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Mail, Lock, Loader2, LayoutGrid, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, KeyRound, ArrowLeft, X } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -14,6 +14,10 @@ export default function LandingPage() {
   const [authError, setAuthError] = useState("");
   const [setupSuccess, setSetupSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -62,6 +66,25 @@ export default function LandingPage() {
     } catch (err: any) {
       setAuthError(err.message === 'Invalid login credentials' ? 'Access Denied: Invalid Credentials' : err.message);
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetStatus(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      });
+      if (error) throw error;
+      setResetStatus({ type: 'success', msg: "Recovery link dispatched. Please check your inbox." });
+      // Reset input after success
+      setResetEmail("");
+    } catch (err: any) {
+      setResetStatus({ type: 'error', msg: err.message || "Failed to send recovery link." });
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -173,6 +196,22 @@ export default function LandingPage() {
                   onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.background = 'var(--color-bg-page)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
+              <div className="flex justify-end mt-2">
+                <button 
+                  type="button"
+                  onClick={() => setIsResetOpen(true)}
+                  style={{ 
+                    fontSize: '11px', fontWeight: 600, 
+                    color: 'var(--color-text-faint)', 
+                    background: 'transparent', border: 'none',
+                    cursor: 'pointer', transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target as any).style.color = 'var(--color-brand)'}
+                  onMouseLeave={(e) => (e.target as any).style.color = 'var(--color-text-faint)'}
+                >
+                  Forgot Security Key?
+                </button>
+              </div>
             </div>
 
             {/* Success Notification */}
@@ -246,6 +285,132 @@ export default function LandingPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Identity Recovery Modal */}
+      <AnimatePresence>
+        {isResetOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setIsResetOpen(false); setResetStatus(null); }}
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="relative w-full overflow-hidden"
+              style={{ 
+                maxWidth: '400px', background: 'white', borderRadius: '24px', 
+                boxShadow: '0 24px 48px -12px rgba(0,0,0,0.12)',
+                padding: '40px 32px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center text-center">
+                <div 
+                  className="flex items-center justify-center mb-6"
+                  style={{ 
+                    width: '56px', height: '56px', borderRadius: '16px',
+                    background: 'var(--color-brand-soft)', color: 'var(--color-brand)'
+                  }}
+                >
+                  <KeyRound size={24} />
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                  Identity Recovery
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.5, marginBottom: '28px' }}>
+                  Provide your authorized email address to receive a secure recovery credential.
+                </p>
+              </div>
+
+              {resetStatus?.type === 'success' ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center py-4"
+                >
+                  <div className="flex items-center gap-3" style={{ padding: '16px', background: '#ECFDF5', color: '#059669', borderRadius: '16px', fontSize: '13px', fontWeight: 500, border: '1px solid #A7F3D0', marginBottom: '24px' }}>
+                    <CheckCircle size={18} className="shrink-0" />
+                    <span>{resetStatus.msg}</span>
+                  </div>
+                  <button 
+                    onClick={() => { setIsResetOpen(false); setResetStatus(null); }}
+                    className="flex items-center justify-center gap-2"
+                    style={{ background: 'var(--color-brand)', color: 'white', border: 'none', borderRadius: '12px', height: '48px', width: '100%', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Return to Login
+                  </button>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleResetRequest}>
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                      Authorized Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute top-1/2 -translate-y-1/2" size={16} style={{ left: '14px', color: 'var(--color-text-faint)' }} />
+                      <input 
+                        type="email" required
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="personnel@agency.com"
+                        autoFocus
+                        style={{ 
+                          width: '100%', height: '48px',
+                          paddingLeft: '42px', paddingRight: '16px',
+                          border: '1px solid var(--color-border-default)',
+                          borderRadius: '12px', fontSize: '14px',
+                          background: 'var(--color-bg-page)',
+                          outline: 'none', fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {resetStatus?.type === 'error' && (
+                    <div className="flex items-center gap-2 mb-6" style={{ color: 'var(--color-danger)', fontSize: '13px', fontWeight: 500 }}>
+                      <AlertCircle size={14} />
+                      <span>{resetStatus.msg}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      type="submit"
+                      disabled={resetLoading}
+                      style={{ 
+                        background: 'var(--color-brand)', color: 'white', border: 'none', 
+                        borderRadius: '14px', height: '50px', fontWeight: 600, 
+                        cursor: resetLoading ? 'wait' : 'pointer', opacity: resetLoading ? 0.7 : 1
+                      }}
+                      className="flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      {resetLoading ? <Loader2 className="animate-spin" size={20} /> : "Request Link"}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => { setIsResetOpen(false); setResetStatus(null); }}
+                      style={{ 
+                        background: 'transparent', color: 'var(--color-text-muted)', border: 'none', 
+                        height: '40px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' 
+                      }}
+                      className="flex items-center justify-center gap-2 hover:text-slate-800 transition-colors"
+                    >
+                      <ArrowLeft size={14} />
+                      Nevermind, I remember it
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
