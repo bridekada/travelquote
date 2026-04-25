@@ -78,7 +78,7 @@ export default function ItinerarySequence({
       <section>
         <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
           {/* Premium In-Card Header */}
-          <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-8 md:!pl-12 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
+          <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-2 md:!pl-3 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <MapPin size={16} />
