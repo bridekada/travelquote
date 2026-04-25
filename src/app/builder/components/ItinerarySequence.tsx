@@ -96,19 +96,7 @@ export default function ItinerarySequence({
                 key={index}
                 className="flex flex-col md:flex-row gap-3 md:gap-6 items-start !p-4 md:!p-6 transition-colors hover:bg-slate-50/30"
               >
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="w-6 flex justify-center">
-                {index === items.length - 1 && items.length > 1 && !readOnly && (
-                  <button
-                    onClick={onRemoveLastDay}
-                    className="h-6 w-6 rounded-full text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center active:scale-95"
-                    title="Remove Last Day"
-                  >
-                    <Minus size={14} strokeWidth={4} />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-2 shrink-0">
                 <span className="text-[11px] font-black uppercase text-primary tracking-tight whitespace-nowrap mb-[-2px]">
                   {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
@@ -116,8 +104,16 @@ export default function ItinerarySequence({
                   <span className="text-[7px] font-black uppercase tracking-widest opacity-60">Day</span>
                   <span className="text-base font-bold">{item.day_number}</span>
                 </div>
+                {index === items.length - 1 && items.length > 1 && !readOnly && (
+                  <button
+                    onClick={onRemoveLastDay}
+                    className="h-6 w-6 rounded-full text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center active:scale-95 mt-1"
+                    title="Remove Last Day"
+                  >
+                    <Minus size={14} strokeWidth={4} />
+                  </button>
+                )}
               </div>
-            </div>
 
             <div className="flex-1 min-w-0">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4">
