@@ -76,7 +76,7 @@ export default function PackageSidebar({
         
         <div className="space-y-6 md:space-y-8">
           <div className="text-center">
-             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Select Proposed Package</p>
+             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Select Proposed Package</p>
           </div>
           <div className="flex flex-col gap-4">
             {packages.map((pkg, i) => {
@@ -155,8 +155,8 @@ export default function PackageSidebar({
                       </span>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center">
-                          <span className={`text-base font-bold italic mr-1 transition-colors ${isSelected ? "text-white/30" : "text-primary/10"}`}>₱</span>
-                          <span className={`text-2xl md:text-3xl font-black italic tracking-tighter leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
+                          <span className={`text-base font-bold mr-1 transition-colors ${isSelected ? "text-white/30" : "text-primary/10"}`}>₱</span>
+                          <span className={`text-2xl md:text-3xl font-black tracking-tighter leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
                             {Math.round(pkg.total).toLocaleString()}
                           </span>
                         </div>
@@ -176,7 +176,7 @@ export default function PackageSidebar({
                         setOpenConfigId(isOpen ? null : (pkg.id || `pkg-${i}`));
                       }}
                       disabled={readOnly}
-                      className={`flex items-center gap-1.5 px-3 !h-7 !min-h-0 !min-w-0 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all shadow-sm group/btn ${
+                      className={`flex items-center gap-1.5 !px-4 !h-[28px] !min-h-0 !min-w-0 rounded-lg !text-[8.5px] font-black uppercase tracking-widest transition-all shadow-sm group/btn ${
                         isSelected 
                           ? "!bg-white !text-primary hover:bg-gray-100 active:scale-95" 
                           : "!bg-[#121a30] !text-white hover:opacity-90 active:scale-95"
@@ -197,21 +197,21 @@ export default function PackageSidebar({
                         className="w-full mt-6 overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className={`p-6 rounded-2xl border ${isSelected ? "bg-white/5 border-white/5" : "bg-gray-50/50 border-gray-100"} grid grid-cols-1 gap-1`}>
+                        <div className={`!p-3 rounded-2xl border ${isSelected ? "bg-white/5 border-white/5" : "bg-gray-50/50 border-gray-100"} grid grid-cols-1 !gap-0`}>
                           {[
                             { id: 'vehicle', label: 'Vehicle Rate', checked: pkg.config.includes_vehicle, update: { includes_vehicle: !pkg.config.includes_vehicle }, icon: <Car size={10} /> },
                             { id: 'fuel', label: 'Fuel Cost', checked: pkg.config.includes_fuel, update: { includes_fuel: !pkg.config.includes_fuel }, icon: <Fuel size={10} /> },
                             { id: 'accom', label: 'Guest Accom', checked: pkg.config.includes_accommodation, update: { includes_accommodation: !pkg.config.includes_accommodation }, icon: <Users size={10} /> },
                           ].map((inc) => (
-                            <label key={inc.id} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer hover:bg-black/5 transition-all group/opt">
-                              <span className={`text-[9px] font-black uppercase tracking-[0.1em] flex items-center gap-2 ${isSelected ? "text-white/60" : "text-text-tertiary"}`}>
+                            <label key={inc.id} className="flex items-center justify-between !px-3 !py-1 rounded-xl cursor-pointer hover:bg-black/5 transition-all group/opt">
+                              <span className={`!text-[8.5px] font-black uppercase tracking-[0.1em] flex items-center gap-2 ${isSelected ? "text-orange-200/60" : "text-orange-700/60"}`}>
                                 {inc.label}
-                              </span>
+</span>
                               <input 
                                 type="checkbox" 
                                 checked={inc.checked} 
                                 onChange={() => !readOnly && onUpdatePackage(i, inc.update)}
-                                className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-30 disabled:grayscale"
+                                className="w-4 h-4 rounded border-orange-900/30 !text-orange-900 !accent-orange-900 focus:ring-0 transition-all cursor-pointer disabled:opacity-30 disabled:grayscale"
                                 disabled={readOnly}
                               />
                             </label>
@@ -222,13 +222,13 @@ export default function PackageSidebar({
                           {dbMiscPresets.map((misc) => {
                             const isIncluded = (pkg.config.includes_misc_ids || []).includes(misc.id);
                             return (
-                              <label key={misc.id} className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer hover:bg-black/5 transition-all group/opt">
-                                <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${isSelected ? "text-white/60" : "text-text-tertiary"}`}>{misc.name}</span>
+                              <label key={misc.id} className="flex items-center justify-between !px-3 !py-1 rounded-xl cursor-pointer hover:bg-black/5 transition-all group/opt">
+                                <span className={`!text-[8.5px] font-black uppercase tracking-[0.1em] ${isSelected ? "text-orange-200/60" : "text-orange-700/60"}`}>{misc.name}</span>
                                 <input 
                                   type="checkbox" 
                                   checked={isIncluded} 
                                   onChange={() => !readOnly && onToggleMisc(i, misc.id)}
-                                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-30 disabled:grayscale"
+                                  className="w-4 h-4 rounded border-orange-900/30 !text-orange-900 !accent-orange-900 focus:ring-0 transition-all cursor-pointer disabled:opacity-30 disabled:grayscale"
                                   disabled={readOnly}
                                 />
                               </label>
@@ -252,7 +252,7 @@ export default function PackageSidebar({
                 <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-all">
                   <Plus size={16} />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Add Alternative Option</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Add Alternative Package</span>
               </motion.button>
             )}
           </div>
@@ -300,7 +300,7 @@ export default function PackageSidebar({
                 </div>
                 <button 
                   onClick={handleAddFee}
-                  className="w-full h-12 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-8 bg-primary text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
                   <Plus size={14} /> Add adjustment
                 </button>
@@ -360,10 +360,10 @@ export default function PackageSidebar({
               <div className="!mt-12 space-y-10">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Operational Context</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Additional Notes</span>
                   </div>
                   <textarea 
-                    className="w-full min-h-[100px] p-6 bg-gray-50 border border-gray-100 rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none shadow-inner disabled:opacity-40 overflow-hidden"
+                    className="w-full min-h-[100px] !px-6 !py-5 bg-gray-50 border border-gray-100 rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none shadow-inner disabled:opacity-40 overflow-hidden"
                     placeholder="Add operational details..."
                     value={notes || ""}
                     onChange={(e) => onUpdateNotes(e.target.value)}
@@ -380,11 +380,11 @@ export default function PackageSidebar({
                     disabled={readOnly}
                   />
                 </div>
-
+                <div className="h-px bg-gray-100/80 w-full !my-8" />
                 <div className="space-y-6">
                    <div className="flex items-center justify-between">
                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Quotation Text</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Quotation Text</span>
                         <p className="text-[8px] font-bold text-text-tertiary uppercase tracking-widest mt-0.5">Customize generated text</p>
                      </div>
                      <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -406,7 +406,7 @@ export default function PackageSidebar({
                       <button 
                         onClick={() => !readOnly && onViewSaved()}
                         disabled={readOnly}
-                        className={`h-[52px] px-6 bg-white border border-gray-100 rounded-[20px] shadow-sm transition-all group flex items-center justify-center gap-3 shrink-0 ${readOnly ? "opacity-50 grayscale cursor-default" : "hover:shadow-md"}`}
+                        className={`h-[52px] !px-8 bg-white border border-gray-100 rounded-[20px] shadow-sm transition-all group flex items-center justify-center gap-3 shrink-0 ${readOnly ? "opacity-50 grayscale cursor-default" : "hover:shadow-md"}`}
                       >
                          <Layout size={14} className="text-text-tertiary group-hover:text-primary transition-colors" />
                          <span className="text-[10px] font-black uppercase tracking-widest text-text-tertiary group-hover:text-primary transition-colors">Last Saved Quote</span>

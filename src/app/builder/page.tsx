@@ -860,8 +860,8 @@ function QuoteBuilder() {
         onConfirm={handleConfirmQuote} isImpersonating={false}
       />
       <div className="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
-        <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth">
-          <div className="p-4 md:p-8 lg:p-12 space-y-12 max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
+          <div className="py-8 md:py-12 space-y-12 max-w-7xl mx-auto">
             <TripDetailsSection 
               quote={quote} 
               setQuote={setQuote} 

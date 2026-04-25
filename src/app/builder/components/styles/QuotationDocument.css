@@ -1,6 +1,6 @@
 /* Scoped Premium Styles for the Quotation Document Modal */
 .quotation-document-premium {
-  --doc-paper: #ffffff;
+  --doc-paper: #fffaf0;
   --doc-text: #0f172a;
   --doc-accent: #6366f1;
   --doc-border: #f1f5f9;
@@ -15,8 +15,8 @@
     linear-gradient(rgba(226, 232, 240, 0.3) 1px, transparent 1px);
   background-size: 100% 2.8rem;
   padding-top: 0.5rem;
-  padding-left: 4rem !important; /* Explicitly forced 64px indentation */
-  padding-right: 1.5rem !important;
+  padding-left: 3rem !important; /* Brought closer to edge */
+  padding-right: 2rem !important;
 }
 
 /* Override the global * { margin: 0; padding: 0; } for this modal's internal components */
@@ -74,16 +74,22 @@
 
 /* Custom Scrollbar */
 .quotation-document-premium .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 10px;
+}
+
+.quotation-document-premium .custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .quotation-document-premium .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #f1f5f9;
+  background: #cbd5e1;
   border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .quotation-document-premium .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #e2e8f0;
+  background: #94a3b8;
 }
 
 /* Print Specifics */
