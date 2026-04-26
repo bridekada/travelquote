@@ -117,11 +117,13 @@ export default function ItinerarySequence({
               </div>
 
             <div className="flex-1 min-w-0">
+              {/* Top Section: Itinerary + Est KM + Daily Log */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4">
-                <div className="md:col-span-12 lg:col-span-5 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Itinerary</label>
+                <div className="md:col-span-12 lg:col-span-8 space-y-4">
+                  {/* Row 1: Itinerary */}
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-6 space-y-1">
+                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Itinerary</label>
                       <Select 
                         value={item.applied_preset_id || "custom"}
                         disabled={readOnly}
@@ -150,24 +152,27 @@ export default function ItinerarySequence({
                       </Select>
                     </div>
 
-                    {!item.applied_preset_id && (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Custom Itinerary</label>
-                        <input
-                          type="text"
-                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
-                          placeholder="e.g. Siargao Island"
-                          value={item.destination || ""}
-                          onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
-                          disabled={readOnly}
-                        />
-                      </div>
-                    )}
+                    <div className="col-span-6">
+                      {!item.applied_preset_id && (
+                        <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Itinerary Name</label>
+                          <input
+                            type="text"
+                            className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
+                            placeholder="e.g. Siargao Island"
+                            value={item.destination || ""}
+                            onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
+                            disabled={readOnly}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-12 gap-3 items-end">
+                  {/* Row 2: Est KM */}
+                  <div className="grid grid-cols-12 gap-3">
                     <div className="col-span-4 space-y-1">
-                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Est. KM</label>
+                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Est. KM</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -180,117 +185,110 @@ export default function ItinerarySequence({
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 !text-[9px] font-black text-text-tertiary opacity-40 uppercase">KM</span>
                       </div>
                     </div>
-
                   </div>
-
                 </div>
 
-                <div className="md:col-span-12 lg:col-span-7 space-y-2 pr-4">
+                {/* Daily Log */}
+                <div className="md:col-span-12 lg:col-span-4 space-y-2 pr-4">
                   <div className="flex justify-between items-center px-1">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0.5 inline-block">Itinerary Details</label>
                   </div>
                   <textarea
-                    className="w-full min-h-[72px] !p-4 bg-white shadow-sm border border-slate-300 rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
-                    style={{ fontSize: '11px' }}
-                    placeholder="Briefly describe the day's activities..."
+                    className="w-full min-h-[100px] !p-3 bg-white shadow-sm border border-slate-300 rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
+                    style={{ fontSize: '10px' }}
+                    placeholder="Notes..."
                     value={item.itinerary_details || ""}
                     onChange={(e) => onUpdateItem(index, { itinerary_details: e.target.value })}
                     onInput={(e: any) => {
                       e.target.style.height = "auto";
-                      e.target.style.height = Math.max(72, e.target.scrollHeight) + "px";
+                      e.target.style.height = Math.max(100, e.target.scrollHeight) + "px";
                     }}
                     ref={(el) => {
                       if (el) {
                         el.style.height = "auto";
-                        el.style.height = Math.max(72, el.scrollHeight) + "px";
+                        el.style.height = Math.max(100, el.scrollHeight) + "px";
                       }
                     }}
                     disabled={readOnly}
                   />
                 </div>
+              </div>
 
-                <div className="md:col-span-12 lg:col-span-9 space-y-1 pt-2 border-t border-gray-50/50">
-                  <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-4 space-y-1">
-                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Accommodation</label>
-                      <Select
-                        value={item.guest_accommodation_id || "custom"}
-                        disabled={readOnly}
-                        onValueChange={(val) => {
-                          if (!val) return;
-                          const actualVal = val === "custom" ? "" : val;
-                          const isTransitioningToCustom = actualVal === "" && item.guest_accommodation_id !== "";
-                          const accom = dbAccommodations.find(a => a.id === actualVal);
-                          const updates: any = { guest_accommodation_id: actualVal };
-                          if (accom) {
-                            updates.guest_accommodation_name = accom.name;
-                            updates.guest_accommodation_amount = accom.amount;
-                          } else if (isTransitioningToCustom) {
-                            updates.guest_accommodation_name = "";
-                            updates.guest_accommodation_amount = 0;
-                          }
-                          onUpdateItem(index, updates);
-                        }}
-                      >
-                        <SelectTrigger className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
-                          <SelectValue>
-                            {item.guest_accommodation_id 
-                              ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
-                              : "Custom Accommodation"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="dark min-w-[320px]">
-                          <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Accommodation</SelectItem>
-                          {dbAccommodations.map(a => (
-                            <SelectItem key={a.id} value={a.id} className="text-[12px] font-medium py-2">
-                              {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              {/* Bottom Section: Accommodation + Tags */}
+              <div className="mt-6 pt-4 border-t border-gray-100 space-y-4">
+                <div className="grid grid-cols-12 gap-3 items-end">
+                  <div className="col-span-4 space-y-1">
+                    <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Accommodation</label>
+                    <Select
+                      value={item.guest_accommodation_id || "custom"}
+                      disabled={readOnly}
+                      onValueChange={(val) => {
+                        if (!val) return;
+                        const actualVal = val === "custom" ? "" : val;
+                        const accom = dbAccommodations.find(a => a.id === actualVal);
+                        const updates: any = { guest_accommodation_id: actualVal };
+                        if (accom) {
+                          updates.guest_accommodation_name = accom.name;
+                          updates.guest_accommodation_amount = accom.amount;
+                        } else {
+                          updates.guest_accommodation_name = "";
+                          updates.guest_accommodation_amount = 0;
+                        }
+                        onUpdateItem(index, updates);
+                      }}
+                    >
+                      <SelectTrigger className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
+                        <SelectValue>
+                          {item.guest_accommodation_id 
+                            ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
+                            : "Custom Accommodation"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="dark min-w-[320px]">
+                        <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Accommodation</SelectItem>
+                        {dbAccommodations.map(a => (
+                          <SelectItem key={a.id} value={a.id} className="text-[12px] font-medium py-2">
+                            {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    {!item.guest_accommodation_id && (
-                      <>
-                        <div className="col-span-5 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                          <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Custom Accommodation</label>
+                  {!item.guest_accommodation_id && (
+                    <>
+                      <div className="col-span-4 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
+                        <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Accommodation Name</label>
+                        <input
+                          type="text"
+                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
+                          placeholder="Name of Hotel/Stay"
+                          value={item.guest_accommodation_name || ""}
+                          onChange={(e) => onUpdateItem(index, { guest_accommodation_name: e.target.value })}
+                          disabled={readOnly}
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Price</label>
+                        <div className="relative">
                           <input
-                            type="text"
-                            className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
-                            placeholder="Name of Hotel/Stay"
-                            value={item.guest_accommodation_name || ""}
-                            onChange={(e) => {
-                              const newVal = e.target.value;
-                              onUpdateItem(index, {
-                                guest_accommodation_name: newVal,
-                                ...(!newVal.trim() ? { guest_accommodation_amount: 0 } : {})
-                              });
-                            }}
+                            type="number"
+                            className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
+                            style={{ height: '34px', fontSize: '11px' }}
+                            placeholder="0"
+                            value={item.guest_accommodation_amount || ""}
+                            onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
                             disabled={readOnly}
                           />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
                         </div>
-                        <div className="col-span-3 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ml-1 mb-0 inline-block transition-colors ${!item.guest_accommodation_name?.trim() ? 'text-text-tertiary' : 'text-text-tertiary'}`}>Price</label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              disabled={!item.guest_accommodation_name?.trim() || readOnly}
-                              className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed transition-all"
-                              style={{ height: '34px', fontSize: '11px' }}
-                              placeholder="0"
-                              value={item.guest_accommodation_amount || ""}
-                              onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <div className="md:col-span-12 pt-2 border-t border-gray-50 space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0 inline-block">Cost Association Tags</label>
+                <div className="pt-2 border-t border-gray-50 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Cost Association Tags</label>
                   <TagSelector
                     selectedTags={item.tags || []}
                     onChange={(newTags) => onUpdateItem(index, { tags: newTags })}
@@ -301,8 +299,8 @@ export default function ItinerarySequence({
               </div>
             </div>
           </div>
-            ))}
-          </div>
+        ))}
+      </div>
 
           {!readOnly && (
             <div className="p-4 bg-slate-50/30 border-t border-slate-100 flex justify-center">

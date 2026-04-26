@@ -366,8 +366,10 @@ function DashboardContent() {
         durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
       }
 
+      const fleetSearchText = (q.fleet_json || q.fleet || []).map((v: any) => v.model).join(" ").toLowerCase();
       const matchesSearch = q.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        fleetSearchText.includes(searchQuery.toLowerCase()) ||
         durationStr.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
         
@@ -1031,7 +1033,17 @@ function DashboardContent() {
                           key={quote.id}
                           quoteId={quote.id}
                           customer={quote.customer_name} 
-                          route={quote.vehicle_model || "Private Trip"} 
+                          route={(() => {
+                            const fleet = quote.fleet_json || quote.fleet || [];
+                            if (Array.isArray(fleet) && fleet.length > 0) {
+                              const names = fleet.map((v: any) => v.model);
+                              if (names.length > 2) {
+                                return `${names[0]}, ${names[1]}, ...`;
+                              }
+                              return names.join(", ");
+                            }
+                            return quote.vehicle_model || "Private Trip";
+                          })()} 
                           date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
                           etd={quote.etd ? new Date(quote.etd).toLocaleDateString() : null} 
                           rawEta={quote.eta}

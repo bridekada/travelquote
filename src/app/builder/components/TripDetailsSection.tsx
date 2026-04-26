@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock, MapPin, Map } from "lucide-react";
-import { motion } from "framer-motion";
+import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock, MapPin, Map, Plus, Trash2, Gauge, Banknote } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 const Flatpickr = dynamic(() => import("react-flatpickr"), { ssr: false });
 import "flatpickr/dist/flatpickr.css";
-import { QuoteData } from "./types";
+import { QuoteData, QuoteVehicle } from "./types";
 import { formatForInput } from "./utils";
 import {
   Select,
@@ -23,6 +23,7 @@ interface TripDetailsSectionProps {
   onEtdChange: (date: Date, iso: string) => void;
   dbVehicles: any[];
   readOnly?: boolean;
+  onUpdateFleet: (fleet: QuoteVehicle[]) => void;
 }
 
 export default function TripDetailsSection({
@@ -31,7 +32,8 @@ export default function TripDetailsSection({
   onEtaChangeRequest,
   onEtdChange,
   dbVehicles,
-  readOnly = false
+  readOnly = false,
+  onUpdateFleet
 }: TripDetailsSectionProps) {
   const baseOptions = useMemo(() => ({
     dateFormat: "Y-m-d H:i",
@@ -48,6 +50,27 @@ export default function TripDetailsSection({
     altInputClass: "input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-rose-300 !text-[11px] font-semibold text-rose-700 focus:!border-rose-500 focus:!ring-4 focus:!ring-rose-500/5 transition-all w-full",
     minDate: quote.eta ? new Date(quote.eta) : undefined
   }), [baseOptions, quote.eta]);
+
+  const handleAddVehicle = () => {
+    const firstV = dbVehicles[0];
+    const newVehicle: QuoteVehicle = {
+      id: `v-${Date.now()}`,
+      model: firstV?.model || "Standard Sedan",
+      daily_rate: Number(firstV?.default_rate) || Number(firstV?.rate) || 0,
+      km_per_l: Number(firstV?.km_per_l) || 10,
+      fuel_price: quote.default_fuel_price || 60
+    };
+    onUpdateFleet([...(quote.fleet || []), newVehicle]);
+  };
+
+  const handleRemoveVehicle = (id: string) => {
+    if ((quote.fleet || []).length <= 1) return;
+    onUpdateFleet((quote.fleet || []).filter(v => v.id !== id));
+  };
+
+  const handleUpdateVehicleRow = (id: string, updates: Partial<QuoteVehicle>) => {
+    onUpdateFleet((quote.fleet || []).map(v => v.id === id ? { ...v, ...updates } : v));
+  };
 
   return (
     <div className="w-full !px-2 md:!px-4 lg:!px-6 !mt-4 md:!mt-6">
@@ -134,24 +157,16 @@ export default function TripDetailsSection({
                   ...baseOptions,
                   onOpen: () => { (window as any)._isEtaPickerOpen = true; },
                   onClose: () => { 
-                    // Small delay to ensure the final onChange fires before we lock the door
                     setTimeout(() => { (window as any)._isEtaPickerOpen = false; }, 100); 
                   }
                 }}
                 onChange={([date]) => {
                   if (!date || !(window as any)._isEtaPickerOpen) return;
-                  
                   const newIso = date.toISOString();
                   const d1 = new Date(date);
                   const d2 = new Date(quote.eta);
-                  const isSameDay = 
-                    d1.getFullYear() === d2.getFullYear() &&
-                    d1.getMonth() === d2.getMonth() &&
-                    d1.getDate() === d2.getDate();
-
-                  if (!isSameDay) {
-                    onEtaChangeRequest(date, newIso);
-                  }
+                  const isSameDay = d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+                  if (!isSameDay) onEtaChangeRequest(date, newIso);
                 }}
               />
               <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600/50" size={14} />
@@ -204,80 +219,125 @@ export default function TripDetailsSection({
           </div>
         </div>
 
-        {/* Row 3: Operations */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 lg:gap-10 pt-4 md:pt-7 border-t border-[#f0f2f5]">
-          <div className="md:col-span-2 space-y-1.5">
-            <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">Vehicle Selection (Auto-fit)</label>
-            <div className={`relative ${readOnly ? "pointer-events-none opacity-50" : ""}`}>
-              <Select 
-                value={quote.vehicle_model}
-                disabled={readOnly}
-                onValueChange={(model) => {
-                  if (!model) return;
-                  const selectedVehicle = dbVehicles.find(v => v.model === model);
-                  const rate = selectedVehicle ? Number(selectedVehicle.default_rate) || Number(selectedVehicle.rate) || 0 : 0;
-                  const kmpl = selectedVehicle ? Number(selectedVehicle.km_per_l) || 10 : 10;
-                  setQuote({
-                    ...quote, 
-                    vehicle_model: model,
-                    items: quote.items.map(item => ({ 
-                      ...item, 
-                      vehicle_rate: rate,
-                      km_per_l: kmpl
-                    }))
-                  });
-                }}
-              >
-                <SelectTrigger className="!h-[34px] !pl-10 !pr-10 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 w-full hover:border-emerald-200 transition-all rounded-xl shadow-sm">
-                  <SelectValue>
-                    {(() => {
-                      const v = dbVehicles.find(v => v.model === quote.vehicle_model);
-                      if (!v) return quote.vehicle_model || "-- SELECT VEHICLE --";
-                      return `${v.model} (${v.pax_capacity} PAX) — ${v.km_per_l || 10} KM/L`;
-                    })()}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 min-w-[320px]">
-                  {dbVehicles.map(v => (
-                    <SelectItem 
-                      key={v.id} 
-                      value={v.model} 
-                      className="!text-[11px] font-semibold py-2.5 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors mb-0.5 last:mb-0"
-                    >
-                      <span>{v.model}</span>
-                      <span className="opacity-50 text-[10px] font-medium ml-2">({v.pax_capacity} PAX) — {v.km_per_l || 10} KM/L</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-            </div>
+        {/* Row 3: Vehicle Fleet */}
+        <div className="!mt-4 md:!mt-5 mb-2 md:mb-3 py-2 md:py-3 border-y border-[#f0f2f5] space-y-4">
+          <div className="flex items-center justify-between ml-1">
+             <div className="flex flex-col">
+                <label className="!text-[10px] font-black uppercase tracking-[0.25em] text-slate-800">Vehicle Fleet</label>
+             </div>
+             {!readOnly && (
+                <button 
+                  onClick={handleAddVehicle}
+                  className="!h-[32px] !px-4 !bg-emerald-600 !text-white !rounded-full !text-[10px] !font-black !uppercase !tracking-widest !border-none !shadow-sm hover:!bg-emerald-700 hover:!shadow-md !transition-all !flex !items-center !gap-2 group"
+                >
+                  <Plus size={12} className="group-hover:rotate-90 !transition-transform" />
+                  <span>Add Vehicle</span>
+                </button>
+             )}
           </div>
-          <div className="space-y-1.5">
-            <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">Base Fuel Price</label>
-            <div className="relative">
-              <input 
-                type="number" 
-                className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
-                value={quote.default_fuel_price === 0 ? "" : quote.default_fuel_price}
-                onChange={(e) => {
-                  const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                  if (isNaN(val)) return;
-                  setQuote({
-                    ...quote, 
-                    default_fuel_price: val,
-                    items: quote.items.map(item => ({ ...item, fuel_price: val }))
-                  });
-                }}
-                disabled={readOnly}
-              />
-              <Fuel className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-            </div>
+
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {(quote.fleet || []).map((v, idx) => (
+                <motion.div 
+                  key={v.id} 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="grid grid-cols-1 md:grid-cols-5 items-end gap-4 md:gap-6 lg:gap-10 p-4 bg-slate-50/40 border border-slate-100 rounded-[20px] relative group/row"
+                >
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">Vehicle Selection</label>
+                    <div className="relative">
+                      <Select 
+                        value={v.model || ""}
+                        disabled={readOnly}
+                        onValueChange={(model) => {
+                          if (!model) return;
+                          const sv = dbVehicles.find(dv => dv.model === model);
+                          handleUpdateVehicleRow(v.id, {
+                            model,
+                            daily_rate: Number(sv?.default_rate) || Number(sv?.rate) || 0,
+                            km_per_l: Number(sv?.km_per_l) || 10
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="!h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 w-full rounded-xl transition-all hover:border-emerald-200">
+                          <SelectValue placeholder="Select Vehicle" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 !min-w-[200px] !max-w-[320px]">
+                          {dbVehicles.map(dv => (
+                            <SelectItem key={dv.id} value={dv.model} className="!text-[10px] font-semibold py-2 px-3 cursor-pointer focus:bg-emerald-50 rounded-xl transition-colors mb-0.5">
+                              <div className="flex flex-col">
+                                <span className="leading-tight">{dv.model}</span>
+                                <span className="opacity-50 text-[9px] font-medium leading-tight">{dv.pax_capacity} PAX — {dv.km_per_l || 10} KM/L</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">Daily Rate (₱)</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
+                        value={v.daily_rate}
+                        onChange={(e) => handleUpdateVehicleRow(v.id, { daily_rate: parseFloat(e.target.value) || 0 })}
+                        disabled={readOnly}
+                      />
+                      <Banknote className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">Base Fuel Price (₱)</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
+                        value={v.fuel_price}
+                        onChange={(e) => handleUpdateVehicleRow(v.id, { fuel_price: parseFloat(e.target.value) || 0 })}
+                        disabled={readOnly}
+                      />
+                      <Fuel className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">KM/L</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
+                        value={v.km_per_l}
+                        onChange={(e) => handleUpdateVehicleRow(v.id, { km_per_l: parseFloat(e.target.value) || 0 })}
+                        disabled={readOnly}
+                      />
+                      <Gauge className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                    </div>
+                  </div>
+
+                  {!readOnly && (quote.fleet || []).length > 1 && (
+                    <button 
+                      onClick={() => handleRemoveVehicle(v.id)}
+                      className="absolute -right-3 top-1/2 -translate-y-1/2 !h-[32px] !w-[32px] flex items-center justify-center rounded-xl bg-white text-rose-500 hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-xl opacity-0 group-hover/row:opacity-100 z-10"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Row 4: Finance */}
-        <div className="pt-4 md:pt-7 border-t border-[#f0f2f5]">
+        <div className="!mt-3 md:!mt-4 pt-2 md:pt-3 border-t border-[#f0f2f5]">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 lg:gap-10">
             <div className="space-y-1.5">
               <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-amber-600 ml-4 mb-0.5 inline-block">Admin Commission (%)</label>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Calculator } from "lucide-react";
-import { QuoteData, QuoteItem } from "./types";
+import { QuoteData, QuoteItem, QuoteVehicle } from "./types";
 import { calculateFuelCost } from "./utils";
 
 interface OperationalMatrixProps {
@@ -20,6 +20,7 @@ interface OperationalMatrixProps {
   onUpdateDiscount: (val: number) => void;
   grandTotal: number;
   readOnly?: boolean;
+  fleet?: QuoteVehicle[];
 }
 
 export default function OperationalMatrix({
@@ -37,7 +38,8 @@ export default function OperationalMatrix({
   discount,
   onUpdateDiscount,
   grandTotal,
-  readOnly = false
+  readOnly = false,
+  fleet
 }: OperationalMatrixProps) {
   const accomColWidth = 120;
   const dynamicColsWidth = dbMiscPresets.length * 100;
@@ -47,6 +49,9 @@ export default function OperationalMatrix({
   const cellStyle = "px-3 py-1.5 border-none text-[11px]";
   const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[10px] font-black uppercase tracking-[0.15em] text-text-tertiary whitespace-nowrap";
   const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20 focus:bg-emerald-50/50 rounded transition-all";
+
+  // Calculate fleet aggregate rate
+  const fleetTotalRate = (fleet || []).reduce((acc, v) => acc + (v.daily_rate || 0), 0);
 
   return (
     <div className="w-full !px-2 md:!px-4 lg:!px-6 pb-20 !mt-4 md:!mt-6">
@@ -80,19 +85,13 @@ export default function OperationalMatrix({
               </th>
               <th className={headerStyle + " w-[100px]"}>
                 <div className="flex items-center justify-between">
-                  Unit Rate
+                  Fleet Rate
                   <span className="text-slate-300 select-none ml-2">|</span>
                 </div>
               </th>
               <th className={headerStyle + " w-[80px]"}>
                 <div className="flex items-center justify-between">
                   Est. KM
-                  <span className="text-slate-300 select-none ml-2">|</span>
-                </div>
-              </th>
-              <th className={headerStyle + " w-[70px]"}>
-                <div className="flex items-center justify-between">
-                  KM/L
                   <span className="text-slate-300 select-none ml-2">|</span>
                 </div>
               </th>
@@ -154,12 +153,10 @@ export default function OperationalMatrix({
                   <div className="flex items-center gap-1">
                     <span className="text-[9px] font-bold text-gray-300">₱</span>
                     <input 
-                      type="number" 
-                      className={inputStyle + " font-black disabled:opacity-50"} 
-                      placeholder="0"
-                      value={item.vehicle_rate === 0 ? "" : item.vehicle_rate} 
-                      onChange={(e) => onUpdateItem(index, { vehicle_rate: parseFloat(e.target.value) || 0 })} 
-                      disabled={readOnly}
+                      type="text" 
+                      className={inputStyle + " font-black disabled:opacity-50 !cursor-default"} 
+                      value={fleetTotalRate.toLocaleString()} 
+                      readOnly
                     />
                     <span className="text-slate-300 ml-2 select-none">|</span>
                   </div>
@@ -179,25 +176,12 @@ export default function OperationalMatrix({
                 </td>
                 <td className={cellStyle}>
                   <div className="flex items-center gap-1">
-                    <input 
-                      type="number" 
-                      className={inputStyle + " disabled:opacity-50"} 
-                      placeholder="10" 
-                      value={item.km_per_l === 0 ? "" : item.km_per_l} 
-                      onChange={(e) => onUpdateItem(index, { km_per_l: parseFloat(e.target.value) || 10 })} 
-                      disabled={readOnly}
-                    />
-                    <span className="text-slate-300 ml-2 select-none">|</span>
-                  </div>
-                </td>
-                <td className={cellStyle}>
-                  <div className="flex items-center gap-1">
                     <span className="text-[9px] font-bold text-gray-300">₱</span>
                     <input 
                       type="number" 
                       className={inputStyle + " font-black !cursor-default select-none pointer-events-none"} 
                       placeholder="0"
-                      value={(item.fuel_cost_manual ?? calculateFuelCost(item)) === 0 ? "" : Math.round(item.fuel_cost_manual ?? calculateFuelCost(item))} 
+                      value={(item.fuel_cost_manual ?? calculateFuelCost(item, fleet)) === 0 ? "" : Math.round(item.fuel_cost_manual ?? calculateFuelCost(item, fleet))} 
                       readOnly
                     />
                     <span className="text-slate-300 ml-2 select-none">|</span>
@@ -264,12 +248,6 @@ export default function OperationalMatrix({
               <td className="px-3 py-4 text-[11px] font-black text-primary">
                 <div className="flex items-center justify-between">
                   {colTotals.km.toLocaleString()} KM
-                  <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
-                </div>
-              </td>
-              <td className="px-3 py-4 text-center">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-black text-primary/20 w-full">---</span>
                   <span className="text-gray-200 opacity-30 select-none ml-2">|</span>
                 </div>
               </td>

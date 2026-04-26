@@ -4,6 +4,14 @@ export interface ExtraFee {
   amount: number;
 }
 
+export interface QuoteVehicle {
+  id: string;
+  model: string;
+  daily_rate: number;
+  km_per_l: number;
+  fuel_price: number;
+}
+
 export interface QuoteItem {
   id?: string;
   day_number: number;
@@ -33,7 +41,7 @@ export interface QuoteData {
   pax_count: number;
   eta: string;
   etd: string;
-  vehicle_model: string;
+  vehicle_model: string | null;
   pickup_location: string;
   dropoff_location: string;
   notes: string;
@@ -48,4 +56,6 @@ export interface QuoteData {
   items: QuoteItem[];
   extra_fees_json?: ExtraFee[];
   discount_total?: number;
+  fleet?: QuoteVehicle[];
+  fleet_json?: QuoteVehicle[];
 }
