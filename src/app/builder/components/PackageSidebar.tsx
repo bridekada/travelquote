@@ -71,7 +71,7 @@ export default function PackageSidebar({
   const selectedPkg = packages.find(p => p.id === selectedPackageId);
 
   return (
-    <div className="w-full lg:w-[480px] bg-white lg:border-l border-t lg:border-t-0 border-[#e8eaed] flex flex-col shrink-0 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] overflow-hidden lg:shadow-2xl">
+    <div className="w-full lg:w-[480px] bg-white lg:border-l border-t lg:border-t-0 border-slate-300 shadow-sm transition-all flex flex-col shrink-0 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] overflow-hidden lg:shadow-2xl">
       <div className="px-4 md:px-8 lg:!px-12 pt-6 md:pt-8 lg:!pt-10 pb-6 md:pb-8 lg:!pb-10 flex-1 lg:overflow-y-auto space-y-8 md:space-y-10 custom-scrollbar">
         
         <div className="space-y-6 md:space-y-8">
@@ -278,7 +278,7 @@ export default function PackageSidebar({
                   <input 
                     type="text" 
                     placeholder="e.g., Early Bird Discount" 
-                    className="w-full bg-white border border-[#e8eaed] rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
+                    className="w-full bg-white border border-slate-300 shadow-sm transition-all rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
                     value={newFeeName}
                     onChange={(e) => setNewFeeName(e.target.value)}
                   />
@@ -293,7 +293,7 @@ export default function PackageSidebar({
                   <input 
                     type="number" 
                     placeholder="Enter amount..." 
-                    className="w-full bg-white border border-[#e8eaed] rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
+                    className="w-full bg-white border border-slate-300 shadow-sm transition-all rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
                     value={newFeeAmount}
                     onChange={(e) => setNewFeeAmount(e.target.value)}
                   />
@@ -363,7 +363,7 @@ export default function PackageSidebar({
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Additional Notes</span>
                   </div>
                   <textarea 
-                    className="w-full min-h-[100px] !px-6 !py-5 bg-gray-50 border border-gray-100 rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none shadow-inner disabled:opacity-40 overflow-hidden"
+                    className="w-full min-h-[100px] !px-6 !py-5 bg-white border border-slate-300 shadow-sm rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none disabled:opacity-40 overflow-hidden"
                     placeholder="Add operational details..."
                     value={notes || ""}
                     onChange={(e) => onUpdateNotes(e.target.value)}

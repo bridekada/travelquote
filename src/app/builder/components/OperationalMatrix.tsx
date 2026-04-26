@@ -46,11 +46,11 @@ export default function OperationalMatrix({
   // High-Density Styles (Emerald surgical theme)
   const cellStyle = "px-3 py-1.5 border-none text-[11px]";
   const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[10px] font-black uppercase tracking-[0.15em] text-text-tertiary whitespace-nowrap";
-  const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20";
+  const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20 focus:bg-emerald-50/50 rounded transition-all";
 
   return (
     <div className="w-full !px-2 md:!px-4 lg:!px-6 pb-20 !mt-4 md:!mt-6">
-      <div className="bg-white rounded-[24px] border border-[#e8eaed] shadow-sm shadow-primary/[0.02] overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
+      <div className="bg-white rounded-[24px] border border-slate-300 shadow-sm shadow-primary/[0.02] overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-400/20 hover:bg-yellow-50/25">
         {/* In-Card Header */}
         <div className="bg-slate-50/50 border-b border-slate-100 !pt-2 !pb-2 md:!pt-3 md:!pb-3 !pl-2 md:!pl-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm ml-2">
