@@ -195,11 +195,10 @@ export default function OperationalMatrix({
                     <span className="text-[9px] font-bold text-gray-300">₱</span>
                     <input 
                       type="number" 
-                      className={inputStyle + " font-black disabled:opacity-50"} 
+                      className={inputStyle + " font-black !cursor-default select-none pointer-events-none"} 
                       placeholder="0"
                       value={(item.fuel_cost_manual ?? calculateFuelCost(item)) === 0 ? "" : Math.round(item.fuel_cost_manual ?? calculateFuelCost(item))} 
-                      onChange={(e) => onUpdateItem(index, { fuel_cost_manual: parseFloat(e.target.value) || 0 })} 
-                      disabled={readOnly}
+                      readOnly
                     />
                     <span className="text-slate-300 ml-2 select-none">|</span>
                   </div>

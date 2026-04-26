@@ -851,7 +851,28 @@ function QuoteBuilder() {
     const isReadOnly = quote.status === 'Cancelled' || quote.status === 'Lost';
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8f9fb]">
+    <div className="flex flex-col min-h-screen bg-[#f8f9fb] builder-container">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .builder-container .custom-scrollbar::-webkit-scrollbar {
+          width: 8px !important;
+          height: 8px !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(241, 245, 249, 0.5) !important;
+          border-radius: 10px !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1 !important;
+          border-radius: 10px !important;
+          border: 2px solid rgba(241, 245, 249, 0.5) !important;
+          background-clip: padding-box !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #006644 !important;
+          border: 2px solid rgba(241, 245, 249, 0.5) !important;
+          background-clip: padding-box !important;
+        }
+      `}} />
       <BuilderHeader 
         isSaving={isSaving} isDeadQuote={isReadOnly} status={quote.status || 'Draft'}
         customerName={quote.customer_name} quoteId={quote.id || null} itemsCount={quote.items.length} 
