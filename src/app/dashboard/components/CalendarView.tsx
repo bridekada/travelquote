@@ -357,7 +357,17 @@ export default function CalendarView({ quotes }: CalendarProps) {
                 {[
                   { icon: <CalendarIcon size={14} />, label: `${format(parseISO(selectedQuote.eta), 'MMM d')} – ${format(parseISO(selectedQuote.etd), 'MMM d, yyyy')}` },
                   { icon: <Users size={14} />, label: `${selectedQuote.pax_count ?? '—'} Pax` },
-                  { icon: <CarFront size={14} />, label: selectedQuote.vehicle_model || 'Vehicle unassigned' },
+                  { icon: <CarFront size={14} />, label: (() => {
+                    const fleet = selectedQuote.fleet_json || selectedQuote.fleet || [];
+                    if (Array.isArray(fleet) && fleet.length > 0) {
+                      const names = fleet.map((v: any) => v.model);
+                      if (names.length > 2) {
+                        return `${names[0]}, ${names[1]}, ...`;
+                      }
+                      return names.join(", ");
+                    }
+                    return selectedQuote.vehicle_model || 'Vehicle unassigned';
+                  })() },
                   { icon: <MapIcon size={14} />, label: `${selectedQuote.pickup_location ?? '—'} → ${selectedQuote.dropoff_location ?? '—'}` },
                 ].map(({ icon, label }, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--color-text-muted)', fontSize: '13px', fontWeight: 500 }}>

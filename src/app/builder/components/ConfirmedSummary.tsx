@@ -46,21 +46,21 @@ export default function ConfirmedSummary({
   const excs: string[] = [];
 
   // 1. Vehicle Logic
+  const fleetModels = quote.fleet?.map(v => v.model).filter(Boolean) || [];
   if (details.inclusions?.vehicle) {
-    incs.push(`Vehicle: ${quote.vehicle_model || 'Standard Unit'}`);
+    const vehicleLabel = fleetModels.length > 0 
+      ? `Vehicles: ${fleetModels.join(", ")}` 
+      : `Vehicle: ${quote.vehicle_model || 'Standard Unit'}`;
+    incs.push(vehicleLabel);
   } else {
     excs.push('Vehicle Rental');
   }
 
   // 2. Fuel Logic
-  const totalFuel = quote.items?.reduce((sum, item) => {
-    // Basic fuel calc if needed, or use row_total components if available
-    // For summary, we can approximate or check if fuel was actually a factor
-    const fuelCost = (item.km / (item.km_per_l || 10)) * (item.fuel_price || 60);
-    return sum + (item.fuel_cost_manual || fuelCost);
-  }, 0) || 0;
+  const totalKM = quote.items?.reduce((sum, item) => sum + (item.km || 0), 0) || 0;
+  const hasFleet = (quote.fleet || []).length > 0;
 
-  if (details.inclusions?.fuel && totalFuel > 0) {
+  if (details.inclusions?.fuel && totalKM > 0 && hasFleet) {
     incs.push('Fuel & Logistics included');
   } else {
     excs.push('Fuel Consumption');
