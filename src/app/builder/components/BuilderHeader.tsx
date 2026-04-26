@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, X, CheckCircle, Save, FileText } from "lucide-react";
+import { ChevronLeft, X, CheckCircle, Save, FileText, Copy } from "lucide-react";
 
 interface BuilderHeaderProps {
   isSaving: boolean;
@@ -14,6 +14,7 @@ interface BuilderHeaderProps {
   onSave: () => void;
   onCancel: () => void;
   onConfirm: () => void;
+  onDuplicate?: () => void;
   isImpersonating: boolean;
 }
 
@@ -29,6 +30,7 @@ export default function BuilderHeader({
   onSave,
   onCancel,
   onConfirm,
+  onDuplicate,
   isImpersonating
 }: BuilderHeaderProps) {
   return (
@@ -62,10 +64,21 @@ export default function BuilderHeader({
           </div>
         ) : (
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {quoteId && (
+              <button 
+                onClick={onDuplicate}
+                disabled={isSaving}
+                className="h-10 md:!h-11 px-3 md:!px-5 border border-emerald-100 bg-emerald-50/50 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
+              >
+                <Copy size={16} />
+                <span className="hidden md:inline">Duplicate</span>
+              </button>
+            )}
+
             <button 
               onClick={onCancel}
               disabled={isSaving}
-              className="h-10 md:!h-11 px-3 md:!px-5 border border-[#e8eaed] text-text-tertiary rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-rose-600 hover:border-rose-200 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30 disabled:grayscale"
+              className="h-10 md:!h-11 px-3 md:!px-5 border border-rose-100 bg-rose-50/50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
               aria-label="Cancel Quote"
             >
               <X size={16} />

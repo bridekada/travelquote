@@ -131,7 +131,7 @@ export default function ItinerarySequence({
                         }}
                       >
                         <SelectTrigger 
-                          className={`!h-[34px] !px-4 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
+                          className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
                         >
                           <SelectValue>
                             {item.applied_preset_id 
@@ -155,7 +155,7 @@ export default function ItinerarySequence({
                         <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Custom Itinerary</label>
                         <input
                           type="text"
-                          className="input !h-[34px] !px-4 !bg-rose-50/20 !border-rose-100 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
+                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
                           placeholder="e.g. Siargao Island"
                           value={item.destination || ""}
                           onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
@@ -171,7 +171,7 @@ export default function ItinerarySequence({
                       <div className="relative">
                         <input
                           type="number"
-                          className="input !h-[34px] !pl-4 !pr-10 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !rounded-xl disabled:opacity-50 disabled:grayscale transition-all !text-[11px]"
+                          className="input !h-[34px] !pl-4 !pr-10 !bg-white shadow-sm !border-slate-300 font-bold text-primary !rounded-xl disabled:opacity-50 disabled:grayscale transition-all !text-[11px]"
                           value={item.km || ""}
                           onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })}
                           placeholder="0"
@@ -190,7 +190,7 @@ export default function ItinerarySequence({
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0 inline-block">Daily Log / Details</label>
                   </div>
                   <textarea
-                    className="w-full min-h-[72px] !p-4 bg-[#f8f9fb] border border-[#e8eaed] rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
+                    className="w-full min-h-[72px] !p-4 bg-white shadow-sm border border-slate-300 rounded-xl font-medium leading-relaxed outline-none transition-all focus:border-primary/30 focus:bg-white disabled:opacity-50 disabled:grayscale resize-none overflow-hidden"
                     style={{ fontSize: '11px' }}
                     placeholder="Briefly describe the day's activities..."
                     value={item.itinerary_details || ""}
@@ -232,7 +232,7 @@ export default function ItinerarySequence({
                           onUpdateItem(index, updates);
                         }}
                       >
-                        <SelectTrigger className={`!h-[34px] !px-4 !bg-[#f0f2f5]/50 !border-[#e8eaed] font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
+                        <SelectTrigger className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
                           <SelectValue>
                             {item.guest_accommodation_id 
                               ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
@@ -256,7 +256,7 @@ export default function ItinerarySequence({
                           <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0 inline-block">Custom Accommodation</label>
                           <input
                             type="text"
-                            className="input !h-[34px] !px-4 !bg-rose-50/20 !border-rose-100/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
+                            className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
                             placeholder="Name of Hotel/Stay"
                             value={item.guest_accommodation_name || ""}
                             onChange={(e) => {
@@ -275,7 +275,7 @@ export default function ItinerarySequence({
                             <input
                               type="number"
                               disabled={!item.guest_accommodation_name?.trim() || readOnly}
-                              className="input !py-1 !px-3 !bg-rose-50/20 !border-rose-100/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed transition-all"
+                              className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed transition-all"
                               style={{ height: '34px', fontSize: '11px' }}
                               placeholder="0"
                               value={item.guest_accommodation_amount || ""}

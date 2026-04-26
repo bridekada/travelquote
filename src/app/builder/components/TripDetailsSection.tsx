@@ -40,12 +40,12 @@ export default function TripDetailsSection({
     altInput: true,
     altFormat: "F j, Y h:i K",
     allowInput: true,
-    altInputClass: "input !h-[34px] !pl-10 !pr-4 !bg-emerald-50/20 !border-emerald-100/50 !text-[11px] font-semibold text-emerald-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full"
+    altInputClass: "input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-emerald-300 !text-[11px] font-semibold text-emerald-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full"
   }), []);
 
   const etdOptions = useMemo(() => ({
     ...baseOptions,
-    altInputClass: "input !h-[34px] !pl-10 !pr-4 !bg-rose-50/20 !border-rose-100/50 !text-[11px] font-semibold text-rose-700 focus:!border-rose-500 focus:!ring-4 focus:!ring-rose-500/5 transition-all w-full",
+    altInputClass: "input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-rose-300 !text-[11px] font-semibold text-rose-700 focus:!border-rose-500 focus:!ring-4 focus:!ring-rose-500/5 transition-all w-full",
     minDate: quote.eta ? new Date(quote.eta) : undefined
   }), [baseOptions, quote.eta]);
 
@@ -74,7 +74,7 @@ export default function TripDetailsSection({
             <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">Customer Name</label>
             <input 
               type="text" 
-              className="input !h-[34px] !px-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+              className="input !h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
               placeholder="e.g. Maria Clara"
               value={quote.customer_name}
               onChange={(e) => setQuote({...quote, customer_name: e.target.value})}
@@ -85,7 +85,7 @@ export default function TripDetailsSection({
             <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">Contact No.</label>
             <input 
               type="text" 
-              className="input !h-[34px] !px-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+              className="input !h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
               value={quote.contact_number}
               onChange={(e) => setQuote({...quote, contact_number: e.target.value})}
               disabled={readOnly}
@@ -96,7 +96,7 @@ export default function TripDetailsSection({
             <div className="relative">
               <input 
                 type="number" 
-                className="input !h-[34px] !pl-10 !pr-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+                className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
                 value={quote.pax_count === 0 ? "" : quote.pax_count}
                 onChange={(e) => {
                   const val = e.target.value === "" ? 0 : parseInt(e.target.value);
@@ -112,7 +112,7 @@ export default function TripDetailsSection({
             <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">FB Name</label>
             <input 
               type="text" 
-              className="input !h-[34px] !px-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+              className="input !h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
               value={quote.fb_name}
               onChange={(e) => setQuote({...quote, fb_name: e.target.value})}
               disabled={readOnly}
@@ -179,7 +179,7 @@ export default function TripDetailsSection({
             <div className="relative">
               <input 
                 type="text" 
-                className="input !h-[34px] !pl-10 !pr-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+                className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
                 placeholder="e.g. Cebu City"
                 value={quote.pickup_location || ""} 
                 onChange={(e) => setQuote({...quote, pickup_location: e.target.value})} 
@@ -193,7 +193,7 @@ export default function TripDetailsSection({
             <div className="relative">
               <input 
                 type="text" 
-                className="input !h-[34px] !pl-10 !pr-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+                className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
                 placeholder="e.g. Moalboal"
                 value={quote.dropoff_location || ""} 
                 onChange={(e) => setQuote({...quote, dropoff_location: e.target.value})} 
@@ -228,7 +228,7 @@ export default function TripDetailsSection({
                   });
                 }}
               >
-                <SelectTrigger className="!h-[34px] !pl-10 !pr-10 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 w-full hover:border-emerald-200 transition-all rounded-xl shadow-sm">
+                <SelectTrigger className="!h-[34px] !pl-10 !pr-10 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 w-full hover:border-emerald-200 transition-all rounded-xl shadow-sm">
                   <SelectValue>
                     {(() => {
                       const v = dbVehicles.find(v => v.model === quote.vehicle_model);
@@ -258,7 +258,7 @@ export default function TripDetailsSection({
             <div className="relative">
               <input 
                 type="number" 
-                className="input !h-[34px] !pl-10 !pr-4 !bg-slate-50/50 !border-slate-200 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
+                className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 focus:!ring-4 focus:!ring-emerald-500/5 transition-all w-full" 
                 value={quote.default_fuel_price === 0 ? "" : quote.default_fuel_price}
                 onChange={(e) => {
                   const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
@@ -287,7 +287,7 @@ export default function TripDetailsSection({
                   step="0.1"
                   min="0"
                   max="100"
-                  className="input !h-[34px] !pl-10 !pr-4 !bg-amber-50/20 !border-amber-100 !text-[11px] font-semibold text-amber-700 focus:!border-amber-500 focus:!ring-4 focus:!ring-amber-500/5 transition-all w-full" 
+                  className="input !h-[34px] !pl-10 !pr-4 !bg-amber-50/10 shadow-sm !border-amber-300 !text-[11px] font-semibold text-amber-700 focus:!border-amber-500 focus:!ring-4 focus:!ring-amber-500/5 transition-all w-full" 
                   value={quote.admin_commission === 0 ? "" : quote.admin_commission}
                   onChange={(e) => {
                     const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
@@ -305,5 +305,5 @@ export default function TripDetailsSection({
         </div>
       </section>
     </div>
-);
+  );
 }

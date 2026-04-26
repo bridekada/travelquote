@@ -44,6 +44,7 @@ function QuoteBuilder() {
   const { profile, loading: authLoading, selectedOperatorId } = useAuth();
   const searchParams = useSearchParams();
   const quoteId = searchParams.get('id');
+  const copyFromId = searchParams.get('copyFrom');
   
   // States
   const [isSaving, setIsSaving] = useState(false);
@@ -157,16 +158,17 @@ function QuoteBuilder() {
 
   useEffect(() => {
     const loadQuote = async () => {
-      if (!selectedOperatorId || isLoaded) return;
-      if (!quoteId) {
+      if (!selectedOperatorId) return;
+      if (!quoteId && !copyFromId) {
         hasHydrated.current = true;
         setIsLoaded(true);
         return;
       }
       
-      const { data: qData } = await supabase.from('quotes').select('*').eq('id', quoteId).single();
+      const targetId = quoteId || copyFromId;
+      const { data: qData } = await supabase.from('quotes').select('*').eq('id', targetId).single();
       if (!qData) return;
-      const { data: itemsData } = await supabase.from('quote_items').select('*').eq('quote_id', quoteId).order('day_number');
+      const { data: itemsData } = await supabase.from('quote_items').select('*').eq('quote_id', targetId).order('day_number');
       
       const formattedEta = formatForInput(qData.eta);
       const formattedEtd = formatForInput(qData.etd);
@@ -227,6 +229,15 @@ function QuoteBuilder() {
 
       setQuote({
         ...qData,
+        id: copyFromId ? undefined : qData.id,
+        customer_name: copyFromId ? "" : qData.customer_name,
+        contact_number: copyFromId ? "" : qData.contact_number,
+        fb_name: copyFromId ? "" : qData.fb_name,
+        status: copyFromId ? "Draft" : qData.status,
+        confirmed_at: copyFromId ? null : qData.confirmed_at,
+        selected_package_total: copyFromId ? null : qData.selected_package_total,
+        selected_package_details: copyFromId ? null : qData.selected_package_details,
+        quotation_text: copyFromId ? "" : qData.quotation_text,
         eta: formattedEta,
         etd: formattedEtd,
         items: finalItems.map(item => ({
@@ -240,13 +251,13 @@ function QuoteBuilder() {
       if (qData.package_options_json) setLivePackages(qData.package_options_json);
       if (qData.selected_package) setSelectedPackageName(qData.selected_package);
       if (qData.selected_package_id) setSelectedPackageId(qData.selected_package_id);
-      if (qData.quotation_text) setInitialQuotationText(qData.quotation_text);
+      setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
       
       hasHydrated.current = true;
       setIsLoaded(true);
     };
     if (!authLoading && profile) loadQuote();
-  }, [quoteId, selectedOperatorId, authLoading, profile, isLoaded]);
+  }, [quoteId, copyFromId, selectedOperatorId, authLoading, profile]);
 
   const handleEtaChangeRequest = (newDate: Date, iso: string) => {
     // If no End Date exists yet, just update the Start Date normally
@@ -602,7 +613,12 @@ function QuoteBuilder() {
   
   const handleViewSaved = () => {
     if (!initialQuotationText) {
-      openDialog({ title: "No Saved Quote", message: "There is no saved quotation text for this record yet.", type: "alert" });
+      openDialog({ 
+        title: "No Saved Quote", 
+        message: "There is no saved quotation text for this record yet.", 
+        type: "alert",
+        confirmText: "CLOSE"
+      });
       return;
     }
     setPreviewText(initialQuotationText);
@@ -829,6 +845,20 @@ function QuoteBuilder() {
     });
   };
 
+  const handleDuplicate = () => {
+    if (!quoteId) return;
+    openDialog({
+      title: "Duplicate Quotation?",
+      message: "This will clone the current quote into a new draft. Any unsaved changes on this record will be lost. Continue?",
+      type: 'warning',
+      confirmText: "YES, DUPLICATE",
+      cancelText: "NO, GO BACK",
+      onConfirm: () => {
+        router.push(`/builder?copyFrom=${quoteId}`);
+      }
+    });
+  };
+
   const isConfirmedView = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(quote.status || '') && !isReconfiguring;
 
   if (isConfirmedView) {
@@ -851,13 +881,34 @@ function QuoteBuilder() {
     const isReadOnly = quote.status === 'Cancelled' || quote.status === 'Lost';
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8f9fb]">
+    <div className="flex flex-col min-h-screen bg-[#f8f9fb] builder-container">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .builder-container .custom-scrollbar::-webkit-scrollbar {
+          width: 8px !important;
+          height: 8px !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(241, 245, 249, 0.5) !important;
+          border-radius: 10px !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1 !important;
+          border-radius: 10px !important;
+          border: 2px solid rgba(241, 245, 249, 0.5) !important;
+          background-clip: padding-box !important;
+        }
+        .builder-container .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #006644 !important;
+          border: 2px solid rgba(241, 245, 249, 0.5) !important;
+          background-clip: padding-box !important;
+        }
+      `}} />
       <BuilderHeader 
         isSaving={isSaving} isDeadQuote={isReadOnly} status={quote.status || 'Draft'}
         customerName={quote.customer_name} quoteId={quote.id || null} itemsCount={quote.items.length} 
         selectedPackageId={selectedPackageId} onBack={() => router.push('/dashboard?tab=quotes')}
         onSave={() => finalizeSave(undefined, false)} onCancel={handleCancelQuote}
-        onConfirm={handleConfirmQuote} isImpersonating={false}
+        onConfirm={handleConfirmQuote} onDuplicate={handleDuplicate} isImpersonating={false}
       />
       <div className="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
         <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
