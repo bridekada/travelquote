@@ -117,12 +117,14 @@ export default function ItinerarySequence({
               </div>
 
             <div className="flex-1 min-w-0">
-              {/* Top Section: Itinerary + Est KM + Daily Log */}
+              {/* Top Section: Itinerary + Est KM + Itinerary Details (Dynamic Grid) */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4">
-                <div className="md:col-span-12 lg:col-span-8 space-y-4">
-                  {/* Row 1: Itinerary */}
+                
+                {/* Column 1-8 (or 1-4 if expanded) contains the inputs */}
+                <div className={`${!item.applied_preset_id ? "lg:col-span-8" : "lg:col-span-4"} space-y-4`}>
+                  {/* Row 1: Itinerary + Optional Custom Name */}
                   <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-6 space-y-1">
+                    <div className={`${!item.applied_preset_id ? "col-span-6" : "col-span-12"} space-y-1`}>
                       <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Itinerary</label>
                       <Select 
                         value={item.applied_preset_id || "custom"}
@@ -152,26 +154,24 @@ export default function ItinerarySequence({
                       </Select>
                     </div>
 
-                    <div className="col-span-6">
-                      {!item.applied_preset_id && (
-                        <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                          <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Itinerary Name</label>
-                          <input
-                            type="text"
-                            className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
-                            placeholder="e.g. Siargao Island"
-                            value={item.destination || ""}
-                            onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
-                            disabled={readOnly}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    {!item.applied_preset_id && (
+                      <div className="col-span-6 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Itinerary Name</label>
+                        <input
+                          type="text"
+                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
+                          placeholder="e.g. Siargao Island"
+                          value={item.destination || ""}
+                          onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
+                          disabled={readOnly}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Row 2: Est KM */}
                   <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-4 space-y-1">
+                    <div className={`${!item.applied_preset_id ? "col-span-6" : "col-span-12"} space-y-1`}>
                       <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Est. KM</label>
                       <div className="relative">
                         <input
@@ -188,8 +188,8 @@ export default function ItinerarySequence({
                   </div>
                 </div>
 
-                {/* Daily Log */}
-                <div className="md:col-span-12 lg:col-span-4 space-y-2 pr-4">
+                {/* Itinerary Details - EXPANDS to col-span-8 if Custom Name is HIDDEN */}
+                <div className={`md:col-span-12 ${!item.applied_preset_id ? "lg:col-span-4" : "lg:col-span-8"} space-y-2 pr-4 transition-all duration-300`}>
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0.5 inline-block">Itinerary Details</label>
                   </div>
