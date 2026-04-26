@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +51,7 @@ function DashboardContent() {
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
   const [agentFilter, setAgentFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("Created Today");
+  const [sortMethod, setSortMethod] = useState<'priority' | 'updated'>('updated');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -106,42 +107,7 @@ function DashboardContent() {
         if (error) {
           console.error('Error fetching quotes:', error);
         } else {
-          const now = new Date();
-          now.setHours(0, 0, 0, 0);
-
-          const getStatusPriority = (status: string, eta: string) => {
-            const tripDate = new Date(eta);
-            tripDate.setHours(0, 0, 0, 0);
-            const isPast = tripDate < now;
-
-            // Dead or Past Operational records go to the bottom
-            if (['Lost', 'Cancelled'].includes(status) || (isPast && !['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status))) return 2;
-            // Actionable Planning records (top priority)
-            if (['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status)) return 0;
-            // Active Operational records (medium priority)
-            if (['Confirmed', 'Payment Started', 'Payment Complete'].includes(status)) return 1;
-            return 2; // Fallback
-          };
-
-          const sorted = (data || []).sort((a: any, b: any) => {
-            const pA = getStatusPriority(a.status, a.eta);
-            const pB = getStatusPriority(b.status, b.eta);
-
-            if (pA !== pB) return pA - pB;
-
-            if (!a.eta && !b.eta) return 0;
-            if (!a.eta) return 1;
-            if (!b.eta) return -1;
-
-            const dateA = new Date(a.eta).getTime();
-            const dateB = new Date(b.eta).getTime();
-
-            // For Archived/Past, show most recent at top of that section
-            if (pA === 2) return dateB - dateA;
-            // For active ones, show soonest at top
-            return dateA - dateB;
-          });
-          setQuotes(sorted);
+          setQuotes(data || []);
 
           // Fetch payment totals for all quotes
           const quoteIds = (data || []).map((q: any) => q.id);
@@ -385,15 +351,26 @@ function DashboardContent() {
 
   const analytics = calculateAnalytics(analyticsDays);
 
-  const statusCounts: Record<string, number> = {};
-  allStatuses.forEach(s => { statusCounts[s] = quotes.filter(q => q.status === s).length; });
+  const { baseFilteredQuotes, statusCounts } = useMemo(() => {
+    const filtered = quotes.filter(q => {
+      // Calculate Duration String for searching (e.g., "3D2N")
+      let durationStr = "";
+      if (q.eta && q.etd) {
+        const d1 = new Date(q.eta);
+        const d2 = new Date(q.etd);
+        d1.setHours(0,0,0,0);
+        d2.setHours(0,0,0,0);
+        const diffTime = Math.abs(d2.getTime() - d1.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const nights = diffDays - 1;
+        durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
+      }
 
-  const filteredQuotes = quotes.filter(q => {
-    const matchesSearch = q.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
-    const matchesStatus = quoteStatusFilter === "All" || q.status === quoteStatusFilter;
-      
+      const matchesSearch = q.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        durationStr.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
+        
       // Date Filtering Logic
       let matchesDate = true;
       if (dateFilter !== "All Time" && q.created_at) {
@@ -413,8 +390,63 @@ function DashboardContent() {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesAgent && matchesDate;
-  });
+      return matchesSearch && matchesAgent && matchesDate;
+    });
+
+    const counts: Record<string, number> = { "All": filtered.length };
+    allStatuses.forEach(s => {
+      counts[s] = filtered.filter(q => q.status === s).length;
+    });
+
+    return { baseFilteredQuotes: filtered, statusCounts: counts };
+  }, [quotes, searchQuery, agentFilter, dateFilter]);
+
+  const filteredQuotes = useMemo(() => {
+    const filtered = quoteStatusFilter === "All" 
+      ? baseFilteredQuotes 
+      : baseFilteredQuotes.filter(q => q.status === quoteStatusFilter);
+
+    if (sortMethod === 'updated') {
+      return [...filtered].sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at).getTime();
+        const dateB = new Date(b.updated_at || b.created_at).getTime();
+        return dateB - dateA; // Most recent first
+      });
+    }
+
+    // Default Priority Sort
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const getStatusPriority = (status: string, eta: string) => {
+      if (!eta) return 2;
+      const tripDate = new Date(eta);
+      tripDate.setHours(0, 0, 0, 0);
+      const isPast = tripDate < now;
+
+      if (['Lost', 'Cancelled'].includes(status) || (isPast && !['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status))) return 2;
+      if (['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(status)) return 0;
+      if (['Confirmed', 'Payment Started', 'Payment Complete'].includes(status)) return 1;
+      return 2;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const pA = getStatusPriority(a.status, a.eta);
+      const pB = getStatusPriority(b.status, b.eta);
+
+      if (pA !== pB) return pA - pB;
+
+      if (!a.eta && !b.eta) return 0;
+      if (!a.eta) return 1;
+      if (!b.eta) return -1;
+
+      const dateA = new Date(a.eta).getTime();
+      const dateB = new Date(b.eta).getTime();
+
+      if (pA === 2) return dateB - dateA;
+      return dateA - dateB;
+    });
+  }, [baseFilteredQuotes, quoteStatusFilter, sortMethod]);
 
   const filteredFleet = fleet.filter(v => 
     v.model?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -727,9 +759,81 @@ function DashboardContent() {
           <>
         {activeTab === 'quotes' && (
           <div className="flex items-center justify-between">
+            <style dangerouslySetInnerHTML={{ __html: `
+              .sort-toggle-container {
+                display: flex !important;
+                align-items: center !important;
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 9999px !important;
+                padding: 2px !important;
+                gap: 2px !important;
+                height: 28px !important;
+                width: auto !important;
+                min-height: 0 !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+                margin: 0 !important;
+              }
+              .sort-toggle-btn {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 5px !important;
+                height: 20px !important;
+                min-height: 0 !important;
+                width: auto !important;
+                padding: 0 10px !important;
+                border-radius: 9999px !important;
+                font-size: 8.5px !important;
+                font-weight: 900 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                transition: all 0.2s ease !important;
+                border: none !important;
+                cursor: pointer !important;
+                outline: none !important;
+                background: transparent !important;
+                color: #94a3b8 !important;
+                margin: 0 !important;
+                line-height: 1 !important;
+                flex: none !important;
+              }
+              .sort-toggle-btn:hover {
+                color: #64748b !important;
+                background: #f8fafc !important;
+              }
+              .sort-toggle-btn.active {
+                background: #00674f !important;
+                color: #ffffff !important;
+                box-shadow: 0 4px 10px rgba(0, 103, 79, 0.2) !important;
+              }
+            `}} />
+
             <p className="text-xs md:text-sm text-text-secondary shrink-0">
               Showing <span className="font-bold text-primary">{filteredQuotes.length}</span> record{filteredQuotes.length !== 1 && 's'}
             </p>
+            
+            <div className="flex items-center gap-2.5">
+              <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 mt-0.5">Order:</span>
+              <div className="sort-toggle-container">
+                <button
+                  type="button"
+                  onClick={() => setSortMethod('priority')}
+                  className={`sort-toggle-btn ${sortMethod === 'priority' ? 'active' : ''}`}
+                >
+                  <Zap size={10} strokeWidth={3} className={sortMethod === 'priority' ? 'text-white' : 'text-emerald-500'} />
+                  Priority
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMethod('updated')}
+                  className={`sort-toggle-btn ${sortMethod === 'updated' ? 'active' : ''}`}
+                >
+                  <Clock size={10} strokeWidth={3} className={sortMethod === 'updated' ? 'text-white' : 'text-emerald-500'} />
+                  Recent
+                </button>
+              </div>
+            </div>
           </div>
         )}
           {activeTab === 'analytics' && (
@@ -862,9 +966,7 @@ function DashboardContent() {
                 {/* Status Filter Tabs */}
                 <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1 border-b border-[#f1f3f5]">
                   {["All", ...allStatuses].map(status => {
-                    const count = status === "All" 
-                      ? filteredQuotes.length 
-                      : quotes.filter(q => q.status === status).length;
+                    const count = statusCounts[status] || 0;
                     const isActive = quoteStatusFilter === status;
                     
                     const shortNames: Record<string, string> = {
@@ -889,7 +991,7 @@ function DashboardContent() {
                         <div className="flex items-center gap-1.5">
                           {displayName}
                           <span className={`text-[8px] font-black ${isActive ? 'text-primary' : 'text-text-tertiary/50'}`}>
-                            {status === "All" ? quotes.length : count}
+                            {count}
                           </span>
                         </div>
                       </button>
@@ -931,6 +1033,9 @@ function DashboardContent() {
                           customer={quote.customer_name} 
                           route={quote.vehicle_model || "Private Trip"} 
                           date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
+                          etd={quote.etd ? new Date(quote.etd).toLocaleDateString() : null} 
+                          rawEta={quote.eta}
+                          rawEtd={quote.etd}
                           status={quote.status} 
                           isUrgent={isUrgent}
                           amount={`₱${Math.round(quote.grand_total || 0).toLocaleString()}`}
@@ -1419,7 +1524,7 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange }: any) {
+function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -1510,7 +1615,20 @@ function QuoteListItem({ customer, route, date, status, amount, totalPaid, admin
             <span style={sectionLabel} className="!text-[9px] truncate">{route}</span>
             <span className="text-text-tertiary">·</span>
             <span className="text-[9px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1">
-              <Clock size={10} /> {date}
+              <Clock size={10} /> {date} {etd && ` - ${etd}`}
+              {rawEta && rawEtd && (() => {
+                const d1 = new Date(rawEta);
+                const d2 = new Date(rawEtd);
+                d1.setHours(0,0,0,0);
+                d2.setHours(0,0,0,0);
+                const diffDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                const nights = diffDays - 1;
+                return (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[7px] font-black tracking-tighter border border-emerald-100/50">
+                    {diffDays}D{nights > 0 ? `${nights}N` : ""}
+                  </span>
+                );
+              })()}
             </span>
             {isConfirmedFlow && (
               <>
