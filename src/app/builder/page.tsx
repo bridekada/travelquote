@@ -613,7 +613,12 @@ function QuoteBuilder() {
   
   const handleViewSaved = () => {
     if (!initialQuotationText) {
-      openDialog({ title: "No Saved Quote", message: "There is no saved quotation text for this record yet.", type: "alert" });
+      openDialog({ 
+        title: "No Saved Quote", 
+        message: "There is no saved quotation text for this record yet.", 
+        type: "alert",
+        confirmText: "CLOSE"
+      });
       return;
     }
     setPreviewText(initialQuotationText);
