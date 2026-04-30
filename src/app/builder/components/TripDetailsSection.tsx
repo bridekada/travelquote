@@ -279,15 +279,18 @@ export default function TripDetailsSection({
                       <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                     </div>
                   </div>
-
                   <div className="space-y-1.5">
                     <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">Daily Rate (₱)</label>
                     <div className="relative">
                       <input 
                         type="number" 
                         className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
-                        value={v.daily_rate}
-                        onChange={(e) => handleUpdateVehicleRow(v.id, { daily_rate: parseFloat(e.target.value) || 0 })}
+                        value={v.daily_rate === 0 ? "" : v.daily_rate}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                          if (isNaN(val)) return;
+                          handleUpdateVehicleRow(v.id, { daily_rate: val });
+                        }}
                         disabled={readOnly}
                       />
                       <Banknote className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
@@ -300,8 +303,12 @@ export default function TripDetailsSection({
                       <input 
                         type="number" 
                         className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
-                        value={v.fuel_price}
-                        onChange={(e) => handleUpdateVehicleRow(v.id, { fuel_price: parseFloat(e.target.value) || 0 })}
+                        value={v.fuel_price === 0 ? "" : v.fuel_price}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                          if (isNaN(val)) return;
+                          handleUpdateVehicleRow(v.id, { fuel_price: val });
+                        }}
                         disabled={readOnly}
                       />
                       <Fuel className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
@@ -314,8 +321,12 @@ export default function TripDetailsSection({
                       <input 
                         type="number" 
                         className="input !h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full" 
-                        value={v.km_per_l}
-                        onChange={(e) => handleUpdateVehicleRow(v.id, { km_per_l: parseFloat(e.target.value) || 0 })}
+                        value={v.km_per_l === 0 ? "" : v.km_per_l}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                          if (isNaN(val)) return;
+                          handleUpdateVehicleRow(v.id, { km_per_l: val });
+                        }}
                         disabled={readOnly}
                       />
                       <Gauge className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />

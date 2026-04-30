@@ -548,7 +548,7 @@ function QuoteBuilder() {
 
   // Package Summary Generation
   const compileQuotationText = (currentQuote: any, currentItems: any[], currentFees: any[], currentDiscount: number, currentTotals: any, currentSelectedId: string | null) => {
-    const tourSummary = currentItems.map(i => i.destination).filter(Boolean).slice(0, 3).join(" + ");
+    const tourSummary = currentItems.map(i => i.destination).filter(Boolean).join(" + ");
     const durationCount = currentItems.length;
     const duration = durationCount > 0 ? `${durationCount}D${durationCount - 1}N` : "N/A";
     let text = `Hi ${currentQuote.customer_name || 'Guest'},\n\nHere’s our estimated cost for ${duration} | ${currentQuote.pax_count} pax | ${tourSummary}\n\n`;
@@ -563,9 +563,18 @@ function QuoteBuilder() {
     }
 
     text += `--- PACKAGE OPTIONS ---\n\n`;
-    currentTotals.packages.forEach((pkg: any, idx: number) => {
+    const sortedPackages = [...currentTotals.packages].sort((a, b) => {
+      if (currentSelectedId) {
+        if (a.id === currentSelectedId) return -1;
+        if (b.id === currentSelectedId) return 1;
+        return b.total - a.total; // Highest to Lowest for non-selected
+      }
+      return a.total - b.total; // Lowest to Highest if nothing selected
+    });
+
+    sortedPackages.forEach((pkg: any, idx: number) => {
       const isSelected = pkg.id === currentSelectedId;
-      text += `Option ${idx + 1}: ${pkg.name}${isSelected ? ' [SELECTED] ✅' : ''}\n💰 ₱${pkg.total.toLocaleString()} total\n👥 ₱${Math.round(pkg.total / (currentQuote.pax_count || 1)).toLocaleString()}/pax\n\n`;
+      text += `${isSelected ? '⭐ RECOMMENDED' : `Option ${idx + 1}`}: ${pkg.name}${isSelected ? ' ✅' : ''}\n💰 ₱${pkg.total.toLocaleString()} total\n👥 ₱${Math.round(pkg.total / (currentQuote.pax_count || 1)).toLocaleString()}/pax\n\n`;
       
       const incs = [];
       const excs = [];
@@ -583,7 +592,7 @@ function QuoteBuilder() {
       }
 
       // Fuel
-      if (pkg.config.includes_fuel && currentTotals.colTotals.fuel > 0) incs.push(`Fuel Consumption (Reference Only)`);
+      if (pkg.config.includes_fuel && currentTotals.colTotals.fuel > 0) incs.push(`Fuel Consumption`);
       else excs.push(`Fuel Consumption`);
 
       // Accommodation
@@ -601,13 +610,34 @@ function QuoteBuilder() {
       }
 
       // Misc
+      // Driver consolidation
+      let driverIncluded = false;
+      let driverExcluded = false;
+
       dbMiscPresets.forEach(m => {
-        const totalAmount = currentTotals.colTotals.misc[m.id] || 0;
+        const name = m.name.toLowerCase();
+        if (name.includes('car wash') || name.includes('parking') || name.includes('overtime') || name === 'ot' || name.split(' ').includes('ot')) return;
+
         const isIncluded = (pkg.config.includes_misc_ids || []).includes(m.id);
+        const totalAmount = currentTotals.colTotals.misc[m.id] || 0;
         
+        if (name.includes('driver')) {
+          if (isIncluded && totalAmount > 0) driverIncluded = true;
+          else driverExcluded = true;
+          return;
+        }
+
         if (isIncluded && totalAmount > 0) incs.push(m.name);
         else excs.push(m.name);
       });
+
+      if (driverIncluded) incs.push("Driver");
+      else if (driverExcluded) excs.push("Driver");
+
+      // Default Exclusions
+      excs.push("Guest meals");
+      excs.push("Entrance fees");
+      excs.push("Activity fees");
 
       text += `✔ INCLUSIONS:\n`;
       incs.forEach(inc => text += `• ${inc}\n`);
@@ -631,9 +661,7 @@ function QuoteBuilder() {
     }
 
     text += `--- ADDITIONAL NOTES ---\n`;
-    text += `1. Fuel is computed based on P120/L and may vary depending on actual consumption and fuel price changes.\n`;
-    text += `2. Driver service is up to 10 hours per day. Excess hours will be charged P100/hour.\n`;
-    text += `3. For bookings with accommodation, 50% downpayment is required.\n\n`;
+    text += `1. For bookings with accommodation, 50% downpayment is required.\n\n`;
     
     return text;
   };
