@@ -26,12 +26,66 @@ export async function polishQuotation(rawText: string) {
       3. CONCISENESS: No long paragraphs. Use clear separators (---) and bullet points.
 
       --- START EXAMPLE (GOLD STANDARD) ---
-      --- START EXAMPLE ---
       RAW INPUT:
-      Hi Kyle | 3D2N | 3 pax | Dahilayan + Impasug-ong + CDO
-      ITINERARY: Day 1: Pineapple Plantation, Dahilayan Park, Alpine Village (Must try: Pineapple Icecream) | Day 2: Communal Ranch, Loverslane, Roty Peaks, Cedar Falls | Day 3: Water Rafting, Amaya View, Bolao Cold Spring, Sinulom Falls, Pasalubong Center, Airport Drop Off
-      OPTIONS: Option 1: All In (₱23,618.7 total, ₱7,873/pax). Inclusions: Vehicle (Toyota Wigo), Fuel, Accomm, Car Wash, Driver Fee/Meal/Accomm, Drone, Parking. | Option 2: Car + Driver (₱12,707.5) | Option 3: Car + Driver + Fuel (₱17,868.7)
-      NOTES: Fuel computed at P120/L. 50% downpayment for accomm.
+      Hi Kyle 🙂
+
+      Here’s our estimated cost for 3D2N | 3 pax | Dahilayan + Impasug-ong + CDO
+
+      --- ITINERARY ---
+
+      Day 1: Pineapple Plantation + Airport Pickup
+      • Pineapple Plantation
+      • Dahilayan Adventure Park
+      • Dahilayan Forest Park
+      • Alpine Village
+      • Must try: Pineapple Ice Cream 🍍
+
+      Day 2: Impasugong Tour
+      • Communal Ranch
+      • Lover’s Lane
+      • Roty Peaks
+      • Cedar Falls
+
+      Day 3: CDO Tour + Drop Off
+      • White Water Rafting
+      • Amaya View
+      • Bolao Cold Spring
+      • Sinulom Falls
+      • Pasalubong Center
+      • Airport Drop Off
+
+      --- PACKAGE OPTIONS ---
+
+      ⭐ RECOMMENDED: All In Package ✅
+      💰 ₱23,618 total
+      👥 ₱7,873/pax
+
+      ✔ INCLUSIONS:
+      • Vehicles: Toyota Wigo
+      • Fuel Consumption (Reference Only)
+      • Guest Accommodation (Impasugong + CDO)
+      • Driver
+      • Drone shots
+
+      ❌ EXCLUSIONS:
+      • Guest meals
+      • Entrance fees
+      • Activity fees
+
+      Option 2: Car + Driver + Fuel
+      💰 ₱17,868 total
+      👥 ₱5,956/pax
+
+      ✔ INCLUSIONS:
+      • Vehicles: Toyota Wigo
+      • Fuel Consumption (Reference Only)
+      • Driver
+
+      ❌ EXCLUSIONS:
+      • Guest Accommodation
+      • Guest meals
+      • Entrance fees
+      • Activity fees
 
       TRANSFORMED OUTPUT:
       Hi Kyle 🙂
@@ -71,10 +125,8 @@ export async function polishQuotation(rawText: string) {
       ✔ Vehicle (Toyota Wigo)
       ✔ Fuel (reference-based)
       ✔ Accommodation (Impasugong + CDO)
-      ✔ Driver-guide (with meals & accommodation)
-      ✔ Parking fees
+      ✔ Driver
       ✔ Drone shots
-      ✔ Car wash
 
       👉 Pinaka smooth na setup — no need to think about logistics, tuloy-tuloy lang ang trip.
 
@@ -89,6 +141,9 @@ export async function polishQuotation(rawText: string) {
       • Flexible pacing — kayo masusunod sa trip
       • Efficient route — sulit kahit 3D2N lang
 
+      ❌ Standard Exclusions:
+      • Guest meals, Entrance fees, and Activity fees (para you have full control over where to eat and which activities to pay for)
+
       ✅ Next Step
       For your dates, available pa siya as of now 👍
       If you want to secure the slot:
@@ -101,6 +156,9 @@ export async function polishQuotation(rawText: string) {
       - NEVER change the total prices (₱), pax counts, or dates from the RAW INPUT.
       - KEEP all specific inclusions/exclusions from the RAW INPUT.
       - DO NOT add fake prices.
+      - DO NOT mention Car Wash, Parking fees, Overtime, or OT.
+      - ALWAYS group Driver-related items as "Driver".
+      - PACKAGE ORDER: If a package is marked as ⭐ RECOMMENDED, it must be first. Otherwise, sort packages from lowest to highest price.
 
       RAW QUOTATION TEXT TO TRANSFORM:
       ${rawText}
