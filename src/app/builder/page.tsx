@@ -278,20 +278,36 @@ function QuoteBuilder() {
       return;
     }
 
-    openDialog({
-      title: "Reset Itinerary?",
-      message: "Changing the Start Date will clear your End Date and reset the itinerary. Proceed?",
-      type: 'warning',
-      confirmText: "Reset & Continue",
-      onConfirm: () => {
-        setQuote(prev => ({ 
-          ...prev, 
-          eta: iso, 
-          etd: "", 
-          items: [] as QuoteItem[] 
-        }));
-      }
+    // If no valid old ETA to calculate offset from, just set the new ETA
+    if (!quote.eta) {
+      setQuote(prev => ({ ...prev, eta: iso }));
+      return;
+    }
+
+    // Auto-shift: Calculate offset and slide ETD + all item dates together
+    const oldEta = new Date(quote.eta);
+    const newEta = new Date(iso);
+    const offsetMs = newEta.getTime() - oldEta.getTime();
+    const offsetDays = Math.round(offsetMs / (1000 * 60 * 60 * 24));
+
+    // Shift ETD by the same offset
+    const oldEtd = new Date(quote.etd);
+    const newEtd = new Date(oldEtd.getTime() + offsetMs);
+
+    // Shift every itinerary item's date by the same day offset
+    const shiftedItems = quote.items.map(item => {
+      const itemDate = new Date(item.date);
+      itemDate.setDate(itemDate.getDate() + offsetDays);
+      return { ...item, date: itemDate.toISOString().split('T')[0] };
     });
+
+    // Atomic update: ETA, ETD, and items all shift together
+    setQuote(prev => ({
+      ...prev,
+      eta: iso,
+      etd: formatForInput(newEtd.toISOString()),
+      items: shiftedItems
+    }));
   };
 
   // Date/Timeline Synchronization

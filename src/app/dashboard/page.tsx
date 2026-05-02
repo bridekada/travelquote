@@ -50,7 +50,7 @@ function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
   const [agentFilter, setAgentFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState("Created Today");
+  const [dateFilter, setDateFilter] = useState("Last 7 Days");
   const [sortMethod, setSortMethod] = useState<'priority' | 'updated'>('updated');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -78,7 +78,7 @@ function DashboardContent() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ 
     isOpen: boolean, 
-    type: 'vehicle' | 'itinerary' | 'misc' | 'package' | 'accommodation' | null, 
+    type: 'vehicle' | 'itinerary' | 'misc' | 'package' | 'accommodation' | 'quote' | null, 
     id: string, 
     title: string 
   }>({ isOpen: false, type: null, id: "", title: "" });
@@ -223,7 +223,7 @@ function DashboardContent() {
     }
   };
 
-  const handleDelete = (type: 'vehicle' | 'itinerary' | 'misc' | 'package' | 'accommodation', id: string, title?: string) => {
+  const handleDelete = (type: 'vehicle' | 'itinerary' | 'misc' | 'package' | 'accommodation' | 'quote', id: string, title?: string) => {
     setDeleteConfirm({
       isOpen: true,
       type,
@@ -246,6 +246,19 @@ function DashboardContent() {
       else if (type === 'misc') res = await deleteMiscPreset(id);
       else if (type === 'package') res = await deletePackagePreset(id);
       else if (type === 'accommodation') res = await deleteGuestAccommodation(id);
+      else if (type === 'quote') {
+        // Cascade delete: payments → quote_items → quote
+        const { error: paymentsErr } = await supabase.from('payments').delete().eq('quote_id', id);
+        if (paymentsErr) throw new Error(`Failed to delete payments: ${paymentsErr.message}`);
+
+        const { error: itemsErr } = await supabase.from('quote_items').delete().eq('quote_id', id);
+        if (itemsErr) throw new Error(`Failed to delete quote items: ${itemsErr.message}`);
+
+        const { error: quoteErr } = await supabase.from('quotes').delete().eq('id', id);
+        if (quoteErr) throw new Error(`Failed to delete quote: ${quoteErr.message}`);
+
+        res = { success: true };
+      }
       
       if (res?.success) {
         setRefreshTrigger(prev => prev + 1);
@@ -1062,6 +1075,7 @@ function DashboardContent() {
                           onStatusChange={(newStatus: string) => {
                             setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
                           }}
+                          onDelete={() => handleDelete('quote', quote.id, quote.customer_name || 'Untitled Quote')}
                         />
                       );
                     });
@@ -1536,7 +1550,7 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange }: any) {
+function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange, onDelete }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -1766,6 +1780,17 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
             </div>
           )}
         </div>
+
+        {onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-2 rounded-xl text-text-tertiary/30 hover:bg-rose-50 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 shrink-0"
+            title="Delete Quote"
+            aria-label="Delete Quote"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -2424,33 +2449,36 @@ function PremiumConfirmDialog({ isOpen, onClose, onConfirm, title, type }: { isO
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-white rounded-[40px] w-full max-w-sm shadow-2xl overflow-hidden border border-white/20 !p-[48px] flex flex-col items-center text-center relative"
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            style={{ padding: '1.25rem 0.875rem', maxWidth: '280px', width: '90%' }}
+            className="bg-white rounded-[28px] shadow-2xl overflow-hidden border border-slate-100/50 flex flex-col items-center text-center"
           >
-            <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-500 flex items-center justify-center mb-6 shadow-lg shadow-rose-200/50 relative">
-              <div className="absolute inset-0 bg-rose-200/20 rounded-3xl animate-pulse" />
-              <AlertCircle size={32} strokeWidth={2.5} className="relative" />
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center relative" style={{ marginBottom: '0.625rem' }}>
+              <div className="absolute inset-0 bg-rose-200/20 rounded-xl animate-pulse" />
+              <AlertCircle size={16} strokeWidth={2.5} className="relative" />
             </div>
             
-            <h3 className="text-[17px] font-black text-primary tracking-tight leading-tight italic">Confirm Deletion</h3>
-            <p className="text-[12px] font-bold text-text-tertiary mt-3 leading-relaxed">
-              Are you sure you want to delete this {type || 'record'}? This will permanently remove <span className="text-rose-500 font-black">"{title}"</span> from your records.
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', marginBottom: '0.25rem' }}>Confirm Deletion</h3>
+            <p style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+              Are you sure you want to delete this {type || 'record'}? This will permanently remove <span style={{ color: '#f43f5e', fontWeight: 800 }}>"{title}"</span> from your records.
             </p>
             
-            <div className="flex w-full gap-3 mt-10">
-              <button 
-                onClick={onClose}
-                className="flex-1 h-12 bg-[#f8f9fb] text-primary border border-[#e8eaed] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:border-primary/20 transition-all active:scale-[0.98]"
-              >
-                No, Keep it
-              </button>
+            <div className="flex flex-col w-full" style={{ gap: '0.625rem' }}>
               <button 
                 onClick={onConfirm}
-                className="flex-1 h-12 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] shadow-xl shadow-rose-500/20 hover:bg-rose-600 active:scale-[0.98] transition-all"
+                style={{ height: '2.25rem', fontSize: '0.625rem', fontWeight: 900, letterSpacing: '0.1em', borderRadius: '9999px' }}
+                className="w-full bg-rose-500 text-white uppercase shadow-sm shadow-rose-200/50 hover:bg-rose-600 active:scale-[0.98] transition-all border-0"
               >
                 Yes, Delete it
+              </button>
+              <button 
+                onClick={onClose}
+                style={{ height: '2.25rem', fontSize: '0.625rem', fontWeight: 900, letterSpacing: '0.1em', borderRadius: '9999px' }}
+                className="w-full bg-transparent text-[#0f172a] border border-slate-200 uppercase hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
+              >
+                No, Keep it
               </button>
             </div>
           </motion.div>
