@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "./SearchableSelect";
 
 interface TripDetailsSectionProps {
   quote: QuoteData;
@@ -76,7 +77,7 @@ export default function TripDetailsSection({
     <div className="w-full !px-2 md:!px-4 lg:!px-6 !mt-4 md:!mt-6">
       <section>
         
-        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
           {/* Premium In-Card Header */}
           <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-2 md:!pl-3 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -249,11 +250,9 @@ export default function TripDetailsSection({
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="!text-[8px] font-black uppercase tracking-widest text-slate-400 ml-1">Vehicle Selection</label>
                     <div className="relative">
-                      <Select 
+                      <SearchableSelect
                         value={v.model || ""}
-                        disabled={readOnly}
                         onValueChange={(model) => {
-                          if (!model) return;
                           const sv = dbVehicles.find(dv => dv.model === model);
                           handleUpdateVehicleRow(v.id, {
                             model,
@@ -261,21 +260,20 @@ export default function TripDetailsSection({
                             km_per_l: Number(sv?.km_per_l) || 10
                           });
                         }}
-                      >
-                        <SelectTrigger className="!h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 w-full rounded-xl transition-all hover:border-emerald-200">
-                          <SelectValue placeholder="Select Vehicle" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 !min-w-[200px] !max-w-[320px]">
-                          {dbVehicles.map(dv => (
-                            <SelectItem key={dv.id} value={dv.model} className="!text-[10px] font-semibold py-2 px-3 cursor-pointer focus:bg-emerald-50 rounded-xl transition-colors mb-0.5">
-                              <div className="flex flex-col">
-                                <span className="leading-tight">{dv.model}</span>
-                                <span className="opacity-50 text-[9px] font-medium leading-tight">{dv.pax_capacity} PAX — {dv.km_per_l || 10} KM/L</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        options={dbVehicles}
+                        getLabel={(dv) => dv.model}
+                        getValue={(dv) => dv.model}
+                        placeholder="Select Vehicle"
+                        searchPlaceholder="Search vehicles..."
+                        disabled={readOnly}
+                        renderOption={(dv) => (
+                          <div className="flex flex-col">
+                            <span className="leading-tight">{dv.model}</span>
+                            <span className="opacity-50 text-[9px] font-medium leading-tight">{dv.pax_capacity} PAX — {dv.km_per_l || 10} KM/L</span>
+                          </div>
+                        )}
+                        className="!h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 w-full rounded-xl transition-all hover:border-emerald-200"
+                      />
                       <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                     </div>
                   </div>

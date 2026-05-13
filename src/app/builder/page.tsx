@@ -357,7 +357,12 @@ function QuoteBuilder() {
       const commission = quote.admin_commission || 0;
       quote.items.forEach(item => {
         let rowBase = 0;
-        if (pkg.includes_vehicle) rowBase += item.vehicle_rate;
+        if (pkg.includes_vehicle) {
+          const fleetRate = (quote.fleet && quote.fleet.length > 0)
+            ? quote.fleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
+            : (item.vehicle_rate || 0);
+          rowBase += fleetRate;
+        }
         if (pkg.includes_fuel) rowBase += calculateFuelCost(item, quote.fleet);
         if (pkg.includes_accommodation) rowBase += (item.guest_accommodation_amount || 0);
         (pkg.includes_misc_ids || []).forEach((mId: string) => { rowBase += (item.dynamic_costs[mId] || 0); });
@@ -375,7 +380,13 @@ function QuoteBuilder() {
     
     const colTotals = quote.items.reduce((acc, item) => {
       const fuel = calculateFuelCost(item, quote.fleet);
-      acc.rate += item.vehicle_rate; acc.km += item.km; acc.fuel += fuel;
+      const currentRate = (quote.fleet && quote.fleet.length > 0)
+        ? quote.fleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
+        : (item.vehicle_rate || 0);
+        
+      acc.rate += currentRate; 
+      acc.km += item.km; 
+      acc.fuel += fuel;
       acc.accom += (item.guest_accommodation_amount || 0);
       acc.grand += calculateRowTotal(item, quote.admin_commission, quote.fleet);
       dbMiscPresets.forEach(p => { acc.misc[p.id] = (acc.misc[p.id] || 0) + (item.dynamic_costs[p.id] || 0); });
@@ -572,7 +583,9 @@ function QuoteBuilder() {
     if (includeItineraryInText && currentItems.length > 0) {
       text += `--- ITINERARY ---\n\n`;
       currentItems.forEach((item, idx) => {
-        text += `Day ${idx + 1}: ${item.destination || 'TBA'}\n`;
+        const d = new Date(item.date);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        text += `Day ${idx + 1} (${dateStr}): ${item.destination || 'TBA'}\n`;
         if (item.itinerary_details) item.itinerary_details.split('\n').filter(Boolean).forEach((d: string) => text += `• ${d.replace(/^•\s*/, '')}\n`);
         text += `\n`;
       });
@@ -676,8 +689,10 @@ function QuoteBuilder() {
       text += `--- NOTES ---\n\n${currentQuote.notes}\n\n`;
     }
 
-    text += `--- ADDITIONAL NOTES ---\n`;
-    text += `1. For bookings with accommodation, 50% downpayment is required.\n\n`;
+    const agencyNotes = profile?.operators?.quotation_agency_notes;
+    if (agencyNotes) {
+      text += `--- ADDITIONAL NOTES ---\n\n${agencyNotes}\n\n`;
+    }
     
     return text;
   };

@@ -3,13 +3,7 @@
 import { Plus, Minus, MapPin, Trash2 } from "lucide-react";
 import { QuoteItem } from "./types";
 import { btnAction } from "@/lib/styles";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "./SearchableSelect";
 
 interface TagSelectorProps {
   options: string[];
@@ -77,7 +71,7 @@ export default function ItinerarySequence({
   return (
     <div className="w-full !px-2 md:!px-4 lg:!px-6 !mt-4 md:!mt-6">
       <section>
-        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl shadow-slate-200/30 transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:border-slate-200/60 hover:bg-yellow-50/25">
           {/* Premium In-Card Header */}
           <div className="bg-slate-50/50 border-b border-slate-100 !px-4 md:!px-6 !pl-2 md:!pl-3 !pt-2 !pb-2 md:!pt-3 md:!pb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -126,32 +120,18 @@ export default function ItinerarySequence({
                   <div className="grid grid-cols-12 gap-3">
                     <div className={`${!item.applied_preset_id ? "col-span-6" : "col-span-12"} space-y-1`}>
                       <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Itinerary</label>
-                      <Select 
+                      <SearchableSelect
                         value={item.applied_preset_id || "custom"}
+                        onValueChange={(val) => onApplyPreset(index, val === "custom" ? "" : val)}
+                        options={dbPresets}
+                        getLabel={(p) => p.title}
+                        getValue={(p) => p.id}
+                        placeholder={item.applied_preset_id ? dbPresets.find(p => p.id === item.applied_preset_id)?.title : "Custom Itinerary"}
+                        searchPlaceholder="Search itinerary..."
                         disabled={readOnly}
-                        onValueChange={(val) => {
-                          if (!val) return;
-                          onApplyPreset(index, val === "custom" ? "" : val);
-                        }}
-                      >
-                        <SelectTrigger 
-                          className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
-                        >
-                          <SelectValue>
-                            {item.applied_preset_id 
-                              ? dbPresets.find(p => p.id === item.applied_preset_id)?.title 
-                              : "Custom Itinerary"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="dark min-w-[280px]">
-                          <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Itinerary</SelectItem>
-                          {dbPresets.map(p => (
-                            <SelectItem key={p.id} value={p.id} className="text-[12px] font-medium py-2">
-                              {p.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        customItem={{ value: "custom", label: "Custom Itinerary" }}
+                        className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
+                      />
                     </div>
 
                     {!item.applied_preset_id && (
@@ -219,11 +199,9 @@ export default function ItinerarySequence({
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-4 space-y-1">
                     <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Accommodation</label>
-                    <Select
+                    <SearchableSelect
                       value={item.guest_accommodation_id || "custom"}
-                      disabled={readOnly}
                       onValueChange={(val) => {
-                        if (!val) return;
                         const actualVal = val === "custom" ? "" : val;
                         const accom = dbAccommodations.find(a => a.id === actualVal);
                         const updates: any = { guest_accommodation_id: actualVal };
@@ -236,23 +214,20 @@ export default function ItinerarySequence({
                         }
                         onUpdateItem(index, updates);
                       }}
-                    >
-                      <SelectTrigger className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}>
-                        <SelectValue>
-                          {item.guest_accommodation_id 
-                            ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name 
-                            : "Custom Accommodation"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="dark min-w-[320px]">
-                        <SelectItem value="custom" className="text-[12px] font-bold py-2">Custom Accommodation</SelectItem>
-                        {dbAccommodations.map(a => (
-                          <SelectItem key={a.id} value={a.id} className="text-[12px] font-medium py-2">
-                            {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={dbAccommodations}
+                      getLabel={(a) => a.name}
+                      getValue={(a) => a.id}
+                      placeholder={item.guest_accommodation_id ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name : "Custom Accommodation"}
+                      searchPlaceholder="Search hotels..."
+                      disabled={readOnly}
+                      customItem={{ value: "custom", label: "Custom Accommodation" }}
+                      renderOption={(a) => (
+                        <>
+                          {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
+                        </>
+                      )}
+                      className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
+                    />
                   </div>
 
                   {!item.guest_accommodation_id && (

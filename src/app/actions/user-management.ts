@@ -116,6 +116,7 @@ export async function updateProfile(userId: string, data: { fullName: string }) 
 export async function createOperator(formData: FormData) {
   const name = formData.get('name') as string;
   const website = formData.get('website') as string;
+  const agencyNotes = formData.get('quotation_agency_notes') as string;
   const socialLinks = formData.getAll('socialLinks') as string[];
 
   if (!name) return { error: 'Operator name is required' };
@@ -128,6 +129,7 @@ export async function createOperator(formData: FormData) {
       .insert({ 
         name, 
         website,
+        quotation_agency_notes: agencyNotes,
         social_links: socialLinks.filter(link => link.trim() !== '')
       })
       .select()
@@ -206,6 +208,7 @@ export async function getOperatorStats() {
 export async function updateOperator(operatorId: string, formData: FormData) {
   const name = formData.get('name') as string;
   const website = formData.get('website') as string;
+  const agencyNotes = formData.get('quotation_agency_notes') as string;
   const socialLinks = formData.getAll('socialLinks') as string[];
 
   if (!operatorId || !name) return { error: 'Operator ID and name are required' };
@@ -218,6 +221,7 @@ export async function updateOperator(operatorId: string, formData: FormData) {
       .update({ 
         name, 
         website,
+        quotation_agency_notes: agencyNotes,
         social_links: socialLinks.filter(link => link.trim() !== '')
       })
       .eq('id', operatorId);
