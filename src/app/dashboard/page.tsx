@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -25,6 +25,7 @@ import {
   deletePackagePreset,
   deleteGuestAccommodation
 } from "@/app/actions/operational-config";
+import { updateOperator } from "@/app/actions/user-management";
 import {
   cardStyle, chipGreen, chipGray, btnPrimary, btnSecondary, btnAction, btnIcon,
   inputStyle, labelStyle, sectionLabel, headingMd,
@@ -54,6 +55,12 @@ function DashboardContent() {
   const [sortMethod, setSortMethod] = useState<'priority' | 'updated'>('updated');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAgencySettingsOpen, setIsAgencySettingsOpen] = useState(false);
+  const [agencyFormLoading, setAgencyFormLoading] = useState(false);
+  const [newAgencyName, setNewAgencyName] = useState("");
+  const [newAgencyWebsite, setNewAgencyWebsite] = useState("");
+  const [newAgencyNotes, setNewAgencyNotes] = useState("");
+  const [newAgencySocials, setNewAgencySocials] = useState<string[]>([]);
   const searchParams = useSearchParams();
   const validTabs = ['analytics', 'quotes', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
@@ -186,6 +193,31 @@ function DashboardContent() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const handleUpdateAgency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.operators?.id) return;
+    setAgencyFormLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newAgencyName);
+      formData.append('website', newAgencyWebsite);
+      formData.append('quotation_agency_notes', newAgencyNotes);
+      newAgencySocials.forEach(link => {
+        if (link.trim()) formData.append('socialLinks', link.trim());
+      });
+
+      const res = await updateOperator(profile.operators.id, formData);
+      if (res.error) throw new Error(res.error);
+
+      setIsAgencySettingsOpen(false);
+      window.location.reload();
+    } catch (error: any) {
+      alert(error.message || "Failed to update agency settings");
+    } finally {
+      setAgencyFormLoading(false);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -379,11 +411,13 @@ function DashboardContent() {
         durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
       }
 
+      const paxStr = q.pax_count ? `${q.pax_count}pax` : "";
       const fleetSearchText = (q.fleet_json || q.fleet || []).map((v: any) => v.model).join(" ").toLowerCase();
       const matchesSearch = q.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         fleetSearchText.includes(searchQuery.toLowerCase()) ||
-        durationStr.toLowerCase().includes(searchQuery.toLowerCase());
+        durationStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        paxStr.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
         
       // Date Filtering Logic
@@ -540,8 +574,23 @@ function DashboardContent() {
               <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">TravelQuote <span style={{ color: '#F05E33', fontWeight: 500, fontSize: '0.75em', marginLeft: '2px' }}>by JWRM</span></span>
             </div>
             <div className="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
-            <div className="text-xs font-medium text-text-muted hidden sm:block truncate">
+            <div className="text-xs font-medium text-text-muted hidden sm:flex items-center gap-2 truncate">
               Station: <span style={{ color: 'var(--color-brand)', fontWeight: 700 }}>{profile?.operators?.name}</span>
+              {(profile?.role === 'super_admin' || profile?.role === 'operator_admin' || profile?.role === 'operator_sales') && (
+                <button 
+                  onClick={() => {
+                    setNewAgencyName(profile?.operators?.name || "");
+                    setNewAgencyWebsite(profile?.operators?.website || "");
+                    setNewAgencyNotes(profile?.operators?.quotation_agency_notes || "");
+                    setNewAgencySocials(profile?.operators?.social_links || []);
+                    setIsAgencySettingsOpen(true);
+                  }}
+                  className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-all group"
+                  title="Edit Agency Settings"
+                >
+                  <Settings size={14} className="group-hover:rotate-90 transition-transform duration-500" />
+                </button>
+              )}
             </div>
             {/* Persistent Calendar Button */}
             <button 
@@ -925,7 +974,7 @@ function DashboardContent() {
                   <div>
                     <p style={sectionLabel} className="mb-0.5">Total Quotes</p>
                     <h3 style={headingMd} className="text-2xl tracking-tight">₱{analytics.total.amount.toLocaleString()}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.total.count} Record{analytics.total.count !== 1 ? 's' : ''}</p>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.total.count} Record${analytics.total.count !== 1 ? 's' : ''}</p>
                   </div>
                   <div 
                     className="w-12 h-12 rounded-2xl flex items-center justify-center"
@@ -1071,6 +1120,7 @@ function DashboardContent() {
                           modifier={quote.modifier?.full_name}
                           updatedAt={quote.updated_at}
                           currentUserId={profile?.id}
+                          paxCount={quote.pax_count}
                           onClick={() => router.push(`/builder?id=${quote.id}`)}
                           onStatusChange={(newStatus: string) => {
                             setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
@@ -1242,6 +1292,22 @@ function DashboardContent() {
         </div>
 
         <AnimatePresence>
+          {isAgencySettingsOpen && (
+            <AgencySettingsModal 
+              onClose={() => setIsAgencySettingsOpen(false)}
+              onSave={handleUpdateAgency}
+              name={newAgencyName}
+              setName={setNewAgencyName}
+              website={newAgencyWebsite}
+              setWebsite={setNewAgencyWebsite}
+              notes={newAgencyNotes}
+              setNotes={setNewAgencyNotes}
+              socials={newAgencySocials}
+              setSocials={setNewAgencySocials}
+              loading={agencyFormLoading}
+            />
+          )}
+
           {isSettingsOpen && (
             <UserSettingsModal
               key="settings-modal"
@@ -1322,6 +1388,144 @@ function DashboardContent() {
         />
       </main>
     </div>
+  );
+}
+
+function AgencySettingsModal({ 
+  onClose, onSave, name, setName, website, setWebsite, notes, setNotes, socials, setSocials, loading 
+}: any) {
+  const getSocialIcon = (url: string) => {
+    const low = url.toLowerCase();
+    if (low.includes('facebook.com') || low.includes('fb.com')) return <Share2 size={14} />;
+    if (low.includes('instagram.com') || low.includes('ig.com')) return <Share2 size={14} />;
+    return <Globe size={14} />;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={modalOverlay}
+      className="z-[100] px-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
+        className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
+        <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
+          <h3 style={modalTitle}>Edit Agency</h3>
+          <button onClick={onClose} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={onSave} className="flex flex-col" style={{ gap: '20px' }}>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Agency Name</label>
+              <input 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                style={inputStyle} 
+                placeholder="e.g. Skyline Travel"
+                required 
+                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label style={labelStyle}>Official Website</label>
+              <input 
+                value={website} 
+                onChange={(e) => setWebsite(e.target.value)} 
+                style={inputStyle} 
+                placeholder="e.g. skyline.com"
+                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+          </div>
+
+          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
+              <button 
+                type="button" 
+                onClick={() => setSocials([...socials, ""])} 
+                className="flex items-center gap-1 hover:opacity-80" 
+                style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}
+              >
+                <Plus size={12} /> Add Channel
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
+              {(socials.length > 0 ? socials : [""]).map((link: string, idx: number) => (
+                <div key={idx} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
+                      {getSocialIcon(link)}
+                    </div>
+                    <input 
+                      value={link} 
+                      onChange={(e) => {
+                        const next = [...socials];
+                        if (next.length === 0) next.push("");
+                        next[idx] = e.target.value;
+                        setSocials(next);
+                      }} 
+                      style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
+                      placeholder="fb.com/page or ig.com/user"
+                    />
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const next = socials.filter((_: any, i: number) => i !== idx);
+                      setSocials(next.length > 0 ? next : [""]);
+                    }}
+                    className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                  >
+                    <Minus size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+            <div className="flex flex-col gap-1.5">
+              <label style={labelStyle}>Quotation Important Notes</label>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
+              <textarea 
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+                style={{ ...inputStyle, height: 'auto', minHeight: '80px', padding: '12px 14px', lineHeight: '1.5' }} 
+                className="custom-scrollbar resize-y"
+                placeholder="e.g. Terms & conditions, payment instructions, etc."
+                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading} 
+            style={{ ...btnPrimary, width: '100%', height: '48px', opacity: loading ? 0.7 : 1 }}
+            className="flex items-center justify-center hover:opacity-90 transition-opacity mt-2"
+          >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1550,7 +1754,7 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, onStatusChange, onDelete }: any) {
+function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, paxCount, onStatusChange, onDelete }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -1655,6 +1859,11 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
                   </span>
                 );
               })()}
+              {paxCount && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 text-[7px] font-black tracking-tighter border border-blue-100/50">
+                  {paxCount}PAX
+                </span>
+              )}
             </span>
             {isConfirmedFlow && (
               <>
@@ -2439,7 +2648,6 @@ function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword
         </form>
       </motion.div>
     </motion.div>
-
   );
 }
 

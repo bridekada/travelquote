@@ -12,6 +12,7 @@ interface Profile {
     name: string;
     website?: string;
     social_links?: string[];
+    quotation_agency_notes?: string;
   } | null;
 }
 

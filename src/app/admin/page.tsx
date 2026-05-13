@@ -704,7 +704,7 @@ export function AdminPortal() {
                 </div>
 
                 <form onSubmit={handleAddOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
                     <div>
                       <label style={labelStyle}>Agency Name</label>
                       <input name="name" type="text" style={inputStyle} placeholder="e.g. Skyline Travel" required
@@ -720,7 +720,7 @@ export function AdminPortal() {
                       />
                     </div>
                   </div>
-
+                  
                   <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
                     <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
@@ -754,6 +754,20 @@ export function AdminPortal() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex flex-col gap-1.5">
+                      <label style={labelStyle}>Quotation Important Notes</label>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
+                      <textarea 
+                        name="quotation_agency_notes"
+                        style={{ ...inputStyle, minHeight: '100px', paddingTop: '12px', paddingBottom: '12px', resize: 'vertical' }}
+                        placeholder="e.g. 50% downpayment required to confirm booking..."
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
                     </div>
                   </div>
 
@@ -876,7 +890,7 @@ export function AdminPortal() {
                 </div>
 
                 <form onSubmit={handleEditOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
                     <div>
                       <label style={labelStyle}>Agency Name</label>
                       <input name="name" type="text" style={inputStyle} defaultValue={editingOperator.name} required
@@ -926,6 +940,21 @@ export function AdminPortal() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex flex-col gap-1.5">
+                      <label style={labelStyle}>Quotation Important Notes</label>
+                      <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
+                      <textarea 
+                        name="quotation_agency_notes"
+                        style={{ ...inputStyle, minHeight: '100px', paddingTop: '12px', paddingBottom: '12px', resize: 'vertical' }}
+                        defaultValue={editingOperator.quotation_agency_notes}
+                        placeholder="e.g. 50% downpayment required to confirm booking..."
+                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
+                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
+                      />
                     </div>
                   </div>
 
