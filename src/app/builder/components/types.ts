@@ -58,4 +58,5 @@ export interface QuoteData {
   discount_total?: number;
   fleet?: QuoteVehicle[];
   fleet_json?: QuoteVehicle[];
+  quotation_description?: string;
 }

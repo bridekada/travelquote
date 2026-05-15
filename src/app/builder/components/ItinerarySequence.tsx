@@ -115,61 +115,43 @@ export default function ItinerarySequence({
               <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4">
                 
                 {/* Column 1-8 (or 1-4 if expanded) contains the inputs */}
-                <div className={`${!item.applied_preset_id ? "lg:col-span-8" : "lg:col-span-4"} space-y-4`}>
-                  {/* Row 1: Itinerary + Optional Custom Name */}
-                  <div className="grid grid-cols-12 gap-3">
-                    <div className={`${!item.applied_preset_id ? "col-span-6" : "col-span-12"} space-y-1`}>
-                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Itinerary</label>
-                      <SearchableSelect
-                        value={item.applied_preset_id || "custom"}
-                        onValueChange={(val) => onApplyPreset(index, val === "custom" ? "" : val)}
-                        options={dbPresets}
-                        getLabel={(p) => p.title}
-                        getValue={(p) => p.id}
-                        placeholder={item.applied_preset_id ? dbPresets.find(p => p.id === item.applied_preset_id)?.title : "Custom Itinerary"}
-                        searchPlaceholder="Search itinerary..."
-                        disabled={readOnly}
-                        customItem={{ value: "custom", label: "Custom Itinerary" }}
-                        className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
-                      />
-                    </div>
-
-                    {!item.applied_preset_id && (
-                      <div className="col-span-6 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Itinerary Name</label>
-                        <input
-                          type="text"
-                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300 font-bold text-primary !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
-                          placeholder="e.g. Siargao Island"
-                          value={item.destination || ""}
-                          onChange={(e) => onUpdateItem(index, { destination: e.target.value })}
-                          disabled={readOnly}
-                        />
-                      </div>
-                    )}
+                <div className="lg:col-span-4 space-y-4">
+                  {/* Row 1: Itinerary Select (Creatable) */}
+                  <div className="space-y-1">
+                    <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Itinerary</label>
+                    <SearchableSelect
+                      value={item.applied_preset_id || item.destination || ""}
+                      onValueChange={(val) => onApplyPreset(index, val)}
+                      options={dbPresets}
+                      getLabel={(p) => p.title}
+                      getValue={(p) => p.id}
+                      placeholder="Select or type itinerary..."
+                      searchPlaceholder="Search or type new..."
+                      disabled={readOnly}
+                      creatable={true}
+                      className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
+                    />
                   </div>
 
                   {/* Row 2: Est KM */}
-                  <div className="grid grid-cols-12 gap-3">
-                    <div className={`${!item.applied_preset_id ? "col-span-6" : "col-span-12"} space-y-1`}>
-                      <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Est. KM</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          className="input !h-[34px] !pl-4 !pr-10 !bg-white shadow-sm !border-slate-300 font-bold text-primary !rounded-xl disabled:opacity-50 disabled:grayscale transition-all !text-[11px]"
-                          value={item.km || ""}
-                          onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })}
-                          placeholder="0"
-                          disabled={readOnly}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 !text-[9px] font-black text-text-tertiary opacity-40 uppercase">KM</span>
-                      </div>
+                  <div className="space-y-1">
+                    <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Est. KM</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="input !h-[34px] !pl-4 !pr-10 !bg-white shadow-sm !border-slate-300 font-bold text-primary !rounded-xl disabled:opacity-50 disabled:grayscale transition-all !text-[11px]"
+                        value={item.km || ""}
+                        onChange={(e) => onUpdateItem(index, { km: parseFloat(e.target.value) || 0 })}
+                        placeholder="0"
+                        disabled={readOnly}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 !text-[9px] font-black text-text-tertiary opacity-40 uppercase">KM</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Itinerary Details - EXPANDS to col-span-8 if Custom Name is HIDDEN */}
-                <div className={`md:col-span-12 ${!item.applied_preset_id ? "lg:col-span-4" : "lg:col-span-8"} space-y-2 pr-4 transition-all duration-300`}>
+                <div className="md:col-span-12 lg:col-span-8 space-y-2 pr-4 transition-all duration-300">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-0.5 inline-block">Itinerary Details</label>
                   </div>
@@ -200,27 +182,23 @@ export default function ItinerarySequence({
                   <div className="col-span-4 space-y-1">
                     <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Accommodation</label>
                     <SearchableSelect
-                      value={item.guest_accommodation_id || "custom"}
+                      value={item.guest_accommodation_id || item.guest_accommodation_name || ""}
                       onValueChange={(val) => {
-                        const actualVal = val === "custom" ? "" : val;
-                        const accom = dbAccommodations.find(a => a.id === actualVal);
-                        const updates: any = { guest_accommodation_id: actualVal };
-                        if (accom) {
-                          updates.guest_accommodation_name = accom.name;
-                          updates.guest_accommodation_amount = accom.amount;
-                        } else {
-                          updates.guest_accommodation_name = "";
-                          updates.guest_accommodation_amount = 0;
-                        }
+                        const accom = dbAccommodations.find(a => a.id === val);
+                        const updates: any = { 
+                          guest_accommodation_id: accom ? val : "",
+                          guest_accommodation_name: accom ? accom.name : val,
+                          guest_accommodation_amount: accom ? accom.amount : 0 // Clear price on manual change
+                        };
                         onUpdateItem(index, updates);
                       }}
                       options={dbAccommodations}
                       getLabel={(a) => a.name}
                       getValue={(a) => a.id}
-                      placeholder={item.guest_accommodation_id ? dbAccommodations.find(a => a.id === item.guest_accommodation_id)?.name : "Custom Accommodation"}
-                      searchPlaceholder="Search hotels..."
+                      placeholder="Select or type accommodation..."
+                      searchPlaceholder="Search or type new..."
                       disabled={readOnly}
-                      customItem={{ value: "custom", label: "Custom Accommodation" }}
+                      creatable={true}
                       renderOption={(a) => (
                         <>
                           {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
@@ -231,34 +209,21 @@ export default function ItinerarySequence({
                   </div>
 
                   {!item.guest_accommodation_id && (
-                    <>
-                      <div className="col-span-4 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                        <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Custom Accommodation Name</label>
+                    <div className="col-span-4 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Manual Price (₱)</label>
+                      <div className="relative">
                         <input
-                          type="text"
-                          className="input !h-[34px] !px-4 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary !rounded-xl !text-[11px] disabled:opacity-50 disabled:grayscale transition-all"
-                          placeholder="Name of Hotel/Stay"
-                          value={item.guest_accommodation_name || ""}
-                          onChange={(e) => onUpdateItem(index, { guest_accommodation_name: e.target.value })}
+                          type="number"
+                          className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
+                          style={{ height: '34px', fontSize: '11px' }}
+                          placeholder="0"
+                          value={item.guest_accommodation_amount || ""}
+                          onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
                           disabled={readOnly}
                         />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
                       </div>
-                      <div className="col-span-2 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Price</label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
-                            style={{ height: '34px', fontSize: '11px' }}
-                            placeholder="0"
-                            value={item.guest_accommodation_amount || ""}
-                            onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
-                            disabled={readOnly}
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
-                        </div>
-                      </div>
-                    </>
+                    </div>
                   )}
                 </div>
 

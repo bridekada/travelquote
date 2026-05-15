@@ -13,6 +13,7 @@ interface Profile {
     website?: string;
     social_links?: string[];
     quotation_agency_notes?: string;
+    quote_title_presets?: string[];
   } | null;
 }
 

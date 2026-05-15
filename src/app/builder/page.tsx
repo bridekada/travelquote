@@ -96,7 +96,7 @@ function QuoteBuilder() {
     eta: "", etd: "", vehicle_model: "", pickup_location: "", dropoff_location: "",
     notes: "", default_fuel_price: 60, admin_commission: 0, status: "Draft",
     selected_package: null, selected_package_total: null, selected_package_details: null,
-    confirmed_at: null, items: [], fleet: []
+    confirmed_at: null, items: [], fleet: [], quotation_description: ""
   });
 
   const [payments, setPayments] = useState<any[]>([]);
@@ -243,6 +243,7 @@ function QuoteBuilder() {
         eta: formattedEta,
         etd: formattedEtd,
         fleet: qData.fleet_json || [],
+        quotation_description: qData.quotation_description || "",
         items: finalItems.map(item => ({
           ...item,
           row_total: calculateRowTotal(item, qData.admin_commission || 0, qData.fleet_json || [])
@@ -524,8 +525,21 @@ function QuoteBuilder() {
       handleUpdateItem(index, updates);
       return;
     }
+
     const p = dbPresets.find(preset => preset.id === pId);
-    if (!p) return;
+    if (!p) {
+      // Handle custom text input
+      handleUpdateItem(index, { 
+        destination: pId, 
+        applied_preset_id: "", 
+        is_manual: true,
+        itinerary_details: "", // Clear details on manual change
+        km: 0,
+        tags: []
+      });
+      return;
+    }
+
     handleUpdateItem(index, { 
       destination: p.title, 
       itinerary_details: p.details || "", 
@@ -575,7 +589,7 @@ function QuoteBuilder() {
 
   // Package Summary Generation
   const compileQuotationText = (currentQuote: any, currentItems: any[], currentFees: any[], currentDiscount: number, currentTotals: any, currentSelectedId: string | null) => {
-    const tourSummary = currentItems.map(i => i.destination).filter(Boolean).join(" + ");
+    const tourSummary = currentQuote.quotation_description || currentItems.map(i => i.destination).filter(Boolean).join(" + ");
     const durationCount = currentItems.length;
     const duration = durationCount > 0 ? `${durationCount}D${durationCount - 1}N` : "N/A";
     let text = `Hi ${currentQuote.customer_name || 'Guest'},\n\nHere’s our estimated cost for ${duration} | ${currentQuote.pax_count} pax | ${tourSummary}\n\n`;
@@ -771,6 +785,7 @@ function QuoteBuilder() {
         discount_total: discount, 
         status: finalStatus,
         admin_commission: quote.admin_commission, 
+        quotation_description: quote.quotation_description,
         selected_package: selectedPackageName, 
         selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
         package_options_json: livePackages.map(pkg => ({
@@ -1033,16 +1048,15 @@ function QuoteBuilder() {
         <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
           <div className="py-8 md:py-12 space-y-12 max-w-7xl mx-auto">
             <TripDetailsSection 
-              quote={quote} 
-              setQuote={setQuote} 
-              onEtdChange={(date, iso) => {
-                setQuote(prev => ({ ...prev, etd: iso }));
-              }}
-              onEtaChangeRequest={handleEtaChangeRequest}
-              dbVehicles={dbVehicles} 
-              readOnly={isReadOnly}
-              onUpdateFleet={handleUpdateFleet}
-            />
+            quote={quote}
+            setQuote={setQuote}
+            onEtaChangeRequest={handleEtaChangeRequest}
+            onEtdChange={(date, iso) => setQuote(prev => ({ ...prev, etd: iso }))}
+            dbVehicles={dbVehicles}
+            onUpdateFleet={handleUpdateFleet}
+            readOnly={isReadOnly}
+            quote_title_presets={profile?.operators?.quote_title_presets || []}
+          />
             <ItinerarySequence 
               items={quote.items} onUpdateItem={handleUpdateItem} onApplyPreset={handleApplyPreset} 
               dbPresets={dbPresets} dbAccommodations={dbAccommodations} dbMiscPresets={dbMiscPresets}

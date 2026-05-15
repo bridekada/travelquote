@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock, MapPin, Map, Plus, Trash2, Gauge, Banknote } from "lucide-react";
+import { Users, Car, Fuel, Percent, Calendar as CalendarIcon, Clock, MapPin, Map, Plus, Trash2, Gauge, Banknote, File } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 const Flatpickr = dynamic(() => import("react-flatpickr"), { ssr: false });
@@ -25,6 +25,7 @@ interface TripDetailsSectionProps {
   dbVehicles: any[];
   readOnly?: boolean;
   onUpdateFleet: (fleet: QuoteVehicle[]) => void;
+  quote_title_presets?: string[];
 }
 
 export default function TripDetailsSection({
@@ -34,7 +35,8 @@ export default function TripDetailsSection({
   onEtdChange,
   dbVehicles,
   readOnly = false,
-  onUpdateFleet
+  onUpdateFleet,
+  quote_title_presets = []
 }: TripDetailsSectionProps) {
   const baseOptions = useMemo(() => ({
     dateFormat: "Y-m-d H:i",
@@ -347,7 +349,7 @@ export default function TripDetailsSection({
 
         {/* Row 4: Finance */}
         <div className="!mt-3 md:!mt-4 pt-2 md:pt-3 border-t border-[#f0f2f5]">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 lg:gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6 lg:gap-10">
             <div className="space-y-1.5">
               <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-amber-600 ml-4 mb-0.5 inline-block">Admin Commission (%)</label>
               <div className="relative">
@@ -366,6 +368,25 @@ export default function TripDetailsSection({
                   disabled={readOnly}
                 />
                 <Percent className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600/50" size={14} />
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="!text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ml-4 mb-0.5 inline-block">Quotation Description</label>
+              <div className="relative">
+                <SearchableSelect
+                  value={quote.quotation_description || ""}
+                  onValueChange={(val) => setQuote({ ...quote, quotation_description: val })}
+                  options={(quote_title_presets || []).map(p => ({ label: p, value: p }))}
+                  getLabel={(opt) => opt.label}
+                  getValue={(opt) => opt.value}
+                  placeholder="Select or type description..."
+                  searchPlaceholder="Search or type new..."
+                  creatable={true}
+                  disabled={readOnly}
+                  className="!h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full rounded-xl"
+                />
+                <File className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
               </div>
             </div>
           </div>

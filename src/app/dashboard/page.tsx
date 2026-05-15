@@ -61,6 +61,7 @@ function DashboardContent() {
   const [newAgencyWebsite, setNewAgencyWebsite] = useState("");
   const [newAgencyNotes, setNewAgencyNotes] = useState("");
   const [newAgencySocials, setNewAgencySocials] = useState<string[]>([]);
+  const [newAgencyTitlePresets, setNewAgencyTitlePresets] = useState<string[]>([]);
   const searchParams = useSearchParams();
   const validTabs = ['analytics', 'quotes', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
@@ -206,6 +207,9 @@ function DashboardContent() {
       formData.append('quotation_agency_notes', newAgencyNotes);
       newAgencySocials.forEach(link => {
         if (link.trim()) formData.append('socialLinks', link.trim());
+      });
+      newAgencyTitlePresets.forEach(title => {
+        if (title.trim()) formData.append('quoteTitlePresets', title.trim());
       });
 
       const res = await updateOperator(profile.operators.id, formData);
@@ -583,6 +587,7 @@ function DashboardContent() {
                     setNewAgencyWebsite(profile?.operators?.website || "");
                     setNewAgencyNotes(profile?.operators?.quotation_agency_notes || "");
                     setNewAgencySocials(profile?.operators?.social_links || []);
+                    setNewAgencyTitlePresets(profile?.operators?.quote_title_presets || []);
                     setIsAgencySettingsOpen(true);
                   }}
                   className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-all group"
@@ -1304,6 +1309,8 @@ function DashboardContent() {
               setNotes={setNewAgencyNotes}
               socials={newAgencySocials}
               setSocials={setNewAgencySocials}
+              titlePresets={newAgencyTitlePresets}
+              setTitlePresets={setNewAgencyTitlePresets}
               loading={agencyFormLoading}
             />
           )}
@@ -1392,8 +1399,9 @@ function DashboardContent() {
 }
 
 function AgencySettingsModal({ 
-  onClose, onSave, name, setName, website, setWebsite, notes, setNotes, socials, setSocials, loading 
+  onClose, onSave, name, setName, website, setWebsite, notes, setNotes, socials, setSocials, titlePresets, setTitlePresets, loading 
 }: any) {
+  const [isTitlesExpanded, setIsTitlesExpanded] = useState(false);
   const getSocialIcon = (url: string) => {
     const low = url.toLowerCase();
     if (low.includes('facebook.com') || low.includes('fb.com')) return <Share2 size={14} />;
@@ -1513,6 +1521,74 @@ function AgencySettingsModal({
                 onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
+          </div>
+
+          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: isTitlesExpanded ? '12px' : '0' }}>
+              <button 
+                type="button" 
+                onClick={() => setIsTitlesExpanded(!isTitlesExpanded)}
+                className="flex items-center gap-2 hover:opacity-80 transition-all"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <div className={`transition-transform duration-200 ${isTitlesExpanded ? 'rotate-180' : ''}`}>
+                  <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
+                </div>
+                <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
+                <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({titlePresets?.length || 0})</span>
+              </button>
+              {isTitlesExpanded && (
+                <button 
+                  type="button" 
+                  onClick={() => setTitlePresets([...(titlePresets || []), ""])} 
+                  className="flex items-center gap-1 hover:opacity-80" 
+                  style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}
+                >
+                  <Plus size={12} /> Add Title
+                </button>
+              )}
+            </div>
+            
+            <AnimatePresence>
+              {isTitlesExpanded && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px', paddingBottom: '4px' }}>
+                    {((titlePresets && titlePresets.length > 0) ? titlePresets : [""]).map((title: string, idx: number) => (
+                      <div key={idx} className="flex gap-2">
+                        <input 
+                          value={title} 
+                          onChange={(e) => {
+                            const next = [...(titlePresets || [])];
+                            if (next.length === 0) next.push("");
+                            next[idx] = e.target.value;
+                            setTitlePresets(next);
+                          }} 
+                          style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
+                          placeholder="e.g. Standard Quotation"
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const next = (titlePresets || []).filter((_: any, i: number) => i !== idx);
+                            setTitlePresets(next.length > 0 ? next : [""]);
+                          }}
+                          className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                          style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                        >
+                          <Minus size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button 
