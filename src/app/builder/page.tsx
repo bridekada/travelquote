@@ -96,7 +96,7 @@ function QuoteBuilder() {
     eta: "", etd: "", vehicle_model: "", pickup_location: "", dropoff_location: "",
     notes: "", default_fuel_price: 60, admin_commission: 0, status: "Draft",
     selected_package: null, selected_package_total: null, selected_package_details: null,
-    confirmed_at: null, items: [], fleet: []
+    confirmed_at: null, items: [], fleet: [], quotation_description: ""
   });
 
   const [payments, setPayments] = useState<any[]>([]);
@@ -243,6 +243,7 @@ function QuoteBuilder() {
         eta: formattedEta,
         etd: formattedEtd,
         fleet: qData.fleet_json || [],
+        quotation_description: qData.quotation_description || "",
         items: finalItems.map(item => ({
           ...item,
           row_total: calculateRowTotal(item, qData.admin_commission || 0, qData.fleet_json || [])
@@ -358,8 +359,12 @@ function QuoteBuilder() {
       quote.items.forEach(item => {
         let rowBase = 0;
         if (pkg.includes_vehicle) {
-          const fleetRate = (quote.fleet && quote.fleet.length > 0)
-            ? quote.fleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
+          const activeFleet = (quote.fleet && quote.fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+            ? quote.fleet.filter(v => item.selected_vehicle_ids!.includes(v.id))
+            : quote.fleet;
+            
+          const fleetRate = (activeFleet && activeFleet.length > 0)
+            ? activeFleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
             : (item.vehicle_rate || 0);
           rowBase += fleetRate;
         }
@@ -380,8 +385,12 @@ function QuoteBuilder() {
     
     const colTotals = quote.items.reduce((acc, item) => {
       const fuel = calculateFuelCost(item, quote.fleet);
-      const currentRate = (quote.fleet && quote.fleet.length > 0)
-        ? quote.fleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
+      const activeFleet = (quote.fleet && quote.fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+        ? quote.fleet.filter(v => item.selected_vehicle_ids!.includes(v.id))
+        : quote.fleet;
+
+      const currentRate = (activeFleet && activeFleet.length > 0)
+        ? activeFleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
         : (item.vehicle_rate || 0);
         
       acc.rate += currentRate; 
@@ -411,9 +420,32 @@ function QuoteBuilder() {
       if (!newItems[index]) return prev;
       let updated = { ...newItems[index], ...updates };
       if (manual) updated.is_manual = true;
-      if (updates.tags) {
+      if (updates.tags || updates.selected_vehicle_ids !== undefined) {
         const dCosts = { ...updated.dynamic_costs };
-        dbMiscPresets.forEach(p => { dCosts[p.id] = updates.tags!.includes(p.name) ? (p.default_amount || 0) : 0; });
+        const activeIds = updated.selected_vehicle_ids && updated.selected_vehicle_ids.length > 0
+          ? updated.selected_vehicle_ids
+          : (prev.fleet?.map(v => v.id) || []);
+        const vehicleCount = activeIds.length || 1;
+        const oldTags = prev.items[index].tags || [];
+
+        dbMiscPresets.forEach(p => {
+          const isCurrentlyActive = updated.tags ? updated.tags.includes(p.name) : oldTags.includes(p.name);
+          const wasPreviouslyActive = oldTags.includes(p.name);
+          
+          if (updates.tags) {
+            if (isCurrentlyActive && !wasPreviouslyActive) {
+              // This is a NEWLY added tag: Apply default
+              dCosts[p.id] = p.multiply_by_vehicle ? (p.default_amount * vehicleCount) : p.default_amount;
+            } else if (!isCurrentlyActive && wasPreviouslyActive) {
+              // Tag was EXPLICITLY REMOVED: Set to 0
+              dCosts[p.id] = 0;
+            }
+            // If it's an existing manual entry with no tag, OR an existing tag, we leave it alone!
+          } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive && p.multiply_by_vehicle) {
+            // Vehicle changed: Only update fees that are explicitly marked to scale
+            dCosts[p.id] = p.default_amount * vehicleCount;
+          }
+        });
         updated.dynamic_costs = dCosts;
       }
       updated.row_total = calculateRowTotal(updated, prev.admin_commission || 0, prev.fleet);
@@ -524,8 +556,21 @@ function QuoteBuilder() {
       handleUpdateItem(index, updates);
       return;
     }
+
     const p = dbPresets.find(preset => preset.id === pId);
-    if (!p) return;
+    if (!p) {
+      // Handle custom text input
+      handleUpdateItem(index, { 
+        destination: pId, 
+        applied_preset_id: "", 
+        is_manual: true,
+        itinerary_details: "", // Clear details on manual change
+        km: 0,
+        tags: []
+      });
+      return;
+    }
+
     handleUpdateItem(index, { 
       destination: p.title, 
       itinerary_details: p.details || "", 
@@ -575,7 +620,7 @@ function QuoteBuilder() {
 
   // Package Summary Generation
   const compileQuotationText = (currentQuote: any, currentItems: any[], currentFees: any[], currentDiscount: number, currentTotals: any, currentSelectedId: string | null) => {
-    const tourSummary = currentItems.map(i => i.destination).filter(Boolean).join(" + ");
+    const tourSummary = currentQuote.quotation_description || currentItems.map(i => i.destination).filter(Boolean).join(" + ");
     const durationCount = currentItems.length;
     const duration = durationCount > 0 ? `${durationCount}D${durationCount - 1}N` : "N/A";
     let text = `Hi ${currentQuote.customer_name || 'Guest'},\n\nHere’s our estimated cost for ${duration} | ${currentQuote.pax_count} pax | ${tourSummary}\n\n`;
@@ -611,8 +656,19 @@ function QuoteBuilder() {
       // Vehicle
       if (pkg.config.includes_vehicle) {
         if (currentQuote.fleet && currentQuote.fleet.length > 0) {
-          const fleetSummary = currentQuote.fleet.map((v: any) => v.model).join(", ");
-          incs.push(`Vehicles: ${fleetSummary}`);
+          const vehicleParts = currentQuote.fleet.map((v: any) => {
+            const activeDays = currentItems
+              .filter(item => !item.selected_vehicle_ids || item.selected_vehicle_ids.length === 0 || item.selected_vehicle_ids.includes(v.id))
+              .map(item => item.day_number);
+            
+            if (activeDays.length === currentItems.length) return `${v.model} (All Days)`;
+            if (activeDays.length === 0) return null;
+            return `${v.model} (Day ${activeDays.join(", ")})`;
+          }).filter(Boolean);
+          
+          if (vehicleParts.length > 0) {
+            incs.push(`Vehicles: ${vehicleParts.join(", ")}`);
+          }
         } else {
           incs.push(`Vehicle: ${currentQuote.vehicle_model}`);
         }
@@ -720,12 +776,59 @@ function QuoteBuilder() {
 
   const handleUpdateFleet = (newFleet: any[]) => {
     setQuote(prev => {
+      const addedVehicles = (newFleet || []).filter(nv => !(prev.fleet || []).some(pv => pv.id === nv.id));
       const fleetTotalRate = (newFleet || []).reduce((acc, v) => acc + (v.daily_rate || 0), 0);
-      const updatedItems = prev.items.map(item => ({
-        ...item,
-        vehicle_rate: fleetTotalRate,
-        row_total: calculateRowTotal({ ...item, vehicle_rate: fleetTotalRate }, prev.admin_commission, newFleet)
-      }));
+      
+      const updatedItems = prev.items.map(item => {
+        // Clean up any selected vehicle IDs that were just removed from the fleet
+        const validSelectedIds = (item.selected_vehicle_ids || []).filter(id => 
+          newFleet.some(nv => nv.id === id)
+        );
+
+        const updated = { 
+          ...item, 
+          vehicle_rate: fleetTotalRate,
+          selected_vehicle_ids: item.selected_vehicle_ids ? validSelectedIds : undefined
+        };
+
+        // Recalculate scaling costs for this item
+        const dCosts = { ...item.dynamic_costs };
+        const activeIds = validSelectedIds.length > 0 
+          ? validSelectedIds 
+          : newFleet.map(v => v.id);
+        const vehicleCount = activeIds.length || 1;
+
+        dbMiscPresets.forEach(p => {
+          if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
+            dCosts[p.id] = p.default_amount * vehicleCount;
+          }
+        });
+        updated.dynamic_costs = dCosts;
+
+        // If a new vehicle was added and the user has previously customized the selection,
+        // automatically "check" the new vehicle for them.
+        if (addedVehicles.length > 0 && item.selected_vehicle_ids) {
+          updated.selected_vehicle_ids = [
+            ...validSelectedIds, 
+            ...addedVehicles.map(v => v.id)
+          ];
+          
+          // Re-update dCosts for added vehicles
+          const newActiveIds = updated.selected_vehicle_ids;
+          const newVehicleCount = newActiveIds.length;
+          dbMiscPresets.forEach(p => {
+            if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
+              dCosts[p.id] = p.default_amount * newVehicleCount;
+            }
+          });
+        }
+
+        return {
+          ...updated,
+          row_total: calculateRowTotal(updated, prev.admin_commission, newFleet)
+        };
+      });
+
       return { ...prev, fleet: newFleet, items: updatedItems };
     });
   };
@@ -733,13 +836,43 @@ function QuoteBuilder() {
   const finalizeSave = async (customStatus?: string, shouldNavigate = true, overrideText?: string) => {
     setIsSaving(true);
     try {
-      // Status Re-evaluation: If the price changed, check if 'Payment Complete' is still valid
+      // Manual De-Tangler: Recursive scrubber that breaks circular loops and removes browser/React objects
+      const scrub = (val: any, visited = new WeakSet()): any => {
+        if (val === null || typeof val !== 'object') return val;
+        
+        // Break circular references immediately
+        if (visited.has(val)) return undefined;
+        
+        // Remove DOM nodes and React internal objects
+        if (typeof window !== 'undefined' && (val instanceof Node || val instanceof Window)) return undefined;
+        if (val.$$typeof || (val.constructor && val.constructor.name === 'FiberNode')) return undefined;
+
+        visited.add(val);
+
+        if (Array.isArray(val)) {
+          return val.map(v => scrub(v, visited)).filter(v => v !== undefined);
+        }
+
+        const cleaned: any = {};
+        for (const key in val) {
+          if (key.startsWith('__react') || key.startsWith('react')) continue;
+          try {
+            const result = scrub(val[key], visited);
+            if (result !== undefined) cleaned[key] = result;
+          } catch (e) {
+            // Skip any property that can't be accessed or scrubbed
+            continue;
+          }
+        }
+        return cleaned;
+      };
+
+      // Status Re-evaluation
       let finalStatus = customStatus || quote.status || 'Draft';
       const isAlreadyPaid = ['Payment Started', 'Payment Complete'].includes(quote.status || '');
       
       if (isAlreadyPaid) {
         const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        // If price increased, it's no longer 'Complete'
         if (totalPaid < totals.grandTotal) {
           finalStatus = totalPaid > 0 ? 'Payment Started' : 'Confirmed';
         } else {
@@ -771,6 +904,7 @@ function QuoteBuilder() {
         discount_total: discount, 
         status: finalStatus,
         admin_commission: quote.admin_commission, 
+        quotation_description: quote.quotation_description,
         selected_package: selectedPackageName, 
         selected_package_id: selectedPackageId?.startsWith('custom-') ? null : selectedPackageId,
         package_options_json: livePackages.map(pkg => ({
@@ -801,21 +935,41 @@ function QuoteBuilder() {
             package_name: selPkg.name, total_amount: totals.grandTotal, pax_count: quote.pax_count, per_pax: Math.round(totals.grandTotal / (quote.pax_count || 1)),
             inclusions: { vehicle: selPkg.config.includes_vehicle, fuel: selPkg.config.includes_fuel, accommodation: selPkg.config.includes_accommodation, misc_details: (selPkg.config.includes_misc_ids || []).map((id: string) => ({ name: dbMiscPresets.find(m => m.id === id)?.name || 'Misc', amount: 0 })) },
             adjustments: { extra_fees: extraFees, discount },
-            itinerary_snapshot: quote.items.map(i => ({ day: i.day_number, date: i.date, destination: i.destination, details: i.itinerary_details }))
+            itinerary_snapshot: quote.items.map(i => {
+              const activeIds = i.selected_vehicle_ids && i.selected_vehicle_ids.length > 0 
+                ? i.selected_vehicle_ids 
+                : (quote.fleet || []).map(v => v.id);
+              const vehicles = (quote.fleet || []).filter(v => activeIds.includes(v.id)).map(v => v.model).join(', ');
+
+              return { 
+                day: i.day_number, 
+                date: i.date, 
+                destination: i.destination, 
+                details: i.itinerary_details,
+                vehicles: vehicles,
+                guest_accommodation_name: i.guest_accommodation_name,
+                tags: i.tags
+              };
+            })
           };
         }
       }
 
+      const cleanPayload = scrub(payload);
+
       let cId = quote.id;
       if (cId) {
-        await supabase.from('quotes').update(payload).eq('id', cId);
+        const { error: updateError } = await supabase.from('quotes').update(cleanPayload).eq('id', cId);
+        if (updateError) throw new Error(`Failed to update quote: ${updateError.message}`);
+        
         await supabase.from('quote_items').delete().eq('quote_id', cId);
       } else {
-        const { data } = await supabase.from('quotes').insert([payload]).select().single();
+        const { data, error: insertError } = await supabase.from('quotes').insert([cleanPayload]).select().single();
+        if (insertError) throw new Error(`Failed to create quote: ${insertError.message}`);
         cId = data.id;
       }
       
-      const itemsToInsert = quote.items.map(i => {
+      const rawItemsToInsert = quote.items.map(i => {
         const { id, is_manual, ...rest } = i;
         return {
           ...rest,
@@ -826,32 +980,39 @@ function QuoteBuilder() {
         };
       });
 
-      const { error: insertError } = await supabase.from('quote_items').insert(itemsToInsert);
-      
-      if (insertError) {
-        throw new Error(`Failed to save itinerary: ${insertError.message}`);
-      }
+      const cleanItems = scrub(rawItemsToInsert);
+      const { error: itemsError } = await supabase.from('quote_items').insert(cleanItems);
+      if (itemsError) throw new Error(`Failed to save itinerary: ${itemsError.message}`);
 
       // If it was a new quote (no quoteId in URL), update URL and state with new ID without reloading
       if (!quoteId && cId) {
         window.history.replaceState(null, '', `/builder?id=${cId}`);
-        setQuote(prev => ({ ...prev, id: cId }));
       }
 
-      if (shouldNavigate) router.push('/dashboard?tab=quotes');
-      else {
-          if (overrideText) setInitialQuotationText(overrideText); 
-          setQuote(prev => ({ 
-            ...prev, 
-            ...payload, 
-            eta: payload.eta ? formatForInput(payload.eta) : prev.eta,
-            etd: payload.etd ? formatForInput(payload.etd) : prev.etd,
-            id: cId 
-          }));
-          if (customStatus === 'Confirmed') setIsReconfiguring(false);
-          openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
+      if (shouldNavigate) {
+        router.push('/dashboard?tab=quotes');
+      } else {
+        if (overrideText) setInitialQuotationText(overrideText); 
+        
+        // Update local state and flip the view
+        setQuote(prev => ({ 
+          ...prev, 
+          ...cleanPayload, 
+          status: finalStatus,
+          id: cId 
+        }));
+
+        if (customStatus === 'Confirmed' || finalStatus === 'Confirmed') {
+          setIsReconfiguring(false);
+        }
+        
+        openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
       }
-    } catch (e: any) { openDialog({ title: "System Error", message: e.message, type: "warning" }); } finally { setIsSaving(false); }
+    } catch (e: any) { 
+      openDialog({ title: "System Error", message: e.message, type: "warning" }); 
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   const handleConfirmQuote = async (overrideText?: string) => {
@@ -1033,21 +1194,21 @@ function QuoteBuilder() {
         <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
           <div className="py-8 md:py-12 space-y-12 max-w-7xl mx-auto">
             <TripDetailsSection 
-              quote={quote} 
-              setQuote={setQuote} 
-              onEtdChange={(date, iso) => {
-                setQuote(prev => ({ ...prev, etd: iso }));
-              }}
-              onEtaChangeRequest={handleEtaChangeRequest}
-              dbVehicles={dbVehicles} 
-              readOnly={isReadOnly}
-              onUpdateFleet={handleUpdateFleet}
-            />
+            quote={quote}
+            setQuote={setQuote}
+            onEtaChangeRequest={handleEtaChangeRequest}
+            onEtdChange={(date, iso) => setQuote(prev => ({ ...prev, etd: iso }))}
+            dbVehicles={dbVehicles}
+            onUpdateFleet={handleUpdateFleet}
+            readOnly={isReadOnly}
+            quote_title_presets={profile?.operators?.quote_title_presets || []}
+          />
             <ItinerarySequence 
               items={quote.items} onUpdateItem={handleUpdateItem} onApplyPreset={handleApplyPreset} 
               dbPresets={dbPresets} dbAccommodations={dbAccommodations} dbMiscPresets={dbMiscPresets}
               onAddDay={handleAddDay} onRemoveLastDay={handleRemoveLastDay}
               readOnly={isReadOnly}
+              fleet={quote.fleet}
             />
             <OperationalMatrix 
               items={quote.items} onUpdateItem={(idx, upd) => handleUpdateItem(idx, upd, true)} 

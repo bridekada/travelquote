@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus, Pencil } from "lucide-react";
+import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus, Pencil, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { inviteOperatorUser, deletePersonnel, getAllPersonnel, updateProfile, getOperatorStats, updateOperator, updatePersonnel } from "@/app/actions/user-management";
 import {
@@ -42,6 +42,7 @@ export function AdminPortal() {
   const [inviteStatus, setInviteStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [operatorStatus, setOperatorStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [newSocialLinks, setNewSocialLinks] = useState<string[]>(['']);
+  const [newQuoteTitlePresets, setNewQuoteTitlePresets] = useState<string[]>(['']);
   const [formLoading, setFormLoading] = useState(false);
   const [editingOperator, setEditingOperator] = useState<any | null>(null);
   const [editingPersonnel, setEditingPersonnel] = useState<any | null>(null);
@@ -50,6 +51,8 @@ export function AdminPortal() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isAddTitlesExpanded, setIsAddTitlesExpanded] = useState(false);
+  const [isEditTitlesExpanded, setIsEditTitlesExpanded] = useState(false);
 
   useEffect(() => {
     if (profile?.full_name) setNewFullName(profile.full_name);
@@ -173,6 +176,7 @@ export function AdminPortal() {
       setTimeout(() => {
         setIsAddingOperator(false);
         setNewSocialLinks(['']);
+        setNewQuoteTitlePresets(['']);
       }, 2000);
     } else {
       setOperatorStatus({ type: 'error', msg: res.error });
@@ -201,6 +205,20 @@ export function AdminPortal() {
     if (lower.includes('twitter.com') || lower.includes('x.com')) return <Share2 size={12} />;
     if (lower.includes('linkedin.com')) return <User2 size={12} />;
     return <Globe size={12} />;
+  };
+
+  const addTitlePresetField = () => setNewQuoteTitlePresets([...newQuoteTitlePresets, '']);
+  const updateTitlePresetField = (index: number, value: string) => {
+    const updated = [...newQuoteTitlePresets];
+    updated[index] = value;
+    setNewQuoteTitlePresets(updated);
+  };
+  const removeTitlePresetField = (index: number) => {
+    if (newQuoteTitlePresets.length > 1) {
+      setNewQuoteTitlePresets(newQuoteTitlePresets.filter((_, i) => i !== index));
+    } else {
+      setNewQuoteTitlePresets(['']);
+    }
   };
 
   const handleInviteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -449,7 +467,12 @@ export function AdminPortal() {
                   </div>
                   <div className="flex items-center gap-1.5 ml-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditingOperator(op); setNewSocialLinks(op.social_links && op.social_links.length > 0 ? op.social_links : ['']); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setEditingOperator(op); 
+                        setNewSocialLinks(op.social_links && op.social_links.length > 0 ? op.social_links : ['']); 
+                        setNewQuoteTitlePresets(op.quote_title_presets && op.quote_title_presets.length > 0 ? op.quote_title_presets : ['']);
+                      }}
                       className="flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-slate-50 hover:text-brand pointer-events-auto"
                       style={{ width: '34px', height: '34px', borderRadius: '8px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'white', position: 'relative', zIndex: 60 }}
                     >
@@ -756,7 +779,7 @@ export function AdminPortal() {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
                     <div className="flex flex-col gap-1.5">
                       <label style={labelStyle}>Quotation Important Notes</label>
@@ -769,6 +792,63 @@ export function AdminPortal() {
                         onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
+                  </div>
+                  
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: isAddTitlesExpanded ? '12px' : '0' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsAddTitlesExpanded(!isAddTitlesExpanded)}
+                        className="flex items-center gap-2 hover:opacity-80 transition-all"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <div className={`transition-transform duration-200 ${isAddTitlesExpanded ? 'rotate-180' : ''}`}>
+                          <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
+                        </div>
+                        <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({newQuoteTitlePresets?.length || 0})</span>
+                      </button>
+                      {isAddTitlesExpanded && (
+                        <button type="button" onClick={addTitlePresetField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                          <Plus size={12} /> Add Title
+                        </button>
+                      )}
+                    </div>
+                    
+                    <AnimatePresence>
+                      {isAddTitlesExpanded && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px' }}>
+                            {newQuoteTitlePresets.map((title, idx) => (
+                              <div key={idx} className="flex gap-2">
+                                <input
+                                  name="quoteTitlePresets"
+                                  type="text"
+                                  style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
+                                  placeholder="e.g. Standard Quotation"
+                                  value={title}
+                                  onChange={(e) => updateTitlePresetField(idx, e.target.value)}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeTitlePresetField(idx)}
+                                  className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                                >
+                                  <Minus size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {operatorStatus && (
@@ -956,6 +1036,63 @@ export function AdminPortal() {
                         onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
                       />
                     </div>
+                  </div>
+
+                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: isEditTitlesExpanded ? '12px' : '0' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsEditTitlesExpanded(!isEditTitlesExpanded)}
+                        className="flex items-center gap-2 hover:opacity-80 transition-all"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <div className={`transition-transform duration-200 ${isEditTitlesExpanded ? 'rotate-180' : ''}`}>
+                          <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
+                        </div>
+                        <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({newQuoteTitlePresets?.length || 0})</span>
+                      </button>
+                      {isEditTitlesExpanded && (
+                        <button type="button" onClick={addTitlePresetField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+                          <Plus size={12} /> Add Title
+                        </button>
+                      )}
+                    </div>
+                    
+                    <AnimatePresence>
+                      {isEditTitlesExpanded && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px' }}>
+                            {newQuoteTitlePresets.map((title, idx) => (
+                              <div key={idx} className="flex gap-2">
+                                <input
+                                  name="quoteTitlePresets"
+                                  type="text"
+                                  style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
+                                  placeholder="e.g. Standard Quotation"
+                                  value={title}
+                                  onChange={(e) => updateTitlePresetField(idx, e.target.value)}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeTitlePresetField(idx)}
+                                  className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                                >
+                                  <Minus size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {editStatus && (

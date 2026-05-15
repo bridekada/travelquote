@@ -118,6 +118,7 @@ export async function createOperator(formData: FormData) {
   const website = formData.get('website') as string;
   const agencyNotes = formData.get('quotation_agency_notes') as string;
   const socialLinks = formData.getAll('socialLinks') as string[];
+  const quoteTitlePresets = formData.getAll('quoteTitlePresets') as string[];
 
   if (!name) return { error: 'Operator name is required' };
 
@@ -130,7 +131,8 @@ export async function createOperator(formData: FormData) {
         name, 
         website,
         quotation_agency_notes: agencyNotes,
-        social_links: socialLinks.filter(link => link.trim() !== '')
+        social_links: socialLinks.filter(link => link.trim() !== ''),
+        quote_title_presets: quoteTitlePresets.filter(title => title.trim() !== '')
       })
       .select()
       .single();
@@ -210,6 +212,7 @@ export async function updateOperator(operatorId: string, formData: FormData) {
   const website = formData.get('website') as string;
   const agencyNotes = formData.get('quotation_agency_notes') as string;
   const socialLinks = formData.getAll('socialLinks') as string[];
+  const quoteTitlePresets = formData.getAll('quoteTitlePresets') as string[];
 
   if (!operatorId || !name) return { error: 'Operator ID and name are required' };
 
@@ -222,7 +225,8 @@ export async function updateOperator(operatorId: string, formData: FormData) {
         name, 
         website,
         quotation_agency_notes: agencyNotes,
-        social_links: socialLinks.filter(link => link.trim() !== '')
+        social_links: socialLinks.filter(link => link.trim() !== ''),
+        quote_title_presets: quoteTitlePresets.filter(title => title.trim() !== '')
       })
       .eq('id', operatorId);
 

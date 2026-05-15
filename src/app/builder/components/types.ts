@@ -30,7 +30,9 @@ export interface QuoteItem {
   guest_accommodation_id?: string;
   guest_accommodation_name?: string;
   guest_accommodation_amount?: number;
+  accommodation_url?: string;
   fuel_cost_manual?: number;
+  selected_vehicle_ids?: string[];
 }
 
 export interface QuoteData {
@@ -58,4 +60,5 @@ export interface QuoteData {
   discount_total?: number;
   fleet?: QuoteVehicle[];
   fleet_json?: QuoteVehicle[];
+  quotation_description?: string;
 }

@@ -134,33 +134,42 @@ export default function OperationalMatrix({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f0f2f5]">
-            {items.map((item, index) => (
-              <tr key={index} className="group hover:bg-emerald-50/30 transition-colors h-[32px]">
-                <td className={cellStyle + " !pl-8 font-black text-primary/40"}>D{item.day_number}</td>
-                <td className={cellStyle}>
-                  <div className="flex items-center justify-between">
-                    <input 
-                      type="text" 
-                      className={inputStyle + " disabled:opacity-50"} 
-                      value={item.destination} 
-                      onChange={(e) => onUpdateItem(index, { destination: e.target.value })} 
-                      disabled={readOnly}
-                    />
-                    <span className="text-slate-300 ml-2 select-none">|</span>
-                  </div>
-                </td>
-                <td className={cellStyle}>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] font-bold text-gray-300">₱</span>
-                    <input 
-                      type="text" 
-                      className={inputStyle + " font-black disabled:opacity-50 !cursor-default"} 
-                      value={fleetTotalRate.toLocaleString()} 
-                      readOnly
-                    />
-                    <span className="text-slate-300 ml-2 select-none">|</span>
-                  </div>
-                </td>
+            {items.map((item, index) => {
+              const activeFleet = (fleet && fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+                ? fleet.filter(v => item.selected_vehicle_ids!.includes(v.id))
+                : fleet;
+              
+              const dailyFleetRate = (activeFleet && activeFleet.length > 0)
+                ? activeFleet.reduce((acc, v) => acc + (v.daily_rate || 0), 0)
+                : (item.vehicle_rate || 0);
+
+              return (
+                <tr key={index} className="group hover:bg-emerald-50/30 transition-colors h-[32px]">
+                  <td className={cellStyle + " !pl-8 font-black text-primary/40"}>D{item.day_number}</td>
+                  <td className={cellStyle}>
+                    <div className="flex items-center justify-between">
+                      <input 
+                        type="text" 
+                        className={inputStyle + " disabled:opacity-50"} 
+                        value={item.destination} 
+                        onChange={(e) => onUpdateItem(index, { destination: e.target.value })} 
+                        disabled={readOnly}
+                      />
+                      <span className="text-slate-300 ml-2 select-none">|</span>
+                    </div>
+                  </td>
+                  <td className={cellStyle}>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-bold text-gray-300">₱</span>
+                      <input 
+                        type="text" 
+                        className={inputStyle + " font-black disabled:opacity-50 !cursor-default"} 
+                        value={dailyFleetRate.toLocaleString()} 
+                        readOnly
+                      />
+                      <span className="text-slate-300 ml-2 select-none">|</span>
+                    </div>
+                  </td>
                 <td className={cellStyle}>
                   <div className="flex items-center gap-1">
                     <input 
@@ -227,13 +236,14 @@ export default function OperationalMatrix({
                     );
                   })}
 
-                <td className={cellStyle + " !pr-8 text-right bg-rose-50/20 border-l border-rose-100/50"}>
-                  <div className="text-[11px] font-black text-primary whitespace-nowrap">
-                    ₱{Math.round(rowTotals[index] || 0).toLocaleString()}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  <td className={cellStyle + " !pr-8 text-right bg-rose-50/20 border-l border-rose-100/50"}>
+                    <div className="text-[11px] font-black text-primary whitespace-nowrap">
+                      ₱{Math.round(rowTotals[index] || 0).toLocaleString()}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr className="bg-rose-50/50 border-t-2 border-rose-100/50">

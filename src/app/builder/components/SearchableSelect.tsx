@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { Search, ChevronDown, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchableSelectProps {
@@ -19,6 +19,7 @@ interface SearchableSelectProps {
     value: string;
     label: string;
   };
+  creatable?: boolean;
   renderOption?: (option: any) => React.ReactNode;
 }
 
@@ -33,6 +34,7 @@ export function SearchableSelect({
   disabled = false,
   className = "",
   customItem,
+  creatable = false,
   renderOption
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -110,8 +112,11 @@ export function SearchableSelect({
   const displayLabel = React.useMemo(() => {
     if (selectedOption) return getLabel(selectedOption);
     if (customItem?.value === value) return customItem.label;
+    if (value && !selectedOption) return value; // Show raw value if not in options
     return placeholder;
   }, [selectedOption, customItem, value, getLabel, placeholder]);
+
+  const showCreatable = creatable && search && !options.some(opt => getLabel(opt).toLowerCase() === search.toLowerCase());
 
   return (
     <>
@@ -158,12 +163,32 @@ export function SearchableSelect({
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setIsOpen(false);
+                    if (e.key === "Enter" && showCreatable) {
+                       onValueChange(search);
+                       setIsOpen(false);
+                       setSearch("");
+                    }
                   }}
                 />
               </div>
             </div>
 
             <div className="max-h-[340px] overflow-y-auto custom-scrollbar !p-1.5 space-y-0.5">
+              {showCreatable && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onValueChange(search);
+                    setIsOpen(false);
+                    setSearch("");
+                  }}
+                  className="flex w-full items-center gap-2 text-[11px] font-bold !py-2.5 !px-4 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all text-left border border-emerald-100 mb-1"
+                >
+                  <Plus size={14} />
+                  <span>Use "{search}"</span>
+                </button>
+              )}
+
               {customItem && (
                 <button
                   type="button"
@@ -184,7 +209,7 @@ export function SearchableSelect({
                 </button>
               )}
               
-              {filteredOptions.length === 0 ? (
+              {filteredOptions.length === 0 && !showCreatable ? (
                 <div className="py-10 flex flex-col items-center justify-center gap-2 opacity-30">
                   <Search size={20} className="text-slate-300" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">No results found</span>
