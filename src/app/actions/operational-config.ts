@@ -138,6 +138,7 @@ export async function saveMiscPreset(formData: FormData, operatorId: string) {
   const data: any = {
     name,
     default_amount: parseFloat(formData.get('default_amount') as string) || 0,
+    multiply_by_vehicle: formData.get('multiply_by_vehicle') === 'true',
   };
 
   try {

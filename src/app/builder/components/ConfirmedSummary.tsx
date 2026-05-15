@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard } from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
@@ -259,19 +259,32 @@ export default function ConfirmedSummary({
                   </div>
                   <div className="grid grid-cols-1 gap-8 relative">
                      <div className="absolute left-6 top-8 bottom-8 w-px bg-[#f0f2f5] -translate-x-1/2" />
-                     {quote.items?.map((item: any, i: number) => (
-                        <div key={i} className="flex gap-10 items-start relative pb-4">
-                           <div className="w-12 h-12 rounded-[18px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10 sticky top-[72px]">
-                              <span className="text-[7px] font-black uppercase opacity-40 leading-none mb-0.5">D{item.day_number}</span>
-                              <span className="text-xs font-black text-primary leading-none">{new Date(item.date).getDate()}</span>
-                           </div>
-                           <div className="flex-1 space-y-4 pt-1">
-                              <div className="space-y-1.5">
-                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-base font-black text-primary tracking-tight">{item.destination}</h4>
-                                 </div>
-                                 <p className="text-[11px] font-bold text-text-tertiary leading-relaxed max-w-2xl">{item.itinerary_details}</p>
-                              </div>
+                      {quote.items?.map((item: any, i: number) => {
+                        const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
+                          ? item.selected_vehicle_ids 
+                          : (quote.fleet || []).map((v: any) => v.id);
+                        const vehicleNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
+
+                        return (
+                          <div key={i} className="flex gap-10 items-start relative pb-4">
+                             <div className="w-12 h-12 rounded-[18px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10 sticky top-[72px]">
+                                <span className="text-[7px] font-black uppercase opacity-40 leading-none mb-0.5">D{item.day_number}</span>
+                                <span className="text-xs font-black text-primary leading-none">{new Date(item.date).getDate()}</span>
+                             </div>
+                             <div className="flex-1 space-y-4 pt-1">
+                                <div className="space-y-1.5">
+                                   <div className="flex items-center justify-between">
+                                      <h4 className="text-base font-black text-primary tracking-tight">{item.destination}</h4>
+                                   </div>
+                                   <p className="text-[11px] font-bold text-text-tertiary leading-relaxed max-w-2xl">{item.itinerary_details}</p>
+                                </div>
+  
+                                {vehicleNames && (
+                                  <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl w-fit">
+                                     <Car size={12} className="text-slate-400" />
+                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.1em]">{vehicleNames}</span>
+                                  </div>
+                                )}
 
                               {item.guest_accommodation_name && (
                                 <div className="flex items-center gap-4 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/30 max-w-md transition-all hover:bg-emerald-50">
@@ -294,7 +307,8 @@ export default function ConfirmedSummary({
                               )}
                            </div>
                         </div>
-                     ))}
+                       );
+                     })}
                   </div>
                </div>
             </div>

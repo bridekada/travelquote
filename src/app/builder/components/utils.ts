@@ -4,9 +4,13 @@ export const calculateFuelCost = (item: QuoteItem, fleet?: QuoteVehicle[]) => {
   if (item.fuel_cost_manual !== undefined && item.fuel_cost_manual !== null) return item.fuel_cost_manual;
   if (!item.km || item.km <= 0) return 0;
 
-  // Multi-vehicle logic: Sum fuel cost for each vehicle in fleet
-  if (fleet && fleet.length > 0) {
-    return fleet.reduce((acc, v) => {
+  // Filter fleet based on selected_vehicle_ids if provided, otherwise use full fleet
+  const activeFleet = (fleet && fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+    ? fleet.filter(v => item.selected_vehicle_ids!.includes(v.id))
+    : fleet;
+
+  if (activeFleet && activeFleet.length > 0) {
+    return activeFleet.reduce((acc, v) => {
       const kmpl = v.km_per_l || 10;
       const price = v.fuel_price || 60;
       return acc + (item.km / kmpl) * price;
@@ -23,9 +27,13 @@ export const calculateRowTotal = (item: QuoteItem, adminCommission: number, flee
   const dynamicTotal = Object.values(item.dynamic_costs || {}).reduce((a: number, b: any) => a + (b || 0), 0);
   const accomAmount = item.guest_accommodation_amount || 0;
   
-  // Use fleet total rate if available, otherwise use item level rate
-  const rate = (fleet && fleet.length > 0) 
-    ? fleet.reduce((acc, v) => acc + (v.daily_rate || 0), 0)
+  // Filter fleet for daily rate calculation
+  const activeFleet = (fleet && fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+    ? fleet.filter(v => item.selected_vehicle_ids!.includes(v.id))
+    : fleet;
+
+  const rate = (activeFleet && activeFleet.length > 0) 
+    ? activeFleet.reduce((acc, v) => acc + (v.daily_rate || 0), 0)
     : (item.vehicle_rate || 0);
 
   const baseTotal = rate + fuel + accomAmount + dynamicTotal;

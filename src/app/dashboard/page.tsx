@@ -2478,6 +2478,22 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
               <label style={labelStyle}>Default Amount (₱)</label>
               <input name="default_amount" type="number" defaultValue={editingItem?.default_amount} style={inputStyle} placeholder="e.g. 1000" required />
             </div>
+
+            <div className="pt-6 !mt-2">
+              <label className="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer group w-full border border-transparent hover:border-emerald-200 transition-all">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tight">Multiply Cost by Number of Vehicles</span>
+                  <span className="text-[10px] text-text-tertiary">Use this for Driver Fees or costs that scale per car</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  name="multiply_by_vehicle" 
+                  value="true" 
+                  defaultChecked={editingItem?.multiply_by_vehicle} 
+                  className="w-5 h-5 rounded-lg border-[var(--color-border-default)] text-emerald-600 focus:ring-emerald-500/20 cursor-pointer" 
+                />
+              </label>
+            </div>
           </div>
           
           <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)]">

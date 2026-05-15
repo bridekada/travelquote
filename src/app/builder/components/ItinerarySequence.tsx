@@ -1,9 +1,10 @@
 "use client";
 
-import { Plus, Minus, MapPin, Trash2 } from "lucide-react";
+import { Plus, Minus, MapPin, Trash2, Globe, Link } from "lucide-react";
 import { QuoteItem } from "./types";
 import { btnAction } from "@/lib/styles";
 import { SearchableSelect } from "./SearchableSelect";
+import { MultiSelect } from "./MultiSelect";
 
 interface TagSelectorProps {
   options: string[];
@@ -33,7 +34,7 @@ function TagSelector({ options, selectedTags, onChange, readOnly = false }: TagS
             onClick={() => !readOnly && toggleTag(tag)}
             className={`inline-flex items-center px-2 rounded text-[9px] font-black uppercase tracking-wide transition-all leading-none ${readOnly ? "cursor-default opacity-50 grayscale" : "cursor-pointer hover:scale-110 active:scale-95"} ${isActive
                 ? "bg-rose-500 text-white shadow-sm hover:opacity-90"
-                : "bg-[#f0f2f5] text-text-tertiary/40 hover:text-text-tertiary/70 hover:bg-[#e8eaed]"
+                : "bg-[#f0f2f5] text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:ring-1 hover:ring-rose-200"
               }`}
             style={{ height: '20px', minHeight: '20px', padding: '0 8px' }}
           >
@@ -55,6 +56,7 @@ interface ItinerarySequenceProps {
   onAddDay: () => void;
   onRemoveLastDay: () => void;
   readOnly?: boolean;
+  fleet?: any[];
 }
 
 export default function ItinerarySequence({
@@ -66,7 +68,8 @@ export default function ItinerarySequence({
   onUpdateItem,
   onAddDay,
   onRemoveLastDay,
-  readOnly = false
+  readOnly = false,
+  fleet = []
 }: ItinerarySequenceProps) {
   return (
     <div className="w-full !px-2 md:!px-4 lg:!px-6 !mt-4 md:!mt-6">
@@ -178,7 +181,8 @@ export default function ItinerarySequence({
 
               {/* Bottom Section: Accommodation + Tags */}
               <div className="mt-6 pt-4 border-t border-gray-100 space-y-4">
-                <div className="grid grid-cols-12 gap-3 items-end">
+                {/* Row 1: Accommodation & Pricing */}
+                <div className="grid grid-cols-12 gap-3 md:gap-4 items-end">
                   <div className="col-span-4 space-y-1">
                     <label className="!text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Accommodation</label>
                     <SearchableSelect
@@ -225,16 +229,68 @@ export default function ItinerarySequence({
                       </div>
                     </div>
                   )}
+
+                  <div className="col-span-4 space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Hotel Link (URL)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="input !py-1 !pl-10 !pr-3 !bg-white shadow-sm !border-slate-300 font-bold text-primary !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
+                        style={{ height: '34px', fontSize: '11px' }}
+                        placeholder="https://..."
+                        value={item.accommodation_url || ""}
+                        onChange={(e) => onUpdateItem(index, { accommodation_url: e.target.value })}
+                        disabled={readOnly}
+                      />
+                      <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                      {item.accommodation_url && (
+                        <a 
+                          href={item.accommodation_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-emerald-600 transition-colors"
+                        >
+                          <Link size={12} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-2 border-t border-gray-50 space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Cost Association Tags</label>
-                  <TagSelector
-                    selectedTags={item.tags || []}
-                    onChange={(newTags) => onUpdateItem(index, { tags: newTags })}
-                    options={dbMiscPresets.map(p => p.name)}
-                    readOnly={readOnly}
-                  />
+                {/* Row 2: Vehicle Selection */}
+                <div className="pt-2 border-t border-gray-50 grid grid-cols-12 gap-3 md:gap-4">
+                  <div className="col-span-4 space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Active Vehicle For This Date</label>
+                    <MultiSelect
+                      options={fleet.map((v, i) => {
+                        const sameModels = fleet.filter(f => f.model === v.model);
+                        const label = sameModels.length > 1 
+                          ? `${v.model} #${sameModels.findIndex(f => f.id === v.id) + 1}`
+                          : v.model;
+                        return { id: v.id, label };
+                      })}
+                      selectedIds={(item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
+                        ? item.selected_vehicle_ids 
+                        : fleet.map(v => v.id))
+                        .filter(id => fleet.some(v => v.id === id))
+                      }
+                      onChange={(newIds) => onUpdateItem(index, { selected_vehicle_ids: newIds })}
+                      disabled={readOnly}
+                      className="!rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-4 mb-0.5 inline-block">Cost Association Tags</label>
+                    <TagSelector
+                      selectedTags={item.tags || []}
+                      onChange={(newTags) => onUpdateItem(index, { tags: newTags })}
+                      options={dbMiscPresets.map(p => p.name)}
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
