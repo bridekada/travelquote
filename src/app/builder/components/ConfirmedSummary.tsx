@@ -100,7 +100,8 @@ export default function ConfirmedSummary({
 
   // Financial Calculations
   const commissionPercentage = quote.admin_commission || 0;
-  const commissionAmount = Math.round(((details.total_amount || 0) * commissionPercentage) / (100 + commissionPercentage));
+  const commissionBase = quote.selected_package_total || details.total_amount || 0;
+  const commissionAmount = Math.round((commissionBase * commissionPercentage) / (100 + commissionPercentage));
   const baseRate = (details.total_amount || 0) - commissionAmount;
 
   return (

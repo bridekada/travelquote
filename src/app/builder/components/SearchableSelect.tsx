@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { Search, ChevronDown, Check, Plus } from "lucide-react";
+import { Search, ChevronDown, Check, Plus, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchableSelectProps {
@@ -21,6 +21,7 @@ interface SearchableSelectProps {
   };
   creatable?: boolean;
   renderOption?: (option: any) => React.ReactNode;
+  clearable?: boolean;
 }
 
 export function SearchableSelect({
@@ -35,7 +36,8 @@ export function SearchableSelect({
   className = "",
   customItem,
   creatable = false,
-  renderOption
+  renderOption,
+  clearable = false
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -73,6 +75,8 @@ export function SearchableSelect({
         dropdownRef.current && !dropdownRef.current.contains(event.target)
       ) {
         setIsOpen(false);
+        // If we are closing and the search was cleared, and it was a custom value, we might want to clear it?
+        // Actually, let's just reset search to empty when closing normally.
         setSearch("");
       }
     };
@@ -90,12 +94,21 @@ export function SearchableSelect({
     };
   }, [isOpen, updateCoords]);
 
-  // Focus input when opened
+  // Focus input when opened and handle manual text pre-fill
   React.useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 10);
+      // If it's a custom value (not in options), pre-fill the search
+      if (value && !options.some(opt => getValue(opt) === value)) {
+        setSearch(value);
+      }
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select(); // Auto-select for easy "backspace to clear"
+        }
+      }, 10);
     }
-  }, [isOpen]);
+  }, [isOpen, value, options, getValue]);
 
   const filteredOptions = React.useMemo(() => {
     if (!search) return options;
@@ -117,6 +130,7 @@ export function SearchableSelect({
   }, [selectedOption, customItem, value, getLabel, placeholder]);
 
   const showCreatable = creatable && search && !options.some(opt => getLabel(opt).toLowerCase() === search.toLowerCase());
+  const showClearManual = creatable && value && !search && !options.some(opt => getValue(opt) === value);
 
   return (
     <>
@@ -163,10 +177,16 @@ export function SearchableSelect({
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setIsOpen(false);
-                    if (e.key === "Enter" && showCreatable) {
-                       onValueChange(search);
-                       setIsOpen(false);
-                       setSearch("");
+                    if (e.key === "Enter") {
+                       if (showCreatable) {
+                         onValueChange(search);
+                         setIsOpen(false);
+                         setSearch("");
+                       } else if (showClearManual) {
+                         onValueChange("");
+                         setIsOpen(false);
+                         setSearch("");
+                       }
                     }
                   }}
                 />
@@ -186,6 +206,21 @@ export function SearchableSelect({
                 >
                   <Plus size={14} />
                   <span>Use "{search}"</span>
+                </button>
+              )}
+              
+              {showClearManual && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onValueChange("");
+                    setIsOpen(false);
+                    setSearch("");
+                  }}
+                  className="flex w-full items-center gap-2 text-[11px] font-bold !py-2.5 !px-4 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all text-left border border-slate-100 mb-1"
+                >
+                  <XCircle size={14} />
+                  <span>Clear current value</span>
                 </button>
               )}
 
