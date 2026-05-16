@@ -731,14 +731,10 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
     }
   });
 
-  // Calculate Subtotal and Markup
-  const subtotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const markupAmount = subtotal * ((quote.admin_commission || 0) / 100);
-  if (markupAmount > 0) {
-    expenses.push({ label: `Markup (${quote.admin_commission}%)`, amount: markupAmount, included: true });
-  }
+  // Calculate totals based on Official Package Details
+  const agreedTotal = details.total_amount || 0;
 
-  const totalExpenses = expenses.filter(e => e.included).reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = agreedTotal;
   const net = totalExpenses - totalPaid;
 
   const reportText = `
@@ -750,10 +746,8 @@ Contact Person: ${quote.customer_name}
 Contact Number: ${quote.contact_number || 'N/A'}
 _____________________________________________
 Expenses
-${expenses.filter(e => e.included).map(e => `${e.label}: ₱${e.amount.toLocaleString()}`).join('\n')}
-TOTAL: ₱${totalExpenses.toLocaleString()}
-LESS RESERVATION: ₱${totalPaid.toLocaleString()}
-NET: ₱${net.toLocaleString()} 
+${expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
+LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}
 ______________________________________________
 Itinerary (Include Accomodation if applicable)
 ${quote.items?.map(item => {
@@ -838,10 +832,8 @@ ${quote.items?.map(item => {
                 {"\n"}Contact Number: {quote.contact_number || 'N/A'}
                 {"\n"}_____________________________________________
                 {"\n"}<span className="font-black text-primary">Expenses</span>
-                {"\n"}{expenses.filter(e => e.included).map(e => `${e.label}: ₱${e.amount.toLocaleString()}`).join('\n')}
-                {"\n"}<span className="font-black text-slate-800">TOTAL: ₱{totalExpenses.toLocaleString()}</span>
-                {"\n"}<span className="font-black text-rose-600">LESS RESERVATION: ₱{totalPaid.toLocaleString()}</span>
-                {"\n"}<span className="font-black text-emerald-700">NET: ₱{net.toLocaleString()}</span> 
+                {"\n"}{expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
+                {"\n"}<span className="font-black text-rose-600">LESS RESERVATION: ₱{Math.round(totalPaid).toLocaleString()}</span>
                 {"\n"}______________________________________________
                 {"\n"}<span className="font-black text-primary">Itinerary (Include Accomodation if applicable)</span>
                 {"\n"}{quote.items?.map(item => {
