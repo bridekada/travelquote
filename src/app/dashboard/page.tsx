@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
+import DashboardSidebar from "./components/DashboardSidebar";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -97,7 +98,16 @@ function DashboardContent() {
   }>({ isOpen: false, type: null, id: "", title: "" });
 
   useEffect(() => {
-    if (profile) setNewFullName(profile.full_name || "");
+    if (profile) {
+      setNewFullName(profile.full_name || "");
+      if (profile.operators) {
+        setNewAgencyName(profile.operators.name || "");
+        setNewAgencyWebsite(profile.operators.website || "");
+        setNewAgencyNotes(profile.operators.quotation_agency_notes || "");
+        setNewAgencySocials(profile.operators.social_links || []);
+        setNewAgencyTitlePresets(profile.operators.quote_title_presets || []);
+      }
+    }
   }, [profile]);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -557,12 +567,11 @@ function DashboardContent() {
   const isImpersonating = profile?.role === 'super_admin';
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex flex-col items-center">
-      
+    <div className="min-h-screen bg-[#f8f9fb] flex flex-col h-screen overflow-hidden">
       {/* ── Admin Oversight Bar ──────────────────── */}
       {isImpersonating && (
         <div 
-          className="bg-primary text-white w-full flex justify-center py-2 text-[10px] font-bold uppercase tracking-widest z-50 sticky top-0 md:relative"
+          className="bg-primary text-white w-full flex justify-center py-2 text-[10px] font-bold uppercase tracking-widest z-50 sticky top-0 md:relative shrink-0"
           style={{ background: 'var(--color-brand)' }}
         >
           <div className="w-full px-8 flex items-center justify-between">
@@ -577,264 +586,381 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ── Slim Top Bar ─────────────────────────── */}
-      <header style={topBar} className="sticky top-0 z-40 w-full flex justify-center safe-top">
-        <div style={topBarInner} className="flex items-center justify-between">
-          <div className="flex items-center gap-6 min-w-0">
-            <div className="flex items-center gap-3">
-              {activeTab === 'calendar' && (
-                <button 
-                  onClick={() => setActiveTab('quotes')}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-all text-slate-500 hover:text-primary flex items-center gap-2 group"
-                  title="Back to Dashboard"
-                >
-                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Back</span>
-                </button>
-              )}
-              <LayoutGrid style={{ color: 'var(--color-brand)' }} className="shrink-0" size={20} />
-              <span className="text-sm md:text-base font-bold text-[#0F172A] tracking-tight truncate">TravelQuote <span style={{ color: '#F05E33', fontWeight: 500, fontSize: '0.75em', marginLeft: '2px' }}>by JWRM</span></span>
-            </div>
-            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
-            <div className="text-xs font-medium text-text-muted hidden sm:flex items-center gap-2 truncate">
-              Station: <span style={{ color: 'var(--color-brand)', fontWeight: 700 }}>{profile?.operators?.name}</span>
-              {(profile?.role === 'super_admin' || profile?.role === 'operator_admin' || profile?.role === 'operator_sales') && (
-                <button 
-                  onClick={() => {
-                    setNewAgencyName(profile?.operators?.name || "");
-                    setNewAgencyWebsite(profile?.operators?.website || "");
-                    setNewAgencyNotes(profile?.operators?.quotation_agency_notes || "");
-                    setNewAgencySocials(profile?.operators?.social_links || []);
-                    setNewAgencyTitlePresets(profile?.operators?.quote_title_presets || []);
-                    setIsAgencySettingsOpen(true);
-                  }}
-                  className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-all group"
-                  title="Edit Agency Settings"
-                >
-                  <Settings size={14} className="group-hover:rotate-90 transition-transform duration-500" />
-                </button>
-              )}
-            </div>
-            {/* Persistent Calendar Button */}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveTab('calendar');
-              }}
-              style={{ 
-                ...btnAction, 
-                height: '34px', 
-                padding: '0 12px', 
-                backgroundColor: activeTab === 'calendar' ? '#064E3B' : 'var(--color-brand)',
-                backgroundImage: activeTab === 'calendar' ? 'none' : undefined
-              }}
-              className="ml-4 transition-all hover:opacity-90 active:scale-95 flex items-center gap-2 shrink-0"
-            >
-              <CalendarIcon size={14} strokeWidth={2.5} />
-              <span className="text-[10px] font-bold uppercase tracking-wider hidden md:inline leading-none mt-0.5">
-                Calendar
-              </span>
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <button 
-              onClick={handleSignOut} 
-              style={btnIcon}
-              className="hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all active:scale-90"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <LogOut size={16} />
-            </button>
-            <div 
-              onClick={() => setIsSettingsOpen(true)}
-              className="h-9 w-12 rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold cursor-pointer hover:ring-4 hover:ring-primary/10 transition-all active:scale-95 shadow-lg shadow-primary/10"
-              style={{ background: 'var(--color-brand)' }}
-              title="Account Settings"
-              role="button"
-              aria-label="Account Settings"
-            >
-              {profile?.full_name?.substring(0, 2).toUpperCase()}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main style={pageContainer} className="flex flex-col gap-4">
+      <div className="flex-1 flex w-full overflow-hidden">
+        <DashboardSidebar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          validTabs={validTabs} 
+          profile={profile} 
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onAgencySettingsClick={() => setIsAgencySettingsOpen(true)}
+          isImpersonating={isImpersonating}
+        />
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
-          <div>
-            <h1 style={pageTitle}>
-              {activeTab === 'quotes' && "Quotation List"}
-              {activeTab === 'calendar' && "Operational Calendar"}
-              {activeTab === 'analytics' && "Company Insight"}
-              {activeTab === 'vehicles' && "Vehicle Inventory"}
-              {activeTab === 'accommodation' && "Guest Accommodation"}
-              {activeTab === 'miscellaneous' && "Miscellaneous Fees"}
-              {activeTab === 'itinerary' && "Itinerary Presets"}
-              {activeTab === 'packages' && "Summary Packages"}
-            </h1>
-            <p style={pageSubtitle}>
-              {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
-              {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
-              {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
-              {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
-              {activeTab === 'accommodation' && "Manage guest accommodation options with pax-based pricing."}
-              {activeTab === 'miscellaneous' && "Configure operator-level miscellaneous fee presets."}
-              {activeTab === 'itinerary' && "Create and manage reusable trip patterns and route configurations."}
-              {activeTab === 'packages' && "Configure reusable pricing packages."}
-            </p>
-          </div>
-          {activeTab === 'quotes' && (
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => router.push('/builder')}
-                className="group transition-all hover:opacity-90 active:scale-95"
-                style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-                <span className="hidden sm:inline leading-none mt-0.5">Issue Quote</span>
-                <span className="sm:hidden leading-none mt-0.5">New</span>
-              </button>
-            </div>
-          )}
-          {activeTab === 'vehicles' && (
-            <button 
-              onClick={() => { setEditingItem(null); setIsAddingVehicle(true); }}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <CarFront size={16} strokeWidth={2.5} />
-              Add Vehicle
-            </button>
-          )}
-          {activeTab === 'itinerary' && (
-            <button 
-              onClick={() => { setEditingItem(null); setIsAddingPreset(true); }}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <MapIcon size={16} strokeWidth={2.5} />
-              Define Preset
-            </button>
-          )}
-          {activeTab === 'miscellaneous' && (
-            <button 
-              onClick={() => { setEditingItem(null); setIsAddingMisc(true); }}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <Banknote size={16} strokeWidth={2.5} />
-              Add Misc Fee
-            </button>
-          )}
-          {activeTab === 'packages' && (
-            <button 
-              onClick={() => { setEditingItem(null); setIsAddingPackage(true); }}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <LayoutGrid size={16} strokeWidth={2.5} />
-              Add Package
-            </button>
-          )}
-          {activeTab === 'accommodation' && (
-            <button 
-              onClick={() => { setEditingItem(null); setIsAddingAccommodation(true); }}
-              className="group transition-all hover:opacity-90 active:scale-95"
-              style={{ ...btnAction, height: '42px', whiteSpace: 'nowrap' }}
-            >
-              <BedDouble size={16} strokeWidth={2.5} />
-              Add Accommodation
-            </button>
-          )}
-        </div>
-
-        {activeTab !== 'calendar' && (
-          <div style={tabRowStyle} className="no-scrollbar" role="tablist">
-            {validTabs.filter(t => t !== 'calendar').map(tab => (
-              <button 
-                key={tab}
-                onClick={() => setActiveTab(tab)} 
-                className={`!px-5 !py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 border`}
-                style={{
-                  background: activeTab === tab ? 'var(--color-brand)' : 'white',
-                  borderColor: activeTab === tab ? 'var(--color-border-default)' : 'var(--color-border-default)',
-                  color: activeTab === tab ? 'white' : 'var(--color-text-muted)',
-                  boxShadow: activeTab === tab ? 'var(--shadow-xs)' : 'none'
-                }}
-              >
-                {tab === 'accommodation' ? 'Guest Accom' : tab === 'miscellaneous' ? 'Misc. Fees' : tab}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeTab !== 'analytics' && activeTab !== 'calendar' && (
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
-              <input 
-                type="text" 
-                placeholder={`Filter ${activeTab} records...`} 
-                className="w-full bg-white border border-[#e8eaed] rounded-xl py-3 md:py-4 !pl-12 md:!pl-16 pr-4 text-sm focus:outline-none focus:border-primary transition-colors focus:bg-white"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            {activeTab === 'quotes' && (
-              <div className="flex items-center gap-3">
-                {/* Date Filter */}
-                <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "All Time")}>
-                  <SelectTrigger 
-                    className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon size={14} className="text-emerald-500 opacity-80" />
-                      <SelectValue placeholder="Created Today" />
-                    </div>
-                  </SelectTrigger>
-                <SelectContent align="center" sideOffset={4} alignItemWithTrigger={false} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[180px]">
-                    {['All Time', 'Created Today', 'Last 7 Days', 'This Month', 'This Year'].map(opt => (
-                      <SelectItem 
-                        key={opt} 
-                        value={opt} 
-                        className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors mb-0 last:mb-0"
-                      >
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Agent Filter */}
-                <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val || "All")}>
-                  <SelectTrigger 
-                    size="sm" 
-                    className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users size={14} className="text-text-tertiary opacity-60" />
-                      <SelectValue placeholder="All Agents" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="center" sideOffset={4} alignItemWithTrigger={false} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[200px]">
-                    <SelectItem value="All" className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0">All Agents</SelectItem>
-                    {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).map(name => (
-                      <SelectItem 
-                        key={name as string} 
-                        value={name as string} 
-                        className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0 last:mb-0"
-                      >
-                        {name as string}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* ── Top Header ─────────────────────── */}
+          <header id="dashboard-top-header" className="sticky top-0 z-30 w-full shrink-0 h-20 px-8 border-b border-slate-200/60 bg-white flex items-center">
+            <div className="flex-1 min-w-0 pr-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 shadow-sm">
+                  {activeTab === 'quotes' && <FileText className="text-emerald-600" size={24} />}
+                  {activeTab === 'calendar' && <CalendarIcon className="text-emerald-600" size={24} />}
+                  {activeTab === 'analytics' && <BarChart3 className="text-emerald-600" size={24} />}
+                  {activeTab === 'vehicles' && <CarFront className="text-emerald-600" size={24} />}
+                  {activeTab === 'accommodation' && <BedDouble className="text-emerald-600" size={24} />}
+                  {activeTab === 'miscellaneous' && <Settings className="text-emerald-600" size={24} />}
+                  {activeTab === 'itinerary' && <MapIcon className="text-emerald-600" size={24} />}
+                  {activeTab === 'packages' && <LayoutGrid className="text-emerald-600" size={24} />}
+                </div>
+                <div>
+                  <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1.5 flex items-center gap-2">
+                    {activeTab === 'quotes' && "Quotation List"}
+                    {activeTab === 'calendar' && "Deployment Schedule"}
+                    {activeTab === 'analytics' && "Business Analytics"}
+                    {activeTab === 'vehicles' && "Vehicle Fleet"}
+                    {activeTab === 'accommodation' && "Accommodation Inventory"}
+                    {activeTab === 'miscellaneous' && "Service Presets"}
+                    {activeTab === 'itinerary' && "Trip Configurations"}
+                    {activeTab === 'packages' && "Product Packages"}
+                  </h1>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">
+                    {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
+                    {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
+                    {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
+                    {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
+                    {activeTab === 'accommodation' && "Manage guest accommodation options with pax-based pricing."}
+                    {activeTab === 'miscellaneous' && "Configure operator-level miscellaneous fee presets."}
+                    {activeTab === 'itinerary' && "Create and manage reusable trip patterns and route configurations."}
+                    {activeTab === 'packages' && "Configure reusable pricing packages."}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+
+            {/* ── Header Actions (Dynamic) ────────────── */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                {activeTab === 'quotes' && (
+                  <button onClick={() => router.push('/builder')} className="btn-header-action">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Issue Quote</span>
+                  </button>
+                )}
+                {activeTab === 'vehicles' && (
+                  <button onClick={() => { setEditingItem(null); setIsAddingVehicle(true); }} className="btn-header-action">
+                    <CarFront size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Add Vehicle</span>
+                  </button>
+                )}
+                {activeTab === 'itinerary' && (
+                  <button onClick={() => { setEditingItem(null); setIsAddingPreset(true); }} className="btn-header-action">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Add Preset</span>
+                  </button>
+                )}
+                {activeTab === 'accommodation' && (
+                  <button onClick={() => { setEditingItem(null); setIsAddingAccommodation(true); }} className="btn-header-action">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Add Guest Room</span>
+                  </button>
+                )}
+                {activeTab === 'miscellaneous' && (
+                  <button onClick={() => { setEditingItem(null); setIsAddingMisc(true); }} className="btn-header-action">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Add Misc Fee</span>
+                  </button>
+                )}
+                {activeTab === 'packages' && (
+                  <button onClick={() => { setEditingItem(null); setIsAddingPackage(true); }} className="btn-header-action">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="mt-0.5">Add Package</span>
+                  </button>
+                )}
+              </div>
+
+              {/* ── Station Info (Fixed Far Right) ─────── */}
+              <div className="flex items-center gap-4 ml-6">
+                <div className="h-8 w-[1px] bg-slate-200" />
+                <div className="station-header-pill group/station">
+                  <div className="station-header-icon">
+                    {profile?.operators?.name?.substring(0, 1).toUpperCase() || 'A'}
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <span className="station-header-label">Station</span>
+                    <span className="station-header-name">{profile?.operators?.name || 'Loading...'}</span>
+                  </div>
+                  {(profile?.role === 'super_admin' || profile?.role === 'operator_admin') && (
+                    <button 
+                      onClick={() => setIsAgencySettingsOpen(true)}
+                      className="ml-2 p-1.5 hover:bg-slate-100 rounded-lg text-slate-300 hover:text-emerald-600 transition-all group/btn"
+                      title="Agency Settings"
+                    >
+                      <Settings size={14} className="group-hover/btn:rotate-90 transition-transform duration-500" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 flex overflow-hidden">
+            <style dangerouslySetInnerHTML={{ __html: `
+              #dashboard-top-header {
+                padding-left: 32px !important;
+                padding-right: 32px !important;
+                height: 64px !important;
+                background: #ffffff !important;
+                border-bottom: 1px solid #f1f5f9 !important;
+              }
+              #dashboard-main-content {
+                padding-left: 64px !important;
+                padding-right: 64px !important;
+                padding-top: 32px !important;
+                padding-bottom: 32px !important;
+                background: #f8f9fb !important;
+              }
+              .custom-scrollbar::-webkit-scrollbar {
+                width: 10px !important;
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: #f1f5f9 !important;
+                border-radius: 10px !important;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border: 2px solid #f1f5f9 !important;
+                border-radius: 10px !important;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8 !important;
+              }
+              .btn-header-action {
+                background: #ffffff !important;
+                color: #64748b !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 10px !important;
+                height: 38px !important;
+                padding: 0 18px !important;
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.1em !important;
+                transition: all 0.2s ease !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                white-space: nowrap !important;
+              }
+              .btn-header-action:hover {
+                background: #1e293b !important;
+                color: #ffffff !important;
+                border-color: #1e293b !important;
+                box-shadow: 0 8px 16px -4px rgba(30, 41, 59, 0.2) !important;
+                transform: translateY(-1px) !important;
+              }
+              .btn-header-action:active {
+                transform: translateY(0px) scale(0.98) !important;
+              }
+              .btn-header-action svg {
+                transition: transform 0.2s ease !important;
+              }
+              .btn-header-action:hover svg {
+                transform: scale(1.1) !important;
+              }
+              .station-header-pill {
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                padding: 6px 16px 6px 6px !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 12px !important;
+                margin-right: 8px !important;
+                transition: all 0.2s ease !important;
+              }
+              .station-header-pill:hover {
+                background: #ffffff !important;
+                border-color: #cbd5e1 !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+              }
+              .station-header-icon {
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 8px !important;
+                background: #00674f !important;
+                color: white !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 10px !important;
+                font-weight: 900 !important;
+                flex-shrink: 0 !important;
+              }
+              .station-header-label {
+                text-transform: uppercase !important;
+                letter-spacing: 0.1em !important;
+                font-size: 7px !important;
+                font-weight: 900 !important;
+                color: #10b981 !important;
+                display: block !important;
+                line-height: 1 !important;
+                margin-bottom: 2px !important;
+              }
+              .station-header-name {
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                color: #334155 !important;
+                display: block !important;
+                line-height: 1 !important;
+                letter-spacing: -0.01em !important;
+              }
+            `}} />
+            <main id="dashboard-main-content" className="flex-1 flex flex-col overflow-hidden bg-[#f8f9fb]">
+              {/* Fixed Header Section */}
+              <div className="flex flex-col gap-6 shrink-0 px-8 pt-8 pb-4">
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .sort-toggle-container {
+                    display: flex !important;
+                    align-items: center !important;
+                    background: #ffffff !important;
+                    border: 1px solid #e2e8f0 !important;
+                    border-radius: 9999px !important;
+                    padding: 2px !important;
+                    gap: 2px !important;
+                    height: 28px !important;
+                    width: auto !important;
+                    min-height: 0 !important;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+                    margin: 0 !important;
+                  }
+                  .sort-toggle-btn {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 5px !important;
+                    height: 20px !important;
+                    min-height: 0 !important;
+                    width: auto !important;
+                    padding: 0 10px !important;
+                    border-radius: 9999px !important;
+                    font-size: 8.5px !important;
+                    font-weight: 900 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.05em !important;
+                    transition: all 0.2s ease !important;
+                    border: none !important;
+                    cursor: pointer !important;
+                    outline: none !important;
+                    background: transparent !important;
+                    color: #94a3b8 !important;
+                    margin: 0 !important;
+                    line-height: 1 !important;
+                    flex: none !important;
+                  }
+                  .sort-toggle-btn:hover {
+                    color: #64748b !important;
+                    background: #f8fafc !important;
+                  }
+                  .sort-toggle-btn.active {
+                    background: #00674f !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 10px rgba(0, 103, 79, 0.2) !important;
+                  }
+                `}} />
+                {activeTab !== 'analytics' && activeTab !== 'calendar' && (
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-text-tertiary" size={20} />
+                      <input 
+                        type="text" 
+                        placeholder={`Filter ${activeTab} records...`} 
+                        className="w-full bg-white border border-[#e8eaed] rounded-xl py-3 md:py-4 !pl-12 md:!pl-16 pr-4 text-sm focus:outline-none focus:border-primary transition-colors focus:bg-white"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    {activeTab === 'quotes' && (
+                      <div className="flex items-center gap-3">
+                        <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "All Time")}>
+                          <SelectTrigger className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all">
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon size={14} className="text-emerald-500 opacity-80" />
+                              <SelectValue placeholder="Created Today" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent align="center" sideOffset={4} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[180px]">
+                            {['All Time', 'Created Today', 'Last 7 Days', 'This Month', 'This Year'].map(opt => (
+                              <SelectItem key={opt} value={opt} className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors mb-0 last:mb-0">
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={agentFilter} onValueChange={(val) => setAgentFilter(val || "All")}>
+                          <SelectTrigger className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all">
+                            <div className="flex items-center gap-2">
+                              <Users size={14} className="text-text-tertiary opacity-60" />
+                              <SelectValue placeholder="All Agents" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent align="center" sideOffset={4} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[200px]">
+                            <SelectItem value="All" className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0">All Agents</SelectItem>
+                            {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).map(name => (
+                              <SelectItem key={name as string} value={name as string} className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0 last:mb-0">
+                                {name as string}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'quotes' && quotes.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs md:text-sm text-text-secondary shrink-0">
+                        Showing <span className="font-bold text-primary">{filteredQuotes.length}</span> record{filteredQuotes.length !== 1 && 's'}
+                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 mt-0.5">Order:</span>
+                        <div className="sort-toggle-container">
+                          <button type="button" onClick={() => setSortMethod('priority')} className={`sort-toggle-btn ${sortMethod === 'priority' ? 'active' : ''}`}>
+                            <Zap size={10} strokeWidth={3} className={sortMethod === 'priority' ? 'text-white' : 'text-emerald-500'} />
+                            Priority
+                          </button>
+                          <button type="button" onClick={() => setSortMethod('updated')} className={`sort-toggle-btn ${sortMethod === 'updated' ? 'active' : ''}`}>
+                            <Clock size={10} strokeWidth={3} className={sortMethod === 'updated' ? 'text-white' : 'text-emerald-500'} />
+                            Recent
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1 border-b border-[#f1f3f5]">
+                      {["All", ...allStatuses].map(status => {
+                        const count = statusCounts[status] || 0;
+                        const isActive = quoteStatusFilter === status;
+                        const shortNames: Record<string, string> = {
+                          'Quotation Sent': 'Sent', 'Follow-up Needed': 'Follow-up', 'Payment Started': 'Paying', 'Payment Complete': 'Paid', 'Cancelled': 'Cancelled'
+                        };
+                        const displayName = shortNames[status] || status;
+                        return (
+                          <button key={status} onClick={() => setQuoteStatusFilter(status)} className={`group relative pb-3 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${isActive ? 'text-primary border-primary' : 'text-text-tertiary border-transparent hover:text-primary hover:border-primary/30'}`}>
+                            <div className="flex items-center gap-1.5">{displayName} <span className={`text-[8px] font-black ${isActive ? 'text-primary' : 'text-text-tertiary/50'}`}>{count}</span></div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Scrollable Content Body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-8 flex flex-col gap-6">
+                <div className="h-1 shrink-0" />
 
         <div className="flex flex-col gap-2">
           {tabLoading ? (
@@ -844,85 +970,6 @@ function DashboardContent() {
             </div>
           ) : (
           <>
-        {activeTab === 'quotes' && (
-          <div className="flex items-center justify-between">
-            <style dangerouslySetInnerHTML={{ __html: `
-              .sort-toggle-container {
-                display: flex !important;
-                align-items: center !important;
-                background: #ffffff !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 9999px !important;
-                padding: 2px !important;
-                gap: 2px !important;
-                height: 28px !important;
-                width: auto !important;
-                min-height: 0 !important;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-                margin: 0 !important;
-              }
-              .sort-toggle-btn {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 5px !important;
-                height: 20px !important;
-                min-height: 0 !important;
-                width: auto !important;
-                padding: 0 10px !important;
-                border-radius: 9999px !important;
-                font-size: 8.5px !important;
-                font-weight: 900 !important;
-                text-transform: uppercase !important;
-                letter-spacing: 0.05em !important;
-                transition: all 0.2s ease !important;
-                border: none !important;
-                cursor: pointer !important;
-                outline: none !important;
-                background: transparent !important;
-                color: #94a3b8 !important;
-                margin: 0 !important;
-                line-height: 1 !important;
-                flex: none !important;
-              }
-              .sort-toggle-btn:hover {
-                color: #64748b !important;
-                background: #f8fafc !important;
-              }
-              .sort-toggle-btn.active {
-                background: #00674f !important;
-                color: #ffffff !important;
-                box-shadow: 0 4px 10px rgba(0, 103, 79, 0.2) !important;
-              }
-            `}} />
-
-            <p className="text-xs md:text-sm text-text-secondary shrink-0">
-              Showing <span className="font-bold text-primary">{filteredQuotes.length}</span> record{filteredQuotes.length !== 1 && 's'}
-            </p>
-            
-            <div className="flex items-center gap-2.5">
-              <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 mt-0.5">Order:</span>
-              <div className="sort-toggle-container">
-                <button
-                  type="button"
-                  onClick={() => setSortMethod('priority')}
-                  className={`sort-toggle-btn ${sortMethod === 'priority' ? 'active' : ''}`}
-                >
-                  <Zap size={10} strokeWidth={3} className={sortMethod === 'priority' ? 'text-white' : 'text-emerald-500'} />
-                  Priority
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSortMethod('updated')}
-                  className={`sort-toggle-btn ${sortMethod === 'updated' ? 'active' : ''}`}
-                >
-                  <Clock size={10} strokeWidth={3} className={sortMethod === 'updated' ? 'text-white' : 'text-emerald-500'} />
-                  Recent
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
           {activeTab === 'analytics' && (
             <div className="flex flex-col gap-6">
               <div className="relative flex items-center bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border-default)] w-fit mb-4 overflow-hidden shadow-sm gap-1">
@@ -1040,41 +1087,7 @@ function DashboardContent() {
           {activeTab === 'quotes' && (
             quotes.length > 0 ? (
               <div className="flex flex-col gap-6">
-                {/* Status Filter Tabs */}
-                <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1 border-b border-[#f1f3f5]">
-                  {["All", ...allStatuses].map(status => {
-                    const count = statusCounts[status] || 0;
-                    const isActive = quoteStatusFilter === status;
-                    
-                    const shortNames: Record<string, string> = {
-                      'Quotation Sent': 'Sent',
-                      'Follow-up Needed': 'Follow-up',
-                      'Payment Started': 'Paying',
-                      'Payment Complete': 'Paid',
-                      'Cancelled': 'Cancelled'
-                    };
-                    const displayName = shortNames[status] || status;
-
-                    return (
-                      <button
-                        key={status}
-                        onClick={() => setQuoteStatusFilter(status)}
-                        className={`group relative pb-3 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${
-                          isActive 
-                            ? 'text-primary border-primary' 
-                            : 'text-text-tertiary border-transparent hover:text-primary hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          {displayName}
-                          <span className={`text-[8px] font-black ${isActive ? 'text-primary' : 'text-text-tertiary/50'}`}>
-                            {count}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* List Items rendered here */}
 
                 <div className="flex flex-col gap-3">
                   {(() => {
@@ -1303,43 +1316,41 @@ function DashboardContent() {
           </>
           )}
         </div>
+      </div>
 
         <AnimatePresence>
-          {isAgencySettingsOpen && (
-            <AgencySettingsModal 
-              onClose={() => setIsAgencySettingsOpen(false)}
-              onSave={handleUpdateAgency}
-              name={newAgencyName}
-              setName={setNewAgencyName}
-              website={newAgencyWebsite}
-              setWebsite={setNewAgencyWebsite}
-              notes={newAgencyNotes}
-              setNotes={setNewAgencyNotes}
-              socials={newAgencySocials}
-              setSocials={setNewAgencySocials}
-              titlePresets={newAgencyTitlePresets}
-              setTitlePresets={setNewAgencyTitlePresets}
-              loading={agencyFormLoading}
-            />
-          )}
+          <AgencySettingsModal 
+            isOpen={isAgencySettingsOpen}
+            onClose={() => setIsAgencySettingsOpen(false)}
+            onSave={handleUpdateAgency}
+            name={newAgencyName}
+            setName={setNewAgencyName}
+            website={newAgencyWebsite}
+            setWebsite={setNewAgencyWebsite}
+            notes={newAgencyNotes}
+            setNotes={setNewAgencyNotes}
+            socials={newAgencySocials}
+            setSocials={setNewAgencySocials}
+            titlePresets={newAgencyTitlePresets}
+            setTitlePresets={setNewAgencyTitlePresets}
+            loading={agencyFormLoading}
+          />
 
-          {isSettingsOpen && (
-            <UserSettingsModal
-              key="settings-modal"
-              isOpen={isSettingsOpen}
-              onClose={() => setIsSettingsOpen(false)}
-              fullName={newFullName}
-              setFullName={setNewFullName}
-              newPassword={newPassword}
-              setNewPassword={setNewPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-              passwordError={passwordError}
-              role={profile?.role || ""}
-              onSave={handleUpdateProfile}
-              loading={formLoading}
-            />
-          )}
+          <UserSettingsModal
+            key="settings-modal"
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            fullName={newFullName}
+            setFullName={setNewFullName}
+            newPassword={newPassword}
+            setNewPassword={setNewPassword}
+            confirmPassword={confirmPassword}
+            setConfirmPassword={setConfirmPassword}
+            passwordError={passwordError}
+            role={profile?.role || ""}
+            onSave={handleUpdateProfile}
+            loading={formLoading}
+          />
 
           {isAddingVehicle && (
             <AddVehicleModal 
@@ -1401,13 +1412,31 @@ function DashboardContent() {
           title={deleteConfirm.title}
           type={deleteConfirm.type}
         />
-      </main>
+        </main>
+
+        {/* ── Right Feature Container ──────────────── */}
+        <aside className="hidden xl:flex flex-col w-80 bg-white border-l border-slate-200/60 items-center justify-center pb-32">
+          <div className="p-10 w-full flex flex-col items-center text-center gap-10">
+            <div className="w-24 h-24 rounded-[32px] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-center text-slate-300 border border-slate-50 transition-transform hover:scale-105 duration-500">
+              <Sparkles size={40} strokeWidth={1.2} />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-base font-black text-slate-800 tracking-tight">More Feature Coming Soon</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2 leading-relaxed max-w-[220px] opacity-80">
+                We're building something premium for your workstation.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
-  );
+  </div>
+</div>
+);
 }
 
 function AgencySettingsModal({ 
-  onClose, onSave, name, setName, website, setWebsite, notes, setNotes, socials, setSocials, titlePresets, setTitlePresets, loading 
+  isOpen, onClose, onSave, name, setName, website, setWebsite, notes, setNotes, socials, setSocials, titlePresets, setTitlePresets, loading 
 }: any) {
   const [isTitlesExpanded, setIsTitlesExpanded] = useState(false);
   const getSocialIcon = (url: string) => {
@@ -1419,7 +1448,7 @@ function AgencySettingsModal({
 
   return (
     <PremiumModalWrapper
-      isOpen={true}
+      isOpen={isOpen}
       onClose={onClose}
       title="Edit Agency"
       subtitle="Modify profile and quotation configuration"
@@ -2743,84 +2772,79 @@ function parseTags(tagStr: string | null) {
 }
 
 function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword, setNewPassword, confirmPassword, setConfirmPassword, passwordError, role, onSave, loading }: any) {
-  if (!isOpen) return null;
   return (
-    <div style={modalOverlay} onClick={onClose} className="p-4 z-50">
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        style={modalCard} 
-        className="max-w-md w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 style={modalTitle}>Account Settings</h2>
-          <button onClick={onClose} style={btnIcon}><X size={20} /></button>
+    <PremiumModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Account Settings"
+      subtitle="Manage your personal profile and security"
+      icon={<User size={18} strokeWidth={2.5} />}
+      maxWidth="440px"
+    >
+      <form onSubmit={onSave} className="flex flex-col !gap-6">
+        <div className="!space-y-1">
+          <label className={premiumFormStyles.label}>FULL NAME</label>
+          <input 
+            value={fullName} 
+            onChange={(e) => setFullName(e.target.value)} 
+            className={premiumFormStyles.input} 
+            placeholder="Your full name"
+            required 
+          />
         </div>
 
-        <form onSubmit={onSave} style={modalFormSpace}>
-          <div>
-            <label style={labelStyle}>Full Name</label>
-            <input 
-              value={fullName} 
-              onChange={(e) => setFullName(e.target.value)} 
-              style={inputStyle} 
-              required 
-            />
-          </div>
-
-          <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Update Password</h3>
-            <div className="space-y-4">
-              <div>
-                <label style={labelStyle}>New Password (leave blank to keep current)</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={(e) => setNewPassword(e.target.value)} 
-                  style={inputStyle} 
-                  placeholder="Minimum 6 characters"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Confirm New Password</label>
-                <input 
-                  type="password" 
-                  value={confirmPassword} 
-                  onChange={(e) => setConfirmPassword(e.target.value)} 
-                  style={inputStyle} 
-                />
-              </div>
+        <div className="!pt-4 !border-t !border-emerald-500/10">
+          <h3 className="!text-[10px] !font-black !text-slate-400 !uppercase !tracking-[0.2em] !mb-4">Update Password</h3>
+          <div className="!space-y-4">
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>NEW PASSWORD</label>
+              <input 
+                type="password" 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)} 
+                className={premiumFormStyles.input} 
+                placeholder="Minimum 6 characters"
+              />
+              <p className="!text-[9px] !text-slate-400 !italic !mt-1.5">Leave blank to keep your current password</p>
+            </div>
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>CONFIRM PASSWORD</label>
+              <input 
+                type="password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                className={premiumFormStyles.input} 
+                placeholder="Repeat new password"
+              />
             </div>
           </div>
-          
-          {passwordError && (
-            <div style={alertError} className="text-xs font-bold py-3">
-              {passwordError}
-            </div>
-          )}
-
-          <div className="pt-4 flex gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              style={btnSecondary} 
-              className="flex-1"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              disabled={loading} 
-              style={btnPrimary} 
-              className="flex-1"
-            >
-              {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Changes'}
-            </button>
+        </div>
+        
+        {passwordError && (
+          <div className="!p-3 !bg-rose-50 !border !border-rose-100 !rounded-xl !text-[11px] !font-bold !text-rose-600 !flex !items-center !gap-2">
+            <X size={14} strokeWidth={3} />
+            {passwordError}
           </div>
-        </form>
-      </motion.div>
-    </div>
+        )}
+
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className={cn(premiumFormStyles.secondaryButton, "!flex-1")}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={cn(premiumFormStyles.button, "!flex-1")}
+          >
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }
 
