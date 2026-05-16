@@ -56,7 +56,7 @@ function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
   const [agentFilter, setAgentFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState("Last 7 Days");
+  const [dateFilter, setDateFilter] = useState("All Time");
   const [sortMethod, setSortMethod] = useState<'priority' | 'updated'>('updated');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -387,6 +387,8 @@ function DashboardContent() {
     });
 
     const leaderboard = Object.values(leaderboardMap);
+    const confirmedList = currentQuotes.filter(q => confirmedStatuses.includes(q.status || ''));
+    const confirmedStats = getStats(confirmedList);
 
     return {
       total: { 
@@ -399,6 +401,17 @@ function DashboardContent() {
       leaderboard: {
         issuers: [...leaderboard].sort((a, b) => b.issuedCount - a.issuedCount),
         closers: [...leaderboard].sort((a, b) => b.confirmedAmount - a.confirmedAmount)
+      },
+      confirmed: {
+        count: confirmedStats.count,
+        amount: confirmedStats.amount,
+        commission: confirmedList.reduce((sum, q) => {
+          const commPercent = q.admin_commission || 0;
+          const total = q.selected_package_total || q.grand_total || 0;
+          const commAmount = Math.round((total * commPercent) / (100 + commPercent));
+          return sum + commAmount;
+        }, 0),
+        list: confirmedList
       }
     };
   };
@@ -572,7 +585,7 @@ function DashboardContent() {
               {activeTab === 'calendar' && (
                 <button 
                   onClick={() => setActiveTab('quotes')}
-                  className="mr-1 p-1.5 rounded-lg hover:bg-slate-100 transition-all text-slate-500 hover:text-primary flex items-center gap-2 group"
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-all text-slate-500 hover:text-primary flex items-center gap-2 group"
                   title="Back to Dashboard"
                 >
                   <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -773,7 +786,7 @@ function DashboardContent() {
             {activeTab === 'quotes' && (
               <div className="flex items-center gap-3">
                 {/* Date Filter */}
-                <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "Created Today")}>
+                <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "All Time")}>
                   <SelectTrigger 
                     className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all"
                   >
@@ -782,12 +795,12 @@ function DashboardContent() {
                       <SelectValue placeholder="Created Today" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 min-w-[180px]">
+                <SelectContent align="center" sideOffset={4} alignItemWithTrigger={false} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[180px]">
                     {['All Time', 'Created Today', 'Last 7 Days', 'This Month', 'This Year'].map(opt => (
                       <SelectItem 
                         key={opt} 
                         value={opt} 
-                        className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors font-medium mb-0.5 last:mb-0"
+                        className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl transition-colors mb-0 last:mb-0"
                       >
                         {opt}
                       </SelectItem>
@@ -805,13 +818,13 @@ function DashboardContent() {
                       <SelectValue placeholder="All Agents" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-1.5 min-w-[200px]">
-                    <SelectItem value="All" className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl font-medium mb-0.5">All Agents</SelectItem>
+                  <SelectContent align="center" sideOffset={4} alignItemWithTrigger={false} className="rounded-2xl border-slate-100 shadow-2xl !p-1 min-w-[200px]">
+                    <SelectItem value="All" className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0">All Agents</SelectItem>
                     {Array.from(new Set(quotes.map(q => q.creator?.full_name).filter(Boolean))).map(name => (
                       <SelectItem 
                         key={name as string} 
                         value={name as string} 
-                        className="text-sm py-3 px-4 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl font-medium mb-0.5 last:mb-0"
+                        className="!text-[10px] font-bold px-4 !py-1 !h-auto !min-h-0 cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 rounded-xl mb-0 last:mb-0"
                       >
                         {name as string}
                       </SelectItem>
@@ -933,79 +946,65 @@ function DashboardContent() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
-                {(() => {
-                  const displayStatuses = ['Draft', 'Quotation Sent', 'Follow-up Needed', 'Confirmed', 'Lost', 'Cancelled'];
-                  const iconMap: Record<string, any> = {
-                    'Draft': <FileText size={16} />,
-                    'Quotation Sent': <MapIcon size={16} />,
-                    'Follow-up Needed': <Zap size={16} />,
-                    'Confirmed': <CheckCircle size={16} />,
-                    'Lost': <AlertCircle size={16} />,
-                    'Cancelled': <Trash2 size={16} />,
-                  };
-                  const colorMap: Record<string, string> = {
-                    'Draft': 'slate',
-                    'Quotation Sent': 'blue',
-                    'Follow-up Needed': 'amber',
-                    'Confirmed': 'emerald',
-                    'Lost': 'gray',
-                    'Cancelled': 'rose',
-                  };
-                  return displayStatuses.map(s => {
-                    let m = analytics.statusMetrics[s];
-                    if (s === 'Confirmed') {
-                      const ps = analytics.statusMetrics['Payment Started'];
-                      const pc = analytics.statusMetrics['Payment Complete'];
-                      m = {
-                        count: m.count + ps.count + pc.count,
-                        amount: m.amount + ps.amount + pc.amount,
-                        growth: m.growth,
-                      };
-                    }
-                    return (
-                      <AnalyticCard
-                        key={s}
-                        title={s}
-                        value={`₱${m.amount.toLocaleString()}`}
-                        secondaryValue={`${m.count} Record${m.count !== 1 ? 's' : ''}`}
-                        growth={m.growth}
-                        icon={iconMap[s]}
-                        color={colorMap[s]}
-                        compact
-                      />
-                    );
-                  });
-                })()}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div style={cardStyle} className="!p-5 flex items-center justify-between">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <motion.div 
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
+                  style={cardStyle} 
+                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
+                >
                   <div>
-                    <p style={sectionLabel} className="mb-0.5">Total Quotes</p>
-                    <h3 style={headingMd} className="text-2xl tracking-tight">₱{analytics.total.amount.toLocaleString()}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.total.count} Record${analytics.total.count !== 1 ? 's' : ''}</p>
+                    <p style={sectionLabel} className="mb-0.5">Confirmed Quotes</p>
+                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(analytics.confirmed.amount).toLocaleString('en-US')}</h3>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.confirmed.count} Record{analytics.confirmed.count !== 1 ? 's' : ''}</p>
                   </div>
                   <div 
                     className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{ background: '#EFF6FF', color: '#2563EB' }}
                   >
-                    <FileText size={22} />
+                    <CheckCircle size={22} />
                   </div>
-                </div>
-                <div style={cardStyle} className="!p-5 flex items-center justify-between">
+                </motion.div>
+
+                <motion.div 
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
+                  style={cardStyle} 
+                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
+                >
                   <div>
                     <p style={sectionLabel} className="mb-0.5">Total Collection</p>
-                    <h3 style={headingMd} className="text-2xl tracking-tight !text-[var(--color-brand)]">₱{Object.values(paymentTotals).reduce((a, b) => a + b, 0).toLocaleString()}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">From {Object.values(paymentTotals).filter(v => v > 0).length} quote{Object.values(paymentTotals).filter(v => v > 0).length !== 1 ? 's' : ''}</p>
+                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(
+                      analytics.confirmed.list.reduce((sum, q) => sum + (paymentTotals[q.id] || 0), 0)
+                    ).toLocaleString('en-US')}</h3>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">From {
+                      analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length
+                    } quote{analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length !== 1 ? 's' : ''}</p>
                   </div>
                   <div 
                     className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'var(--color-brand-soft)', color: 'var(--color-brand)' }}
+                    style={{ background: '#EFF6FF', color: '#2563EB' }}
                   >
                     <Banknote size={22} />
                   </div>
-                </div>
+                </motion.div>
+
+                <motion.div 
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
+                  style={cardStyle} 
+                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
+                >
+                  <div>
+                    <p style={sectionLabel} className="mb-0.5">Total Commission</p>
+                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(analytics.confirmed.commission).toLocaleString('en-US')}</h3>
+                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">Earned from confirmed deals</p>
+                  </div>
+                  <div 
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{ background: '#EFF6FF', color: '#2563EB' }}
+                  >
+                    <TrendingUp size={22} />
+                  </div>
+                </motion.div>
               </div>
 
               <AgentPerformanceLeaderboard 
@@ -1013,7 +1012,11 @@ function DashboardContent() {
                   closers={analytics.leaderboard.closers} 
                 />
 
-                <div style={cardStyle} className="!p-8">
+                <motion.div 
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.15), 0 0 20px -5px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}
+                  style={cardStyle} 
+                  className="!p-8 transition-all duration-300"
+                >
                   <div className="flex items-center justify-between mb-8">
                     <div>
                       <h4 style={headingMd} className="flex items-center gap-2">
@@ -1026,7 +1029,7 @@ function DashboardContent() {
                   <div className="h-[180px] w-full">
                     <OperationalTrendGraph data={analytics.trend} />
                   </div>
-                </div>
+                </motion.div>
               </div>
             )}
 
@@ -1608,7 +1611,14 @@ function AnalyticCard({ title, value, secondaryValue, growth, icon, color, compa
   const theme = colors[color] || colors.slate;
 
   return (
-    <div style={cardStyle} className={compact ? '!p-4' : '!p-6'}>
+    <motion.div 
+      whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.15), 0 0 20px -5px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}
+      style={cardStyle} 
+      className={cn(
+        compact ? '!p-4' : '!p-6', 
+        "!bg-emerald-50/20 border-emerald-500/10 transition-all group cursor-default"
+      )}
+    >
       <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-4'}`}>
         <div 
           className={`${compact ? 'w-7 h-7 rounded-xl' : 'w-10 h-10 rounded-2xl'} flex items-center justify-center`}
@@ -1629,7 +1639,7 @@ function AnalyticCard({ title, value, secondaryValue, growth, icon, color, compa
       <p style={sectionLabel} className={compact ? 'text-[8px] mb-0.5' : 'text-[10px] mb-1'}>{title}</p>
       <h3 style={headingMd} className={compact ? 'text-lg' : 'text-2xl'}>{value}</h3>
       {secondaryValue && <p className={`font-medium text-text-muted ${compact ? 'text-[10px] mt-0.5' : 'text-xs mt-1'}`}>{secondaryValue}</p>}
-    </div>
+    </motion.div>
   );
 }
 
@@ -1703,7 +1713,10 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
 function AgentPerformanceLeaderboard({ issuers, closers }: { issuers: any[], closers: any[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div className="bg-white border border-[#f0f2f5] rounded-3xl !p-7 shadow-sm">
+      <motion.div 
+        whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(234, 179, 8, 0.15), 0 0 20px -5px rgba(234, 179, 8, 0.1)", borderColor: "rgba(234, 179, 8, 0.3)" }}
+        className="bg-white border border-amber-500/10 !bg-amber-50/10 rounded-3xl !p-7 shadow-sm transition-all duration-300"
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
             <h4 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -1719,14 +1732,18 @@ function AgentPerformanceLeaderboard({ issuers, closers }: { issuers: any[], clo
               key={agent.name} 
               rank={i + 1} 
               name={agent.name} 
-              value={`P${agent.issuedAmount.toLocaleString()}`}
+              value={`P${Math.round(agent.issuedAmount).toLocaleString()}`}
               subValue={`${agent.issuedCount} Quote${agent.issuedCount !== 1 ? 's' : ''}`} 
+              colorClass="text-amber-600"
             />
           )) : <p className="text-xs text-text-tertiary italic text-center py-4">No issuing activity records yet.</p>}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-white border border-[#f0f2f5] rounded-3xl !p-7 shadow-sm">
+      <motion.div 
+        whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.15), 0 0 20px -5px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}
+        className="bg-white border border-emerald-500/10 !bg-emerald-50/10 rounded-3xl !p-7 shadow-sm transition-all duration-300"
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
             <h4 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -1742,13 +1759,13 @@ function AgentPerformanceLeaderboard({ issuers, closers }: { issuers: any[], clo
               key={agent.name} 
               rank={i + 1} 
               name={agent.name} 
-              value={`P${agent.confirmedAmount.toLocaleString()}`} 
+              value={`P${Math.round(agent.confirmedAmount).toLocaleString()}`} 
               subValue={`${agent.confirmedCount} Confirmation${agent.confirmedCount !== 1 ? 's' : ''}`}
-              isSuccess 
+              colorClass="text-emerald-600"
             />
           )) : <p className="text-xs text-text-tertiary italic text-center py-4">No confirmed revenue records yet.</p>}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -1770,11 +1787,11 @@ export default function Dashboard() {
 }
 
 
-function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
+function LeaderboardItem({ rank, name, value, subValue, colorClass }: any) {
   const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
   
   return (
-    <div className="flex items-center justify-between group">
+    <div className="flex items-center justify-between group hover:bg-black/5 !-mx-2 !px-2 !py-2 rounded-xl transition-all">
       <div className="flex items-center gap-4">
         <div className="w-6 text-[10px] font-bold text-text-faint opacity-50 group-hover:opacity-100 transition-opacity">
           #{rank}
@@ -1782,8 +1799,8 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
         <div 
           className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold`}
           style={{ 
-            background: isSuccess ? 'var(--color-brand-soft)' : 'var(--color-bg-subtle)', 
-            color: isSuccess ? 'var(--color-brand)' : 'var(--color-text-primary)' 
+            background: colorClass === 'text-blue-600' ? '#EFF6FF' : colorClass === 'text-amber-600' ? '#FEF3C7' : 'var(--color-brand-soft)', 
+            color: colorClass === 'text-blue-600' ? '#2563EB' : colorClass === 'text-amber-600' ? '#D97706' : 'var(--color-brand)' 
           }}
         >
           {initials}
@@ -1794,7 +1811,7 @@ function LeaderboardItem({ rank, name, value, subValue, isSuccess }: any) {
         </div>
       </div>
       <div className="text-right">
-        <p className="text-sm font-bold" style={{ color: isSuccess ? 'var(--color-brand)' : 'var(--color-text-primary)' }}>{value}</p>
+        <p className={cn("text-sm font-bold", colorClass)}>{value}</p>
       </div>
     </div>
   );

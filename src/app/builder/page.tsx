@@ -544,18 +544,16 @@ function QuoteBuilder() {
   };
 
   const handleApplyPreset = (index: number, pId: string) => {
-    const currentItem = quote.items[index];
-    const isTransitioningToManual = !pId && (currentItem.applied_preset_id !== "" && currentItem.applied_preset_id !== undefined);
 
-    if (!pId) {
-      const updates: any = { applied_preset_id: "", is_manual: true };
-      if (isTransitioningToManual) {
-        updates.destination = "";
-        updates.itinerary_details = "";
-        updates.km = 0;
-        updates.tags = [];
-      }
-      handleUpdateItem(index, updates);
+    if (pId === "") {
+      handleUpdateItem(index, { 
+        destination: "", 
+        applied_preset_id: "", 
+        is_manual: true,
+        itinerary_details: "",
+        km: 0,
+        tags: []
+      });
       return;
     }
 

@@ -268,6 +268,7 @@ export default function TripDetailsSection({
                         placeholder="Select Vehicle"
                         searchPlaceholder="Search vehicles..."
                         disabled={readOnly}
+                        clearable={true}
                         renderOption={(dv) => (
                           <div className="flex flex-col">
                             <span className="leading-tight">{dv.model}</span>
@@ -384,6 +385,7 @@ export default function TripDetailsSection({
                   searchPlaceholder="Search or type new..."
                   creatable={true}
                   disabled={readOnly}
+                  clearable={true}
                   className="!h-[34px] !pl-10 !pr-4 !bg-white shadow-sm !border-slate-300 !text-[11px] font-semibold text-slate-700 focus:!border-emerald-500 transition-all w-full rounded-xl"
                 />
                 <File className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />

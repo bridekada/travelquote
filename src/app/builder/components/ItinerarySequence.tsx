@@ -132,6 +132,7 @@ export default function ItinerarySequence({
                       searchPlaceholder="Search or type new..."
                       disabled={readOnly}
                       creatable={true}
+                      clearable={true}
                       className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
                     />
                   </div>
@@ -203,6 +204,7 @@ export default function ItinerarySequence({
                       searchPlaceholder="Search or type new..."
                       disabled={readOnly}
                       creatable={true}
+                      clearable={true}
                       renderOption={(a) => (
                         <>
                           {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>

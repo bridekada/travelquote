@@ -80,7 +80,7 @@ export function AdminPortal() {
     if (opIds.length > 0) {
       const { data: confirmedQuotes } = await supabase
         .from('quotes')
-        .select('operator_id, grand_total, admin_commission, status')
+        .select('operator_id, grand_total, selected_package_total, admin_commission, status')
         .in('operator_id', opIds)
         .in('status', confirmedStatuses);
 
@@ -90,7 +90,8 @@ export function AdminPortal() {
         lookup[q.operator_id].count += 1;
         lookup[q.operator_id].total += Math.round(q.grand_total || 0);
         // Calculate amount from percentage: Math.round((total * commission_percent) / (100 + commission_percent))
-        const commAmount = Math.round(((q.grand_total || 0) * (q.admin_commission || 0)) / (100 + (q.admin_commission || 0)));
+        const totalForComm = q.selected_package_total || q.grand_total || 0;
+        const commAmount = Math.round((totalForComm * (q.admin_commission || 0)) / (100 + (q.admin_commission || 0)));
         lookup[q.operator_id].commission += commAmount;
       });
       setOperatorConfirmed(lookup);
