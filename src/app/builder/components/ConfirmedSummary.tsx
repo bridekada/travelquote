@@ -724,8 +724,10 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
   // 4. Matrix Miscellaneous
   dbMiscPresets.forEach(preset => {
     const amount = getMiscTotal(preset.id);
-    const pName = preset.name.toLowerCase();
-    if (pName.includes("fuel") || pName.includes("fleet rate") || pName.includes("accommodation")) return;
+    const pName = preset.name.toLowerCase().trim();
+    // Exact exclusions to prevent duplication with primary categories added above
+    const primaryCategories = ["fleet rate", "fuel", "guest accom"];
+    if (primaryCategories.includes(pName)) return;
 
     if (amount > 0) {
       expenses.push({ label: preset.name, amount: amount, included: isIncluded(preset.name) });
