@@ -4,10 +4,15 @@ import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2 } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { InfoDialog } from "@/app/builder/components/BuilderModals";
+import "@/app/builder/components/styles/InfoDialog.css";
+import { PremiumModalWrapper, premiumFormStyles } from "../admin/components/PremiumModalWrapper";
+import { AdminSelect } from "../admin/components/AdminSelect";
 import { 
   getVehicles, 
   getItineraryPresets, 
@@ -1410,155 +1415,123 @@ function AgencySettingsModal({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100] px-4"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title="Edit Agency"
+      subtitle="Modify profile and quotation configuration"
+      icon={<Building2 size={18} strokeWidth={2.5} />}
     >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 10 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{ ...modalCard, maxWidth: '480px', padding: '36px' }}
-        className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-          <h3 style={modalTitle}>Edit Agency</h3>
-          <button onClick={onClose} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-            <X size={20} />
-          </button>
+      <form onSubmit={onSave} className="flex flex-col !gap-6">
+        <div className="!space-y-4">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>AGENCY IDENTITY</label>
+            <input 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              className={premiumFormStyles.input}
+              placeholder="e.g. Skyline Travel"
+              required 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>OFFICIAL DOMAIN</label>
+            <input 
+              value={website} 
+              onChange={(e) => setWebsite(e.target.value)} 
+              className={premiumFormStyles.input}
+              placeholder="e.g. skyline.com"
+            />
+          </div>
         </div>
 
-        <form onSubmit={onSave} className="flex flex-col" style={{ gap: '20px' }}>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Agency Name</label>
-              <input 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                style={inputStyle} 
-                placeholder="e.g. Skyline Travel"
-                required 
-                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Official Website</label>
-              <input 
-                value={website} 
-                onChange={(e) => setWebsite(e.target.value)} 
-                style={inputStyle} 
-                placeholder="e.g. skyline.com"
-                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-              />
-            </div>
+        <div className="!pt-4 !border-t !border-emerald-500/10">
+          <div className="flex items-center justify-between !mb-3">
+            <label className={premiumFormStyles.label}>SOCIAL CHANNELS</label>
+            <button 
+              type="button" 
+              onClick={() => setSocials([...socials, ""])} 
+              className="!text-[10px] !font-black !text-emerald-600 hover:!text-emerald-700 !flex !items-center !gap-1 !uppercase !tracking-widest"
+            >
+              <Plus size={12} /> Add Channel
+            </button>
           </div>
-
-          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
-              <button 
-                type="button" 
-                onClick={() => setSocials([...socials, ""])} 
-                className="flex items-center gap-1 hover:opacity-80" 
-                style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}
-              >
-                <Plus size={12} /> Add Channel
-              </button>
-            </div>
-            <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
-              {(socials.length > 0 ? socials : [""]).map((link: string, idx: number) => (
-                <div key={idx} className="flex gap-2">
-                  <div className="relative flex-1">
-                    <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
-                      {getSocialIcon(link)}
-                    </div>
-                    <input 
-                      value={link} 
-                      onChange={(e) => {
-                        const next = [...socials];
-                        if (next.length === 0) next.push("");
-                        next[idx] = e.target.value;
-                        setSocials(next);
-                      }} 
-                      style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
-                      placeholder="fb.com/page or ig.com/user"
-                    />
+          <div className="flex flex-col !gap-2 !max-h-[140px] !overflow-y-auto custom-scrollbar">
+            {(socials.length > 0 ? socials : [""]).map((link: string, idx: number) => (
+              <div key={idx} className="flex gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute top-1/2 -translate-y-1/2 !left-3.5 !text-emerald-500/50">
+                    {getSocialIcon(link)}
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      const next = socials.filter((_: any, i: number) => i !== idx);
-                      setSocials(next.length > 0 ? next : [""]);
-                    }}
-                    className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                    style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
-                  >
-                    <Minus size={14} />
-                  </button>
+                  <input 
+                    value={link} 
+                    onChange={(e) => {
+                      const next = [...socials];
+                      if (next.length === 0) next.push("");
+                      next[idx] = e.target.value;
+                      setSocials(next);
+                    }} 
+                    className={cn(premiumFormStyles.input, "!pl-10 !h-10 !text-[12px]")}
+                    placeholder="e.g. fb.com/agency"
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-            <div className="flex flex-col gap-1.5">
-              <label style={labelStyle}>Quotation Important Notes</label>
-              <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
-              <textarea 
-                value={notes} 
-                onChange={(e) => setNotes(e.target.value)} 
-                style={{ ...inputStyle, height: 'auto', minHeight: '80px', padding: '12px 14px', lineHeight: '1.5' }} 
-                className="custom-scrollbar resize-y"
-                placeholder="e.g. Terms & conditions, payment instructions, etc."
-                onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-              />
-            </div>
-          </div>
-
-          <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: isTitlesExpanded ? '12px' : '0' }}>
-              <button 
-                type="button" 
-                onClick={() => setIsTitlesExpanded(!isTitlesExpanded)}
-                className="flex items-center gap-2 hover:opacity-80 transition-all"
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
-                <div className={`transition-transform duration-200 ${isTitlesExpanded ? 'rotate-180' : ''}`}>
-                  <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
-                </div>
-                <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
-                <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({titlePresets?.length || 0})</span>
-              </button>
-              {isTitlesExpanded && (
                 <button 
                   type="button" 
-                  onClick={() => setTitlePresets([...(titlePresets || []), ""])} 
-                  className="flex items-center gap-1 hover:opacity-80" 
-                  style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}
+                  onClick={() => {
+                    const next = socials.filter((_: any, i: number) => i !== idx);
+                    setSocials(next.length > 0 ? next : [""]);
+                  }}
+                  className="!flex !items-center !justify-center !w-10 !h-10 !rounded-xl !bg-slate-50 !text-slate-400 hover:!bg-rose-50 hover:!text-rose-500 !transition-all !border !border-slate-100"
                 >
-                  <Plus size={12} /> Add Title
+                  <Minus size={14} />
                 </button>
-              )}
-            </div>
-            
-            <AnimatePresence>
-              {isTitlesExpanded && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px', paddingBottom: '4px' }}>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="!pt-4 !border-t !border-emerald-500/10">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>QUOTATION DISCLAIMERS</label>
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              className={cn(premiumFormStyles.input, "!h-24 !py-3 !text-[12px] !leading-relaxed")}
+              placeholder="Terms & conditions, payment instructions, etc."
+            />
+          </div>
+        </div>
+
+        <div className="!pt-4 !border-t !border-emerald-500/10">
+          <button 
+            type="button" 
+            onClick={() => setIsTitlesExpanded(!isTitlesExpanded)}
+            className="!flex !items-center !gap-2 !w-full"
+          >
+            <ChevronDown size={14} className={cn("!text-emerald-500/50 !transition-transform", isTitlesExpanded && "!rotate-180")} />
+            <label className={cn(premiumFormStyles.label, "!mb-0 !cursor-pointer")}>TITLE PRESETS</label>
+            <span className="!text-[10px] !text-slate-400 !font-medium">({titlePresets?.length || 0})</span>
+          </button>
+          
+          <AnimatePresence>
+            {isTitlesExpanded && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="!pt-4 !space-y-2">
+                  <div className="!flex !justify-end">
+                    <button 
+                      type="button" 
+                      onClick={() => setTitlePresets([...(titlePresets || []), ""])} 
+                      className="!text-[10px] !font-black !text-emerald-600 hover:!text-emerald-700 !flex !items-center !gap-1 !uppercase !tracking-widest"
+                    >
+                      <Plus size={12} /> Add Title
+                    </button>
+                  </div>
+                  <div className="!space-y-2 !max-h-[140px] !overflow-y-auto custom-scrollbar">
                     {((titlePresets && titlePresets.length > 0) ? titlePresets : [""]).map((title: string, idx: number) => (
                       <div key={idx} className="flex gap-2">
                         <input 
@@ -1569,7 +1542,7 @@ function AgencySettingsModal({
                             next[idx] = e.target.value;
                             setTitlePresets(next);
                           }} 
-                          style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
+                          className={cn(premiumFormStyles.input, "!h-10 !text-[12px]")}
                           placeholder="e.g. Standard Quotation"
                         />
                         <button 
@@ -1578,33 +1551,30 @@ function AgencySettingsModal({
                             const next = (titlePresets || []).filter((_: any, i: number) => i !== idx);
                             setTitlePresets(next.length > 0 ? next : [""]);
                           }}
-                          className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                          style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                          className="!flex !items-center !justify-center !w-10 !h-10 !rounded-xl !bg-slate-50 !text-slate-400 hover:!bg-rose-50 hover:!text-rose-500 !transition-all !border !border-slate-100"
                         >
                           <Minus size={14} />
                         </button>
                       </div>
                     ))}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            style={{ ...btnPrimary, width: '100%', height: '48px', opacity: loading ? 0.7 : 1 }}
-            className="flex items-center justify-center hover:opacity-90 transition-opacity mt-2"
-          >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
-          </button>
-        </form>
-      </motion.div>
-    </motion.div>
+        <button 
+          type="submit" 
+          disabled={loading} 
+          className={premiumFormStyles.button}
+        >
+          {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+        </button>
+      </form>
+    </PremiumModalWrapper>
   );
 }
-
 function EmptyState({ title, desc, onAction, actionLabel, icon }: any) {
   return (
     <motion.div 
@@ -1900,6 +1870,7 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
     <motion.div 
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       onClick={onClick}
       style={cardStyle}
       className={`relative group cursor-pointer transition-all hover:border-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 !p-5 shadow-sm ${isDropdownOpen ? 'z-50' : 'z-0'}`}
@@ -2086,8 +2057,9 @@ function VehicleListItem({ vehicle, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       style={cardStyle}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7 !py-5"
     >
       <div className="flex items-center gap-5">
         <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
@@ -2128,37 +2100,53 @@ function PresetListItem({ preset, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       style={cardStyle}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7 !py-5"
     >
       <div className="flex items-center gap-5 min-w-0">
         <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <MapIcon size={18} />
         </div>
         <div className="min-w-0">
-          <h3 style={labelStyle} className="!mb-0.5 truncate">{preset.title}</h3>
           <div className="flex items-center gap-2">
-            <span style={sectionLabel} className="!text-[10px]">
-              {preset.default_km} KM DEFAULT
-            </span>
+            <h3 style={labelStyle} className="!mb-0 truncate">{preset.title}</h3>
           </div>
           {preset.tags && (
-             <div className="flex flex-wrap gap-1 mt-2">
-                {parseTags(preset.tags).map(t => (
-                  <span key={t} className="px-2 py-0.5 bg-primary/5 text-primary text-[8px] font-black uppercase tracking-wider rounded-md border border-primary/10">{t}</span>
+            <div className="mt-2 space-y-1">
+              <div className="flex flex-wrap gap-1">
+                {parseTags(preset.tags).slice(0, Math.ceil(parseTags(preset.tags).length / 2)).map(t => (
+                  <span key={t} className="px-2 py-0.5 bg-rose-50 text-slate-500 text-[8px] font-black uppercase tracking-wider rounded-full border border-rose-100/50 leading-none">
+                    {t}
+                  </span>
                 ))}
-             </div>
+              </div>
+              {parseTags(preset.tags).length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  {parseTags(preset.tags).slice(Math.ceil(parseTags(preset.tags).length / 2)).map(t => (
+                    <span key={t} className="px-2 py-0.5 bg-rose-50 text-slate-500 text-[8px] font-black uppercase tracking-wider rounded-full border border-rose-100/50 leading-none">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
       
-      <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
-        <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
-          <Settings size={16} />
-        </button>
-        <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
-          <Trash2 size={16} />
-        </button>
+      <div className="flex items-center gap-4 shrink-0 ml-auto sm:ml-0">
+        <span className="px-2.5 py-1 rounded-md bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest border border-rose-100/50 leading-none">
+          {preset.default_km} KM DEFAULT
+        </span>
+        <div className="flex items-center gap-1">
+          <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
+            <Settings size={16} />
+          </button>
+          <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -2169,83 +2157,116 @@ function MiscPresetListItem({ preset, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       style={cardStyle}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7 !py-5"
     >
       <div className="flex items-center gap-5">
         <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <Banknote size={18} />
         </div>
         <div>
-          <h3 style={labelStyle} className="!mb-0.5">{preset.name}</h3>
-          <div className="flex items-center gap-2">
-            <span style={sectionLabel} className="!text-[10px]">OPERATIONAL FEE</span>
-            <span className="text-text-tertiary">·</span>
-            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-              ₱{preset.default_amount?.toLocaleString()}
-            </span>
-          </div>
+          <h3 style={labelStyle} className="!mb-0.5 truncate">{preset.name}</h3>
+          {preset.multiply_by_vehicle && (
+            <div className="flex items-center gap-1 mt-1">
+              <div className="bg-blue-50 text-blue-600 border border-blue-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
+                <CarFront size={8} /> Scale by Vehicle
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
-      <div className="flex items-center gap-1 ml-auto sm:ml-0">
-        <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
-          <Settings size={16} />
-        </button>
-        <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
-          <Trash2 size={16} />
-        </button>
+      <div className="flex items-center gap-8 shrink-0 ml-auto sm:ml-0 justify-end">
+        <div className="text-right">
+          <div style={sectionLabel} className="!text-[9px] mb-0.5">Rate</div>
+          <div className="text-sm font-bold text-emerald-600">₱{preset.default_amount?.toLocaleString()}</div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
+            <Settings size={16} />
+          </button>
+          <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
 }
 
 function PackageListItem({ packageItem, miscPresets, onEdit, onDelete }: { packageItem: any, miscPresets: any[], onEdit: any, onDelete: any }) {
-  const inclusions = [];
-  if (packageItem.includes_vehicle) inclusions.push("Vehicle Rate");
-  if (packageItem.includes_fuel) inclusions.push("Fuel Cost");
-  if (packageItem.includes_accommodation) inclusions.push("Guest Accom");
+  const baseInclusions: any[] = [];
+  if (packageItem.includes_vehicle) baseInclusions.push({ label: "VEHICLE", icon: <CarFront size={8} />, color: "bg-emerald-50 text-emerald-600 border-emerald-100/50" });
+  if (packageItem.includes_fuel) baseInclusions.push({ label: "FUEL", icon: <Fuel size={8} />, color: "bg-amber-50 text-amber-600 border-amber-100/50" });
+  if (packageItem.includes_accommodation) baseInclusions.push({ label: "GUEST ACCOMMODATION", icon: <BedDouble size={8} />, color: "bg-blue-50 text-blue-600 border-blue-100/50" });
   
+  const miscInclusions: string[] = [];
   packageItem.includes_misc_ids?.forEach((id: string) => {
     const m = miscPresets.find(m => m.id === id);
-    if (m) inclusions.push(m.name);
+    if (m) miscInclusions.push(m.name);
   });
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       style={cardStyle}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7 !py-5"
     >
       <div className="flex items-center gap-5 min-w-0">
         <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
           <LayoutGrid size={18} />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 style={labelStyle} className="!mb-0 truncate">{packageItem.title}</h3>
-            {packageItem.is_recommended && (
-              <div className="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
-                <Sparkles size={8} /> Recommended
+            <div className="flex items-center gap-1">
+              {baseInclusions.map((inc, i) => (
+                <div key={i} className={cn("px-1.5 py-0.5 rounded-md text-[7px] font-black tracking-tighter border flex items-center gap-1 leading-none", inc.color)}>
+                  {inc.icon} {inc.label}
+                </div>
+              ))}
+            </div>
+          </div>
+          {miscInclusions.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="flex flex-wrap gap-1">
+                {miscInclusions.slice(0, Math.ceil(miscInclusions.length / 2)).map((inc, i) => (
+                  <span key={i} className="px-2 py-0.5 bg-rose-50 text-slate-500 text-[8px] font-black uppercase tracking-wider rounded-full border border-rose-100/50 leading-none">
+                    {inc}
+                  </span>
+                ))}
               </div>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {inclusions.map((inc, i) => (
-              <span key={i} className="px-2 py-0.5 bg-[#f0f2f5] text-[9px] font-bold text-text-tertiary rounded-md uppercase tracking-tight">{inc}</span>
-            ))}
-          </div>
+              {miscInclusions.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  {miscInclusions.slice(Math.ceil(miscInclusions.length / 2)).map((inc, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-rose-50 text-slate-500 text-[8px] font-black uppercase tracking-wider rounded-full border border-rose-100/50 leading-none">
+                      {inc}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
-      <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
-        <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
-          <Settings size={16} />
-        </button>
-        <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
-          <Trash2 size={16} />
-        </button>
+      <div className="flex items-center gap-4 shrink-0 ml-auto sm:ml-0">
+        {packageItem.is_recommended && (
+          <div className="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+            <Sparkles size={8} /> Recommended
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <button onClick={onEdit} className="p-2 hover:bg-primary/5 rounded-xl text-text-tertiary hover:text-primary transition-colors">
+            <Settings size={16} />
+          </button>
+          <button onClick={onDelete} className="p-2 hover:bg-rose-50 rounded-xl text-text-tertiary hover:text-rose-600 transition-colors">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -2253,9 +2274,12 @@ function PackageListItem({ packageItem, miscPresets, onEdit, onDelete }: { packa
 
 function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
+  const [fuelType, setFuelType] = useState(editingItem?.fuel_type || 'Diesel');
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    formData.append('fuel_type', fuelType);
     const model = formData.get('model') as string;
     const default_rate = formData.get('default_rate') as string;
     if (!model || !default_rate) { alert("Model and Default Rate are required."); return; }
@@ -2269,82 +2293,90 @@ function AddVehicleModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={editingItem ? 'Edit Vehicle' : 'Add Vehicle'}
+      subtitle="Manage fleet details and operational efficiency"
+      icon={<CarFront size={18} strokeWidth={2.5} />}
     >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        onClick={(e) => e.stopPropagation()}
-        style={modalCard} 
-        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>{editingItem ? 'Edit Vehicle' : 'Register Vehicle'}</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col !gap-6">
+        {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
-        <form onSubmit={handleSubmit} style={modalFormSpace}>
-          {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-6">
-              <p style={sectionLabel}>Basic Information</p>
-              <div className="space-y-1.5">
-                <label style={labelStyle}>Model Name</label>
-                <input name="model" defaultValue={editingItem?.model} style={inputStyle} placeholder="e.g. Toyota Hiace Grandia" required />
-              </div>
-              <div className="space-y-1.5">
-                <label style={labelStyle}>Category</label>
-                <input name="category" defaultValue={editingItem?.category} style={inputStyle} placeholder="e.g. Premium Van" />
-              </div>
-              <div className="space-y-1.5">
-                <label style={labelStyle}>Pax Capacity</label>
-                <input name="pax_capacity" type="number" defaultValue={editingItem?.pax_capacity || 10} style={inputStyle} required />
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <p style={sectionLabel}>Performance & Rate</p>
-              <div className="space-y-1.5">
-                <label style={labelStyle}>Daily Unit Rate (₱)</label>
-                <input name="default_rate" type="number" defaultValue={editingItem?.default_rate} style={inputStyle} placeholder="0" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1.5">
-                  <label style={labelStyle}>KM per Litre</label>
-                  <input name="km_per_l" type="number" step="0.1" defaultValue={editingItem?.km_per_l || 10} style={inputStyle} />
-                </div>
-                <div className="space-y-1.5">
-                  <label style={labelStyle}>Fuel Type</label>
-                  <select name="fuel_type" defaultValue={editingItem?.fuel_type || 'Diesel'} style={inputStyle} className="!appearance-none">
-                    <option>Diesel</option>
-                    <option>Gasoline</option>
-                  </select>
-                </div>
-              </div>
-              <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)] mt-4">
-                <p className="text-[11px] text-text-tertiary leading-relaxed italic">
-                  Note: This base price excludes fuel and driver fees, which are calculated dynamically in the builder.
-                </p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 !gap-x-6 !gap-y-4">
+          <div className="!space-y-1 md:col-span-2">
+            <label className={premiumFormStyles.label}>MODEL NAME</label>
+            <input 
+              name="model" 
+              defaultValue={editingItem?.model} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Toyota Hiace Grandia" 
+              required 
+            />
           </div>
-
-          <div className="pt-6 border-t border-[var(--color-border-default)] mt-2">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Vehicle Configuration'}
-            </button>
+          <div className="!space-y-1 md:col-span-2">
+            <label className={premiumFormStyles.label}>CATEGORY</label>
+            <input 
+              name="category" 
+              defaultValue={editingItem?.category} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Premium Van" 
+            />
           </div>
-        </form>
-      </motion.div>
-    </motion.div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>PAX CAPACITY</label>
+            <input 
+              name="pax_capacity" 
+              type="number" 
+              defaultValue={editingItem?.pax_capacity || 10} 
+              className={premiumFormStyles.input} 
+              required 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>DAILY UNIT RATE (₱)</label>
+            <input 
+              name="default_rate" 
+              type="number" 
+              defaultValue={editingItem?.default_rate} 
+              className={premiumFormStyles.input} 
+              placeholder="0" 
+              required 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>KM PER LITRE</label>
+            <input 
+              name="km_per_l" 
+              type="number" 
+              step="0.1" 
+              defaultValue={editingItem?.km_per_l || 10} 
+              className={premiumFormStyles.input} 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>FUEL TYPE</label>
+            <AdminSelect 
+              value={fuelType}
+              onValueChange={setFuelType}
+              options={[{v: 'Diesel', l: 'Diesel'}, {v: 'Gasoline', l: 'Gasoline'}]}
+              getLabel={o => o.l}
+              getValue={o => o.v}
+              placeholder="Select fuel type"
+            />
+          </div>
+        </div>
 
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button type="button" onClick={onClose} className={premiumFormStyles.secondaryButton + " !flex-1"}>
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className={premiumFormStyles.button + " !flex-1"}>
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : (editingItem ? 'Update Vehicle' : 'Create Vehicle')}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }
 
@@ -2369,65 +2401,73 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
   const tagOptions = miscPresets.map((p: any) => p.name);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={editingItem ? 'Edit Preset' : 'Add Preset'}
+      subtitle="Design reusable journey templates and experience outlines"
+      icon={<MapIcon size={18} strokeWidth={2.5} />}
+      maxWidth="500px"
     >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        onClick={(e) => e.stopPropagation()}
-        style={modalCard} 
-        className="max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>{editingItem ? 'Edit Itinerary Preset' : 'Define Itinerary Preset'}</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col !gap-6">
+        {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
-        <form onSubmit={handleSubmit} style={modalFormSpace}>
-          {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
+        <div className="!space-y-5">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>TRIP TITLE / PATTERN NAME</label>
+            <input 
+              name="title" 
+              defaultValue={editingItem?.title} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. CDO City Tour (Whole Day)" 
+              required 
+            />
+          </div>
           
-          <div className="space-y-6">
-            <p style={sectionLabel}>Primary Details</p>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Trip Title / Pattern Name</label>
-              <input name="title" defaultValue={editingItem?.title} style={inputStyle} className="font-bold" placeholder="e.g. CDO City Tour (Whole Day)" required />
-            </div>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Default Distance (KM)</label>
-              <input name="default_km" type="number" step="0.1" defaultValue={editingItem?.default_km} style={inputStyle} placeholder="e.g. 50" />
-            </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>DEFAULT DISTANCE (KM)</label>
+            <input 
+              name="default_km" 
+              type="number" 
+              step="0.1" 
+              defaultValue={editingItem?.default_km} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. 50" 
+            />
           </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)]">
-            <div className="flex items-center justify-between mb-4">
-              <p style={sectionLabel}>Operational Multipliers (Auto-Fees)</p>
-              <span className="text-[10px] text-text-tertiary">Selecting a tag automates that fee in the builder</span>
-            </div>
+          <div className="!space-y-2">
+            <label className={premiumFormStyles.label}>AUTOMATED MISC FEES (TAGS)</label>
             <TagSelector options={tagOptions} selectedTags={tags} onChange={setTags} />
+            <p className="!text-[10px] !text-emerald-600 !italic !font-medium !leading-relaxed !bg-emerald-50/50 !p-2.5 !rounded-xl !border !border-emerald-100/50">
+              Note: Selecting a tag will auto-add that fee to quotes using this preset.
+            </p>
           </div>
 
-          <div className="space-y-1.5 pt-6 border-t border-[var(--color-border-default)]">
-            <label style={labelStyle}>Standard Details (Inclusions)</label>
-            <textarea name="details" defaultValue={editingItem?.details} style={inputStyle} className="h-32 !py-4" placeholder="Briefly describe the inclusions..." />
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>STANDARD DETAILS (INCLUSIONS)</label>
+            <textarea 
+              name="details" 
+              defaultValue={editingItem?.details} 
+              className={cn(premiumFormStyles.textarea, "!h-32")} 
+              placeholder="Describe what's included in this itinerary pattern..." 
+            />
           </div>
+        </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)] mt-2">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Itinerary Configuration'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button type="button" onClick={onClose} className={premiumFormStyles.secondaryButton + " !flex-1"}>
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className={premiumFormStyles.button + " !flex-1"}>
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }
+
 
 
 function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
@@ -2445,74 +2485,72 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={editingItem ? 'Edit Misc Fee' : 'Add Misc Fee'}
+      subtitle="Configure standardized additional costs and overheads"
+      icon={<Tag size={18} strokeWidth={2.5} />}
     >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        onClick={(e) => e.stopPropagation()}
-        style={modalCard} 
-        className="max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>{editingItem ? 'Edit Misc Fee' : 'Add Misc Fee'}</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col !gap-6">
+        {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
-        <form onSubmit={handleSubmit} style={modalFormSpace}>
-          {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
+        <div className="!space-y-4">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>FEE NAME</label>
+            <input 
+              name="name" 
+              defaultValue={editingItem?.name} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Ferry Fare" 
+              required 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>DEFAULT AMOUNT (₱)</label>
+            <input 
+              name="default_amount" 
+              type="number" 
+              defaultValue={editingItem?.default_amount} 
+              className={premiumFormStyles.input} 
+              placeholder="0" 
+              required 
+            />
+          </div>
           
-          <div className="space-y-6">
-            <p style={sectionLabel}>Fee Details</p>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Fee Name / Operational Tag</label>
-              <input name="name" defaultValue={editingItem?.name} style={inputStyle} className="font-bold" placeholder="e.g. Driver Fee" required />
-            </div>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Default Amount (₱)</label>
-              <input name="default_amount" type="number" defaultValue={editingItem?.default_amount} style={inputStyle} placeholder="e.g. 1000" required />
-            </div>
-
-            <div className="pt-6 !mt-2">
-              <label className="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer group w-full border border-transparent hover:border-emerald-200 transition-all">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tight">Multiply Cost by Number of Vehicles</span>
-                  <span className="text-[10px] text-text-tertiary">Use this for Driver Fees or costs that scale per car</span>
-                </div>
+          <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+            <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">
+              <div className="relative !flex !items-center !justify-center">
                 <input 
                   type="checkbox" 
                   name="multiply_by_vehicle" 
                   value="true" 
                   defaultChecked={editingItem?.multiply_by_vehicle} 
-                  className="w-5 h-5 rounded-lg border-[var(--color-border-default)] text-emerald-600 focus:ring-emerald-500/20 cursor-pointer" 
+                  className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
                 />
-              </label>
-            </div>
+                <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
+              </div>
+              <div className="!flex !flex-col">
+                <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Scale by Vehicle Count</span>
+                <span className="!text-[10px] !text-slate-500 !font-medium">Multiply this fee by the number of vehicles assigned</span>
+              </div>
+            </label>
           </div>
-          
-          <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)]">
-            <p className="text-[11px] text-text-tertiary leading-relaxed italic">
-              Note: The "Fee Name" acts as a linkable Tag in the itinerary builder.
-            </p>
-          </div>
+        </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)]">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Misc Configuration'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button type="button" onClick={onClose} className={premiumFormStyles.secondaryButton + " !flex-1"}>
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className={premiumFormStyles.button + " !flex-1"}>
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }
+
 
 
 function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSuccess }: any) {
@@ -2535,101 +2573,107 @@ function AddPackageModal({ onClose, editingItem, operatorId, miscPresets, onSucc
     finally { setLoading(false); }
   };
 
+  const PremiumCheckbox = ({ name, label, defaultChecked, value }: any) => (
+    <label className="!flex !items-center !gap-2.5 !cursor-pointer !select-none group !p-2 !rounded-lg hover:!bg-emerald-50/50 !transition-all">
+      <div className="relative !flex !items-center !justify-center">
+        <input 
+          type="checkbox" 
+          name={name} 
+          value={value || "true"}
+          defaultChecked={defaultChecked} 
+          className="!peer !appearance-none !w-4 !h-4 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
+        />
+        <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={10} strokeWidth={5} />
+      </div>
+      <span className="!text-[11px] !font-bold !text-slate-700 group-hover:!text-emerald-800 !transition-colors !uppercase !tracking-wider">{label}</span>
+    </label>
+  );
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={editingItem ? 'Edit Package' : 'Add Package'}
+      subtitle="Create bundled service offerings and recommended bundles"
+      icon={<Briefcase size={18} strokeWidth={2.5} />}
+      maxWidth="540px"
     >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        onClick={(e) => e.stopPropagation()}
-        style={modalCard} 
-        className="max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>{editingItem ? 'Edit Package Design' : 'New Package Design'}</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col !gap-6">
+        {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
-        <form onSubmit={handleSubmit} style={modalFormSpace}>
-          <div className="space-y-6">
-            <p style={sectionLabel}>Identity</p>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Package Title</label>
-              <input name="title" defaultValue={editingItem?.title} style={inputStyle} className="font-bold" placeholder="e.g. Transport & Driver" required />
-            </div>
-            
-            <label className="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer group w-full border border-transparent hover:border-emerald-200 transition-all">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-primary uppercase tracking-tight">Mark as Recommended</span>
-                <span className="text-[10px] text-text-tertiary">Highlights this package in the builder</span>
-              </div>
-              <input 
-                type="checkbox" 
+        <div className="!space-y-6">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>PACKAGE TITLE</label>
+            <input 
+              name="title" 
+              defaultValue={editingItem?.title} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Full Adventure Pack" 
+              required 
+            />
+            <div className="!pt-1">
+              <PremiumCheckbox 
                 name="is_recommended" 
-                value="true" 
+                label="Mark as Recommended Package" 
                 defaultChecked={editingItem?.is_recommended} 
-                className="w-5 h-5 rounded-lg border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
               />
-            </label>
+            </div>
+          </div>
+          
+          <div className="!space-y-3">
+            <label className={premiumFormStyles.label}>BASE INCLUSIONS</label>
+            <div className="!grid !grid-cols-3 !gap-1 !bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+              <PremiumCheckbox 
+                name="includes_vehicle" 
+                label="Vehicle Rate" 
+                defaultChecked={editingItem ? editingItem.includes_vehicle : true} 
+              />
+              <PremiumCheckbox 
+                name="includes_fuel" 
+                label="Fuel Cost" 
+                defaultChecked={editingItem ? editingItem.includes_fuel : true} 
+              />
+              <PremiumCheckbox 
+                name="includes_accommodation" 
+                label="Guest Accommodation" 
+                defaultChecked={editingItem ? editingItem.includes_accommodation : true} 
+              />
+            </div>
           </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-4">
-             <p style={sectionLabel}>Core Inclusions</p>
-             <div className="grid grid-cols-3 gap-3">
-                {[
-                  { name: 'includes_vehicle', label: 'Vehicle Rate' },
-                  { name: 'includes_fuel', label: 'Fuel Cost' },
-                  { name: 'includes_accommodation', label: 'Guest Accom' }
-                ].map((item: any) => (
-                  <label key={item.name} className="flex items-center justify-center gap-3 px-2 py-4 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer hover:bg-white border border-transparent hover:border-[var(--color-border-default)] transition-all group">
-                    <input 
-                      type="checkbox" 
-                      name={item.name} 
-                      value="true" 
-                      defaultChecked={editingItem ? editingItem[item.name] : true} 
-                      className="w-4 h-4 rounded border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
-                    />
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-tight opacity-70 group-hover:opacity-100">{item.label}</span>
-                  </label>
-                ))}
-             </div>
+          <div className="!space-y-3">
+            <label className={premiumFormStyles.label}>MISC FEE INCLUSIONS</label>
+            <div className="!grid !grid-cols-3 !gap-2 !bg-slate-50/50 !p-4 !rounded-2xl !border !border-slate-100 !max-h-[160px] !overflow-y-auto custom-scrollbar">
+              {miscPresets.length === 0 ? (
+                <p className="!col-span-3 !text-[10px] !text-slate-400 !italic !text-center !py-4">No misc fees defined yet.</p>
+              ) : (
+                miscPresets.map((m: any) => (
+                  <PremiumCheckbox 
+                    key={m.id}
+                    name="misc_ids" 
+                    value={m.id}
+                    label={m.name} 
+                    defaultChecked={editingItem?.includes_misc_ids?.includes(m.id)} 
+                  />
+                ))
+              )}
+            </div>
           </div>
+        </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-4">
-             <p style={sectionLabel}>Miscellaneous Fees</p>
-             <div className="grid grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
-                {miscPresets.map((m: any) => (
-                  <label key={m.id} className="flex items-center gap-3 px-4 py-3 bg-[var(--color-bg-subtle)] rounded-2xl cursor-pointer hover:bg-white border border-transparent hover:border-[var(--color-border-default)] transition-all group">
-                    <input 
-                      type="checkbox" 
-                      name="misc_ids" 
-                      value={m.id} 
-                      defaultChecked={editingItem?.includes_misc_ids?.includes(m.id)} 
-                      className="w-4 h-4 rounded border-[var(--color-border-default)] text-primary focus:ring-primary/20 cursor-pointer" 
-                    />
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-tight opacity-70 group-hover:opacity-100 truncate">{m.name}</span>
-                  </label>
-                ))}
-             </div>
-          </div>
-
-          <div className="pt-6 border-t border-[var(--color-border-default)]">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Package Definition'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button type="button" onClick={onClose} className={premiumFormStyles.secondaryButton + " !flex-1"}>
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className={premiumFormStyles.button + " !flex-1"}>
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }
+
 
 
 function TagSelector({ options, selectedTags, onChange }: { options: string[], selectedTags: string[], onChange: (tags: string[]) => void }) {
@@ -2652,20 +2696,21 @@ function TagSelector({ options, selectedTags, onChange }: { options: string[], s
   }
 
   return (
-    <div className="flex gap-1.5 mt-1 overflow-x-auto scrollbar-hide">
-      {options.map(tag => {
+    <div className="!flex !flex-wrap !gap-1.5 !mt-1">
+      {options.map((tag: string) => {
         const isActive = selectedTags.includes(tag);
         return (
           <button
             key={tag}
             type="button"
             onClick={() => toggleTag(tag)}
-            className={`inline-flex items-center px-2 rounded text-[9px] font-black uppercase tracking-wide transition-all leading-none cursor-pointer hover:scale-110 active:scale-95 ${
+            className={cn(
+              "!inline-flex !items-center !px-2 !rounded !text-[9px] !font-black !uppercase !tracking-widest !transition-all !leading-none !cursor-pointer !border",
               isActive 
-                ? "bg-rose-500 text-white shadow-sm hover:bg-rose-600" 
-                : "bg-[#f0f2f5] text-text-tertiary/40 hover:text-text-tertiary/70 hover:bg-[#e8eaed]"
-            }`}
-            style={{ height: '20px', minHeight: '20px', padding: '0 8px' }}
+                ? "!bg-rose-500 !text-white !border-rose-400 !shadow-[0_2px_8px_rgba(244,63,94,0.3)]" 
+                : "!bg-[#f0f2f5] !text-slate-900/60 !border-slate-200 hover:!bg-white hover:!text-rose-600 hover:!border-rose-200 hover:!shadow-[0_0_10px_rgba(244,63,94,0.25)]"
+            )}
+            style={{ height: '20px' }}
           >
             {tag}
           </button>
@@ -2677,114 +2722,105 @@ function TagSelector({ options, selectedTags, onChange }: { options: string[], s
 
 function parseTags(tagStr: string | null) {
   if (!tagStr) return [];
-  return tagStr.split(',').map(t => t.trim()).filter(Boolean);
+  return tagStr.split(',').map((t: string) => t.trim()).filter(Boolean);
 }
 
 function UserSettingsModal({ isOpen, onClose, fullName, setFullName, newPassword, setNewPassword, confirmPassword, setConfirmPassword, passwordError, role, onSave, loading }: any) {
+  if (!isOpen) return null;
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
-    >
+    <div style={modalOverlay} onClick={onClose} className="p-4 z-50">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         style={modalCard} 
-        className="max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+        className="max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>Account Settings</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
+        <div className="flex items-center justify-between mb-6">
+          <h2 style={modalTitle}>Account Settings</h2>
+          <button onClick={onClose} style={btnIcon}><X size={20} /></button>
         </div>
-        
+
         <form onSubmit={onSave} style={modalFormSpace}>
-          <div className="space-y-6">
-            <p style={sectionLabel}>Profile Info</p>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Full Name</label>
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} required />
-            </div>
+          <div>
+            <label style={labelStyle}>Full Name</label>
+            <input 
+              value={fullName} 
+              onChange={(e) => setFullName(e.target.value)} 
+              style={inputStyle} 
+              required 
+            />
           </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)] space-y-6">
-            <p style={sectionLabel}>Security Update</p>
+          <div className="pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Update Password</h3>
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label style={labelStyle}>New Password (Optional)</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={inputStyle} placeholder="Min 6 characters" />
+              <div>
+                <label style={labelStyle}>New Password (leave blank to keep current)</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  style={inputStyle} 
+                  placeholder="Minimum 6 characters"
+                />
               </div>
-              <div className="space-y-1.5">
+              <div>
                 <label style={labelStyle}>Confirm New Password</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={inputStyle} />
+                <input 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  style={inputStyle} 
+                />
               </div>
             </div>
           </div>
           
           {passwordError && (
-             <div style={alertError} className="p-4 rounded-2xl flex items-center gap-3">
-                <AlertCircle size={16} />
-                <p className="text-[11px] font-bold uppercase tracking-tight">{passwordError}</p>
-             </div>
+            <div style={alertError} className="text-xs font-bold py-3">
+              {passwordError}
+            </div>
           )}
 
-          <div className="pt-6 border-t border-[var(--color-border-default)]">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Update Profile'}
+          <div className="pt-4 flex gap-3">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              style={btnSecondary} 
+              className="flex-1"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading} 
+              style={btnPrimary} 
+              className="flex-1"
+            >
+              {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Changes'}
             </button>
           </div>
         </form>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
 
 function PremiumConfirmDialog({ isOpen, onClose, onConfirm, title, type }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, type: string | null }) {
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            style={{ padding: '1.25rem 0.875rem', maxWidth: '280px', width: '90%' }}
-            className="bg-white rounded-[28px] shadow-2xl overflow-hidden border border-slate-100/50 flex flex-col items-center text-center"
-          >
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center relative" style={{ marginBottom: '0.625rem' }}>
-              <div className="absolute inset-0 bg-rose-200/20 rounded-xl animate-pulse" />
-              <AlertCircle size={16} strokeWidth={2.5} className="relative" />
-            </div>
-            
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', marginBottom: '0.25rem' }}>Confirm Deletion</h3>
-            <p style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', lineHeight: 1.5, marginBottom: '0.75rem' }}>
-              Are you sure you want to delete this {type || 'record'}? This will permanently remove <span style={{ color: '#f43f5e', fontWeight: 800 }}>"{title}"</span> from your records.
-            </p>
-            
-            <div className="flex flex-col w-full" style={{ gap: '0.625rem' }}>
-              <button 
-                onClick={onConfirm}
-                style={{ height: '2.25rem', fontSize: '0.625rem', fontWeight: 900, letterSpacing: '0.1em', borderRadius: '9999px' }}
-                className="w-full bg-rose-500 text-white uppercase shadow-sm shadow-rose-200/50 hover:bg-rose-600 active:scale-[0.98] transition-all border-0"
-              >
-                Yes, Delete it
-              </button>
-              <button 
-                onClick={onClose}
-                style={{ height: '2.25rem', fontSize: '0.625rem', fontWeight: 900, letterSpacing: '0.1em', borderRadius: '9999px' }}
-                className="w-full bg-transparent text-[#0f172a] border border-slate-200 uppercase hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
-              >
-                No, Keep it
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    <InfoDialog 
+      config={{
+        isOpen,
+        title: `Delete ${type || 'record'}?`,
+        message: `Are you sure you want to remove "${title}"? This cannot be undone.`,
+        type: 'warning',
+        onConfirm,
+        confirmText: "Yes, Delete It",
+        cancelText: "No, Cancel"
+      }}
+      onClose={onClose}
+    />
   );
 }
 
@@ -2793,8 +2829,9 @@ function AccommodationListItem({ item, onEdit, onDelete }: any) {
     <motion.div 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 24px -10px rgba(16, 185, 129, 0.15), 0 0 15px -3px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)" }}
       style={cardStyle}
-      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/30 transition-all group shadow-sm px-4 md:!px-7 !py-5"
     >
       <div className="flex items-center gap-5">
         <div className="w-10 h-10 rounded-2xl bg-[#f0f2f5] flex items-center justify-center text-text-secondary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
@@ -2849,66 +2886,75 @@ function AddAccommodationModal({ onClose, editingItem, operatorId, onSuccess }: 
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={modalOverlay}
-      className="z-[100]"
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={editingItem ? 'Edit Accommodation' : 'Add Accommodation'}
+      subtitle="Define guest stays and per-night occupancy rates"
+      icon={<BedDouble size={18} strokeWidth={2.5} />}
     >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 20 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        onClick={(e) => e.stopPropagation()}
-        style={modalCard} 
-        className="max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-      >
-        <div className="flex justify-between items-center mb-10">
-          <h3 style={modalTitle}>{editingItem ? 'Edit Accommodation' : 'Add Accommodation'}</h3>
-          <button onClick={onClose} style={btnIcon} className="!w-10 !h-10 hover:border-primary/50 transition-colors"><X size={20} /></button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col !gap-6">
+        {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
-        <form onSubmit={handleSubmit} style={modalFormSpace}>
-          {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
-          
-          <div className="space-y-6">
-            <p style={sectionLabel}>Room Configuration</p>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Room Name / Type</label>
-              <input name="name" defaultValue={editingItem?.name} style={inputStyle} className="font-bold" placeholder="e.g. Standard Room" required />
+        <div className="!space-y-4">
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>ROOM NAME / TYPE</label>
+            <input 
+              name="name" 
+              defaultValue={editingItem?.name} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Standard Room" 
+              required 
+            />
+          </div>
+          <div className="!space-y-1">
+            <label className={premiumFormStyles.label}>BRIEF DESCRIPTION</label>
+            <input 
+              name="description" 
+              defaultValue={editingItem?.description} 
+              className={premiumFormStyles.input} 
+              placeholder="e.g. Twin sharing, AC, breakfast included" 
+            />
+          </div>
+          <div className="grid grid-cols-2 !gap-6">
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>PAX THRESHOLD</label>
+              <input 
+                name="pax_count" 
+                type="number" 
+                min="1" 
+                defaultValue={editingItem?.pax_count || 1} 
+                className={premiumFormStyles.input} 
+                placeholder="e.g. 4" 
+                required 
+              />
             </div>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Brief Description</label>
-              <input name="description" defaultValue={editingItem?.description} style={inputStyle} placeholder="e.g. Twin sharing, AC, breakfast included" />
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>RATE (₱) / NIGHT</label>
+              <input 
+                name="amount" 
+                type="number" 
+                defaultValue={editingItem?.amount} 
+                className={premiumFormStyles.input} 
+                placeholder="e.g. 2500" 
+                required 
+              />
             </div>
           </div>
+          <p className="!text-[10px] !text-emerald-600 !italic !font-medium !leading-relaxed !bg-emerald-50/50 !p-3 !rounded-xl !border !border-emerald-100/50">
+            Note: The system will auto-match the closest accommodation preset that covers the total pax count for each trip day.
+          </p>
+        </div>
 
-          <div className="pt-6 border-t border-[var(--color-border-default)] grid grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Pax Threshold</label>
-              <input name="pax_count" type="number" min="1" defaultValue={editingItem?.pax_count || 1} style={inputStyle} placeholder="e.g. 4" required />
-            </div>
-            <div className="space-y-1.5">
-              <label style={labelStyle}>Rate (₱) / Night</label>
-              <input name="amount" type="number" defaultValue={editingItem?.amount} style={inputStyle} placeholder="e.g. 2500" required />
-            </div>
-          </div>
-          
-          <div className="p-5 bg-[var(--color-bg-subtle)] rounded-2xl border border-[var(--color-border-default)]">
-            <p className="text-[11px] text-text-tertiary leading-relaxed italic px-1">
-              Note: The system auto-matches the closest accommodation (≥ pax count) per day in the builder.
-            </p>
-          </div>
-
-          <div className="pt-6 border-t border-[var(--color-border-default)]">
-            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: '100%', height: '48px' }}>
-              {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Save Accommodation'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-
+        <div className="!pt-4 !border-t !border-emerald-500/10 !flex !gap-3">
+          <button type="button" onClick={onClose} className={premiumFormStyles.secondaryButton + " !flex-1"}>
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className={premiumFormStyles.button + " !flex-1"}>
+            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Save Modifications'}
+          </button>
+        </div>
+      </form>
+    </PremiumModalWrapper>
   );
 }

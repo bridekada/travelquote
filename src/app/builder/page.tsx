@@ -1004,9 +1004,9 @@ function QuoteBuilder() {
 
         if (customStatus === 'Confirmed' || finalStatus === 'Confirmed') {
           setIsReconfiguring(false);
+        } else {
+          openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
         }
-        
-        openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
       }
     } catch (e: any) { 
       openDialog({ title: "System Error", message: e.message, type: "warning" }); 

@@ -34,29 +34,90 @@ export default function BuilderHeader({
   isImpersonating
 }: BuilderHeaderProps) {
   return (
-    <header className={`h-16 bg-white border-b border-[#e8eaed] sticky ${isImpersonating ? 'top-[31px]' : 'top-0'} z-50 shadow-sm shadow-primary/[0.02] safe-top`}>
-      <div className="w-full h-full flex items-center justify-between px-4 md:px-6 lg:px-10">
-        <div className="flex items-center gap-3 md:gap-6 min-w-0">
-          <button 
-            onClick={onBack}
-            className="h-10 md:!h-11 px-4 md:!px-8 !bg-[#1a2138] !text-white !rounded-xl !text-xs md:!text-sm !font-black !flex items-center gap-2 md:gap-3 hover:!opacity-95 disabled:opacity-30 transition-all !shadow-xl !shadow-primary/10 shrink-0"
-          >
-            <ChevronLeft size={18} strokeWidth={2.5} />
-            <span>Back</span>
-          </button>
+    <header className={`h-16 bg-white border-b border-[#e8eaed] sticky ${isImpersonating ? 'top-[31px]' : 'top-0'} z-50 shadow-sm shadow-primary/[0.02] safe-top !p-0`}>
+      <div className="w-full h-full !px-4 md:!px-8 lg:!px-10 flex items-center">
+        {/* Navigation Area: Matches Content Centering */}
+        <div className="lg:pr-[480px] flex-1 h-full flex items-center min-w-0">
+          <div className="max-w-7xl mx-auto w-full flex items-center gap-3 md:gap-6">
+            <button 
+              onClick={onBack}
+              className="h-10 md:!h-11 px-4 md:!px-8 !bg-[#1a2138] !text-white !rounded-xl !text-xs md:!text-sm !font-black !flex items-center gap-2 md:gap-3 hover:!opacity-95 disabled:opacity-30 transition-all !shadow-xl !shadow-primary/10 shrink-0"
+            >
+              <ChevronLeft size={18} strokeWidth={2.5} />
+              <span>Back</span>
+            </button>
 
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-base md:text-xl font-bold text-primary tracking-tight truncate">
-              {isDeadQuote ? customerName || 'Quotation' : (quoteId ? 'Edit Quotation' : 'New Quotation')}
-            </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary leading-none hidden sm:block">
-              {isDeadQuote ? 'Read Only' : (quoteId ? 'Updating Record' : 'Standard Station Mode')}
-            </p>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-base md:text-xl font-bold text-primary tracking-tight truncate">
+                {isDeadQuote ? customerName || 'Quotation' : (quoteId ? 'Edit Quotation' : 'New Quotation')}
+              </h1>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary leading-none hidden sm:block">
+                {isDeadQuote ? 'Read Only' : (quoteId ? 'Updating Record' : 'Standard Station Mode')}
+              </p>
+            </div>
           </div>
         </div>
 
-        {isDeadQuote ? (
-          <div className="flex items-center gap-3">
+        {/* Action Area: Far Right of Screen */}
+        <div className="flex items-center gap-2 md:gap-3 shrink-0 ml-auto">
+          {!isDeadQuote ? (
+            <>
+              {quoteId && (
+                <button 
+                  onClick={onDuplicate}
+                  disabled={isSaving}
+                  className="h-10 md:!h-11 px-3 md:!px-6 bg-orange-50 text-orange-700 border border-orange-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
+                >
+                  <Copy size={16} />
+                  <span className="hidden md:inline">Duplicate</span>
+                </button>
+              )}
+
+              <button 
+                onClick={onCancel}
+                disabled={isSaving}
+                className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
+                aria-label="Cancel Quote"
+              >
+                <X size={16} />
+                <span className="hidden md:inline">Cancel Quote</span>
+              </button>
+
+              <div className="h-8 w-px bg-gray-100 mx-0.5 md:mx-2 hidden sm:block" />
+
+              {(() => {
+                const isConfirmedFlow = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(status);
+                
+                return (
+                  <>
+                    {quoteId && !isConfirmedFlow && itemsCount > 0 && (
+                      <button 
+                        onClick={onConfirm}
+                        disabled={isSaving || !selectedPackageId || !customerName}
+                        className="h-10 md:!h-11 px-3 md:!px-6 bg-blue-50 text-blue-700 border border-blue-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30 disabled:grayscale"
+                      >
+                        <CheckCircle size={16} />
+                        <span className="hidden md:inline">Confirm Quote</span>
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={onSave}
+                      disabled={isSaving || !customerName?.trim()}
+                      className="h-10 md:!h-11 px-3 md:!px-6 bg-emerald-50 text-emerald-700 border border-emerald-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                    >
+                      {isSaving ? "Saving..." : (
+                        <>
+                          <Save size={16} /> 
+                          <span>{isConfirmedFlow ? 'Update Quote' : 'Save Quote'}</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                );
+              })()}
+            </>
+          ) : (
             <div className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
               status === 'Cancelled' ? 'bg-rose-50 text-rose-600 border-rose-200' : 
               status === 'Lost' ? 'bg-amber-50 text-amber-600 border-amber-300' :
@@ -64,66 +125,8 @@ export default function BuilderHeader({
             }`}>
               {status}
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
-
-            {quoteId && (
-              <button 
-                onClick={onDuplicate}
-                disabled={isSaving}
-                className="h-10 md:!h-11 px-3 md:!px-5 border border-emerald-100 bg-emerald-50/50 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
-              >
-                <Copy size={16} />
-                <span className="hidden md:inline">Duplicate</span>
-              </button>
-            )}
-
-            <button 
-              onClick={onCancel}
-              disabled={isSaving}
-              className="h-10 md:!h-11 px-3 md:!px-5 border border-rose-100 bg-rose-50/50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
-              aria-label="Cancel Quote"
-            >
-              <X size={16} />
-              <span className="hidden md:inline">Cancel Quote</span>
-            </button>
-
-            <div className="h-8 w-px bg-gray-100 mx-0.5 md:mx-2 hidden sm:block" />
-
-            {(() => {
-              const isConfirmedFlow = ['Confirmed', 'Payment Started', 'Payment Complete'].includes(status);
-              
-              return (
-                <>
-                  {quoteId && !isConfirmedFlow && itemsCount > 0 && (
-                    <button 
-                      onClick={onConfirm}
-                      disabled={isSaving || !selectedPackageId || !customerName}
-                      className="h-10 md:!h-11 px-3 md:!px-6 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-1 md:gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-30 disabled:grayscale"
-                    >
-                      <CheckCircle size={16} />
-                      <span className="hidden md:inline">Confirm Quote</span>
-                    </button>
-                  )}
-
-                  <button 
-                    onClick={onSave}
-                    disabled={isSaving || !customerName?.trim()}
-                    className="h-10 md:!h-11 px-4 md:!px-8 bg-[#1a2138] text-white rounded-xl text-xs md:text-sm font-black flex items-center gap-2 md:gap-3 hover:opacity-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/10"
-                  >
-                    {isSaving ? "Saving..." : (
-                      <>
-                        <Save size={18} /> 
-                        <span className="hidden sm:inline">{isConfirmedFlow ? 'Save & Update' : 'Save Quote'}</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              );
-            })()}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );
