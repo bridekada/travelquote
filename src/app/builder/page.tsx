@@ -158,118 +158,120 @@ function QuoteBuilder() {
     }
   }, [dbVehicles, quoteId, copyFromId, isLoaded, quote.fleet]);
 
-  useEffect(() => {
-    const loadQuote = async () => {
-      if (!selectedOperatorId) return;
-      if (!quoteId && !copyFromId) {
-        hasHydrated.current = true;
-        setIsLoaded(true);
-        return;
-      }
-      
-      const targetId = quoteId || copyFromId;
-      const { data: qData } = await supabase.from('quotes').select('*').eq('id', targetId).single();
-      if (!qData) return;
-      const { data: itemsData } = await supabase.from('quote_items').select('*').eq('quote_id', targetId).order('day_number');
-      
-      const formattedEta = formatForInput(qData.eta);
-      const formattedEtd = formatForInput(qData.etd);
-      
-      const rawItems = (itemsData || []).map(item => ({
-        ...item,
-        day_number: Number(item.day_number),
-        tags: parseTags(item.tags),
-        dynamic_costs: item.dynamic_costs || {},
-        vehicle_rate: Number(item.vehicle_rate) || 0,
-        km: Number(item.km) || 0,
-        km_per_l: Number(item.km_per_l) || 10,
-        fuel_price: Number(item.fuel_price) || qData.default_fuel_price || 60,
-        guest_accommodation_name: item.guest_accommodation_name || "",
-        guest_accommodation_amount: Number(item.guest_accommodation_amount) || 0,
-        itinerary_details: item.itinerary_details || "",
-        destination: item.destination || "",
-        is_manual: true
-      }));
-
-      // In-place reconciliation for the initial load
-      let finalItems = rawItems;
-      if (formattedEta && formattedEtd) {
-        const start = new Date(formattedEta);
-        const end = new Date(formattedEtd);
-        if (end >= start) {
-          const d1 = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-          const d2 = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          const days = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          const reconciled: QuoteItem[] = [];
-          for (let i = 0; i < days; i++) {
-            const currentDate = new Date(start);
-            currentDate.setDate(start.getDate() + i);
-            const dateStr = currentDate.toISOString().split('T')[0];
-            const existing = rawItems.find(item => Number(item.day_number) === i + 1);
-            
-            if (existing) {
-              reconciled.push({ ...existing, date: dateStr, day_number: i + 1 });
-            } else {
-              // Try to find the default vehicle rate if dbVehicles is already here
-              const currentVehicle = dbVehicles.find(v => v.model === qData.vehicle_model);
-              const defaultRate = currentVehicle ? Number(currentVehicle.default_rate) || Number(currentVehicle.rate) || 0 : 0;
-              const defaultKmpl = currentVehicle ? Number(currentVehicle.km_per_l) || 10 : 10;
-
-              reconciled.push({
-                day_number: i + 1, date: dateStr, destination: "", itinerary_details: "", 
-                vehicle_rate: defaultRate,
-                km: 0, 
-                km_per_l: defaultKmpl, 
-                fuel_price: qData.default_fuel_price || 60, dynamic_costs: {}, tags: [],
-                guest_accommodation_id: "", guest_accommodation_name: "", guest_accommodation_amount: 0, row_total: 0
-              });
-            }
-          }
-          finalItems = reconciled;
-        }
-      }
-
-      setQuote({
-        ...qData,
-        id: copyFromId ? undefined : qData.id,
-        customer_name: copyFromId ? "" : qData.customer_name,
-        contact_number: copyFromId ? "" : qData.contact_number,
-        fb_name: copyFromId ? "" : qData.fb_name,
-        status: copyFromId ? "Draft" : qData.status,
-        confirmed_at: copyFromId ? null : qData.confirmed_at,
-        selected_package_total: copyFromId ? null : qData.selected_package_total,
-        selected_package_details: copyFromId ? null : qData.selected_package_details,
-        quotation_text: copyFromId ? "" : qData.quotation_text,
-        eta: formattedEta,
-        etd: formattedEtd,
-        fleet: qData.fleet_json || [],
-        quotation_description: qData.quotation_description || "",
-        items: finalItems.map(item => ({
-          ...item,
-          row_total: calculateRowTotal(item, qData.admin_commission || 0, qData.fleet_json || [])
-        }))
-      });
-
-      if (qData.extra_fees_json) setExtraFees(qData.extra_fees_json);
-      if (qData.discount_total) setDiscount(qData.discount_total);
-      if (qData.package_options_json) setLivePackages(qData.package_options_json);
-      if (qData.selected_package) setSelectedPackageName(qData.selected_package);
-      
-      // Restore selection: Use ID if available, otherwise check the is_selected flag in JSON (safe for custom packages)
-      if (qData.selected_package_id) {
-        setSelectedPackageId(qData.selected_package_id);
-      } else if (qData.package_options_json) {
-        const selectedInJson = qData.package_options_json.find((p: any) => p.is_selected === true);
-        if (selectedInJson) {
-          setSelectedPackageId(selectedInJson.id);
-        }
-      }
-      setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
-      
+  const handleRefreshData = async () => {
+    if (!selectedOperatorId) return;
+    if (!quoteId && !copyFromId) {
       hasHydrated.current = true;
       setIsLoaded(true);
-    };
-    if (!authLoading && profile) loadQuote();
+      return;
+    }
+    
+    const targetId = quoteId || copyFromId;
+    const { data: qData } = await supabase.from('quotes').select('*').eq('id', targetId).single();
+    if (!qData) return;
+    const { data: itemsData } = await supabase.from('quote_items').select('*').eq('quote_id', targetId).order('day_number');
+    
+    const formattedEta = formatForInput(qData.eta);
+    const formattedEtd = formatForInput(qData.etd);
+    
+    const rawItems = (itemsData || []).map(item => ({
+      ...item,
+      day_number: Number(item.day_number),
+      tags: parseTags(item.tags),
+      dynamic_costs: item.dynamic_costs || {},
+      vehicle_rate: Number(item.vehicle_rate) || 0,
+      km: Number(item.km) || 0,
+      km_per_l: Number(item.km_per_l) || 10,
+      fuel_price: Number(item.fuel_price) || qData.default_fuel_price || 60,
+      guest_accommodation_name: item.guest_accommodation_name || "",
+      guest_accommodation_amount: Number(item.guest_accommodation_amount) || 0,
+      itinerary_details: item.itinerary_details || "",
+      destination: item.destination || "",
+      is_manual: true
+    }));
+
+    // In-place reconciliation for the initial load
+    let finalItems = rawItems;
+    if (formattedEta && formattedEtd) {
+      const start = new Date(formattedEta);
+      const end = new Date(formattedEtd);
+      if (end >= start) {
+        const d1 = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const d2 = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        const days = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const reconciled: QuoteItem[] = [];
+        for (let i = 0; i < days; i++) {
+          const currentDate = new Date(start);
+          currentDate.setDate(start.getDate() + i);
+          const dateStr = currentDate.toISOString().split('T')[0];
+          const existing = rawItems.find(item => Number(item.day_number) === i + 1);
+          
+          if (existing) {
+            reconciled.push({ ...existing, date: dateStr, day_number: i + 1 });
+          } else {
+            const currentVehicle = dbVehicles.find(v => v.model === qData.vehicle_model);
+            const defaultRate = currentVehicle ? Number(currentVehicle.default_rate) || Number(currentVehicle.rate) || 0 : 0;
+            const defaultKmpl = currentVehicle ? Number(currentVehicle.km_per_l) || 10 : 10;
+
+            reconciled.push({
+              day_number: i + 1, date: dateStr, destination: "", itinerary_details: "", 
+              vehicle_rate: defaultRate,
+              km: 0, 
+              km_per_l: defaultKmpl, 
+              fuel_price: qData.default_fuel_price || 60, dynamic_costs: {}, tags: [],
+              guest_accommodation_id: "", guest_accommodation_name: "", guest_accommodation_amount: 0, row_total: 0
+            });
+          }
+        }
+        finalItems = reconciled;
+      }
+    }
+
+    setQuote({
+      ...qData,
+      id: copyFromId ? undefined : qData.id,
+      customer_name: copyFromId ? "" : qData.customer_name,
+      contact_number: copyFromId ? "" : qData.contact_number,
+      fb_name: copyFromId ? "" : qData.fb_name,
+      status: copyFromId ? "Draft" : qData.status,
+      confirmed_at: copyFromId ? null : qData.confirmed_at,
+      selected_package_total: copyFromId ? null : qData.selected_package_total,
+      selected_package_details: copyFromId ? null : qData.selected_package_details,
+      quotation_text: copyFromId ? "" : qData.quotation_text,
+      eta: formattedEta,
+      etd: formattedEtd,
+      fleet: qData.fleet_json || [],
+      quotation_description: qData.quotation_description || "",
+      items: finalItems.map(item => ({
+        ...item,
+        row_total: calculateRowTotal(item, qData.admin_commission || 0, qData.fleet_json || [])
+      }))
+    });
+
+    if (qData.extra_fees_json) setExtraFees(qData.extra_fees_json);
+    if (qData.discount_total) setDiscount(qData.discount_total);
+    if (qData.package_options_json) setLivePackages(qData.package_options_json);
+    if (qData.selected_package) setSelectedPackageName(qData.selected_package);
+    
+    if (qData.selected_package_id) {
+      setSelectedPackageId(qData.selected_package_id);
+    } else if (qData.package_options_json) {
+      const selectedInJson = qData.package_options_json.find((p: any) => p.is_selected === true);
+      if (selectedInJson) {
+        setSelectedPackageId(selectedInJson.id);
+      }
+    }
+    setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
+    
+    // Also refresh payments
+    fetchPayments();
+
+    hasHydrated.current = true;
+    setIsLoaded(true);
+  };
+
+  useEffect(() => {
+    if (!authLoading && profile) handleRefreshData();
   }, [quoteId, copyFromId, selectedOperatorId, authLoading, profile]);
 
   const handleEtaChangeRequest = (newDate: Date, iso: string) => {
@@ -1004,7 +1006,8 @@ function QuoteBuilder() {
 
         if (customStatus === 'Confirmed' || finalStatus === 'Confirmed') {
           setIsReconfiguring(false);
-        } else {
+        } else if (!overrideText) {
+          // Only show success dialog if we're NOT saving from the preview modal
           openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
         }
       }
@@ -1016,12 +1019,14 @@ function QuoteBuilder() {
   };
 
   const handleConfirmQuote = async (overrideText?: string) => {
+    // Safety check: ensure we're not receiving a React event object
+    const validOverrideText = typeof overrideText === 'string' ? overrideText : undefined;
     if (!selectedPackageId) { openDialog({ title: "Selection Required", message: "Please select a package first.", type: "alert" }); return; }
     openDialog({
       title: "Confirm Quotation",
       message: "Are you sure you want to lock and confirm this quotation? This will move it to the Confirmed status and lock itinerary editing.",
       type: "confirm",
-      onConfirm: () => finalizeSave('Confirmed', false, overrideText)
+      onConfirm: () => finalizeSave('Confirmed', false, validOverrideText)
     });
   };
 
@@ -1150,6 +1155,7 @@ function QuoteBuilder() {
           handleAddPayment={handleAddPaymentLocal} handleVoidPayment={handleVoidPaymentLocal}
           isSaving={isPaymentSaving}
           dbMiscPresets={dbMiscPresets}
+          onRefresh={handleRefreshData}
         />
         <InfoDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
       </>
@@ -1188,7 +1194,7 @@ function QuoteBuilder() {
         customerName={quote.customer_name} quoteId={quote.id || null} itemsCount={quote.items.length} 
         selectedPackageId={selectedPackageId} onBack={() => router.push('/dashboard?tab=quotes')}
         onSave={() => finalizeSave(undefined, false)} onCancel={handleCancelQuote}
-        onConfirm={handleConfirmQuote} onDuplicate={handleDuplicate} isImpersonating={false}
+        onConfirm={() => handleConfirmQuote()} onDuplicate={handleDuplicate} isImpersonating={false}
       />
       <div className="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
         <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
@@ -1249,7 +1255,7 @@ function QuoteBuilder() {
             text={previewText} 
             setText={setPreviewText} 
             onClose={() => setIsPreviewOpen(false)} 
-            onConfirm={() => finalizeSave(undefined, false, previewText)} 
+            onConfirm={(t) => finalizeSave(undefined, false, t)} 
             onCancel={handleCancelQuote} 
             isSaving={isSaving} 
             openDialog={openDialog} 

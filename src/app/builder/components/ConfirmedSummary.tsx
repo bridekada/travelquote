@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car, ChevronLeft, BedDouble } from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car, ChevronLeft, BedDouble, Printer, FileText, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
@@ -24,6 +24,7 @@ interface ConfirmedSummaryProps {
   handleVoidPayment: (id: string) => void;
   isSaving?: boolean;
   dbMiscPresets?: any[];
+  onRefresh?: () => void;
 }
 
 export default function ConfirmedSummary({
@@ -36,8 +37,10 @@ export default function ConfirmedSummary({
   handleAddPayment,
   handleVoidPayment,
   isSaving = false,
-  dbMiscPresets = []
+  dbMiscPresets = [],
+  onRefresh
 }: ConfirmedSummaryProps) {
+  const [showAdminReport, setShowAdminReport] = React.useState(false);
   const [selectedMethod, setSelectedMethod] = React.useState("GCash");
   const details = quote.selected_package_details || {};
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -121,6 +124,15 @@ export default function ConfirmedSummary({
 
           {/* Right Block - Action Area */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+             <button 
+               onClick={() => {
+                 onRefresh?.();
+                 setShowAdminReport(true);
+               }}
+               className="h-10 md:!h-11 px-3 md:!px-6 bg-blue-50 text-blue-700 border border-blue-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-1 md:gap-2"
+             >
+               <FileText size={16} /> Trip Report
+             </button>
              {!isFullyPaid && (
                <button 
                  onClick={() => setIsPaymentModalOpen(true)}
@@ -131,7 +143,7 @@ export default function ConfirmedSummary({
              )}
              <button 
                onClick={onReconfigure}
-               className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2"
+               className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:rose-100 transition-all flex items-center justify-center gap-1 md:gap-2"
              >
                <Settings size={16} /> Reconfigure
              </button>
@@ -625,6 +637,254 @@ export default function ConfirmedSummary({
           </PremiumModalWrapper>
         )}
       </AnimatePresence>
+
+      <AdminReportModal 
+         isOpen={showAdminReport}
+         onClose={() => setShowAdminReport(false)}
+         quote={quote}
+         details={details}
+         incs={incs}
+         totalPaid={totalPaid}
+         dbMiscPresets={dbMiscPresets}
+      />
     </div>
+  );
+}
+
+// Sub-component for the Admin Report
+interface AdminReportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  quote: QuoteData;
+  details: any;
+  incs: string[];
+  totalPaid: number;
+  dbMiscPresets: any[];
+}
+
+function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, dbMiscPresets }: AdminReportModalProps) {
+  if (!isOpen) return null;
+
+  // Helper to check inclusions (fuzzy match)
+  const isIncluded = (key: string) => {
+    return incs.some(inc => inc.toLowerCase().includes(key.toLowerCase()));
+  };
+
+  // Helper to get misc value by ID
+  const getMiscTotal = (id: string) => {
+    return quote.items?.reduce((sum, item) => sum + (item.dynamic_costs?.[id] || 0), 0) || 0;
+  };
+
+  // Replicate fuel calculation logic from matrix utils
+  const calculateDailyFuel = (item: any) => {
+    if (item.fuel_cost_manual !== undefined && item.fuel_cost_manual !== null && item.fuel_cost_manual > 0) return item.fuel_cost_manual;
+    if (!item.km || item.km <= 0) return 0;
+    
+    const activeFleet = (quote.fleet && quote.fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+      ? quote.fleet.filter((v: any) => item.selected_vehicle_ids!.includes(v.id))
+      : quote.fleet;
+      
+    if (activeFleet && activeFleet.length > 0) {
+      return activeFleet.reduce((acc, v: any) => {
+        const kmpl = v.km_per_l || 10;
+        const price = v.fuel_price || 60;
+        return acc + (item.km / kmpl) * price;
+      }, 0);
+    }
+    
+    const kmpl = item.km_per_l || 10;
+    const price = item.fuel_price || 0;
+    return (item.km / kmpl) * price;
+  };
+
+  // Calculate Expenses
+  const expenses: { label: string; amount: number; included: boolean }[] = [];
+  
+  // 1. Fleet Rate
+  const fleetRate = quote.items?.reduce((sum, item) => {
+    const activeFleet = (quote.fleet && quote.fleet.length > 0 && item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0)
+      ? quote.fleet.filter((v: any) => item.selected_vehicle_ids!.includes(v.id))
+      : quote.fleet;
+    const dailyRate = (activeFleet && activeFleet.length > 0)
+      ? activeFleet.reduce((acc, v: any) => acc + (v.daily_rate || 0), 0)
+      : (item.vehicle_rate || 0);
+    return sum + dailyRate;
+  }, 0) || 0;
+  expenses.push({ label: "Fleet Rate", amount: fleetRate, included: !!details.inclusions?.vehicle });
+
+  // 2. Fuel
+  const fuelCost = quote.items?.reduce((sum, item) => sum + calculateDailyFuel(item), 0) || 0;
+  expenses.push({ label: "Fuel", amount: fuelCost, included: isIncluded("Fuel") });
+
+  // 3. Guest Accom
+  const guestAccom = quote.items?.reduce((sum, item) => sum + (item.guest_accommodation_amount || 0), 0) || 0;
+  expenses.push({ label: "Guest Accom", amount: guestAccom, included: isIncluded("Accommodation") });
+
+  // 4. Matrix Miscellaneous
+  dbMiscPresets.forEach(preset => {
+    const amount = getMiscTotal(preset.id);
+    const pName = preset.name.toLowerCase();
+    if (pName.includes("fuel") || pName.includes("fleet rate") || pName.includes("accommodation")) return;
+
+    if (amount > 0) {
+      expenses.push({ label: preset.name, amount: amount, included: isIncluded(preset.name) });
+    }
+  });
+
+  // Calculate Subtotal and Markup
+  const subtotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const markupAmount = subtotal * ((quote.admin_commission || 0) / 100);
+  if (markupAmount > 0) {
+    expenses.push({ label: `Markup (${quote.admin_commission}%)`, amount: markupAmount, included: true });
+  }
+
+  const totalExpenses = expenses.filter(e => e.included).reduce((sum, e) => sum + e.amount, 0);
+  const net = totalExpenses - totalPaid;
+
+  const reportText = `
+Travel Details
+Tour Date: ${quote.items && quote.items.length > 0 ? `${new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${new Date(quote.items[quote.items.length-1].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : 'N/A'}
+Arrival Time: ${quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+Pick Up Location: ${quote.pickup_location || 'TBA'}
+Contact Person: ${quote.customer_name}
+Contact Number: ${quote.contact_number || 'N/A'}
+_____________________________________________
+Expenses
+${expenses.filter(e => e.included).map(e => `${e.label}: ₱${e.amount.toLocaleString()}`).join('\n')}
+TOTAL: ₱${totalExpenses.toLocaleString()}
+LESS RESERVATION: ₱${totalPaid.toLocaleString()}
+NET: ₱${net.toLocaleString()} 
+______________________________________________
+Itinerary (Include Accomodation if applicable)
+${quote.items?.map(item => {
+  const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
+    ? item.selected_vehicle_ids 
+    : (quote.fleet || []).map((v: any) => v.id);
+  const vNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
+  
+  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})`;
+}).join('\n')}
+  `.trim();
+
+  const [showCopied, setShowCopied] = React.useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(reportText);
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
+  };
+
+  return (
+    <PremiumModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Trip Report"
+      subtitle="Internal Operational Summary"
+      icon={<FileText size={22} />}
+      maxWidth="540px"
+    >
+      <div className="flex flex-col h-full max-h-[70vh] min-h-0">
+        <style>{`
+          .admin-report-scroll::-webkit-scrollbar {
+            width: 10px;
+          }
+          .admin-report-scroll::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 10px;
+          }
+          .admin-report-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* Initial subtle grey */
+            border-radius: 10px;
+            border: 2px solid #fffdfa;
+            transition: all 0.2s ease-in-out;
+          }
+          .admin-report-scroll:hover::-webkit-scrollbar-thumb {
+            background: #10b981; /* Emerald glow on hover */
+          }
+          .admin-report-scroll::-webkit-scrollbar-thumb:hover {
+            background: #059669 !important;
+          }
+          .btn-operational {
+            height: 3rem !important; /* 48px */
+            border-radius: 0.75rem !important; /* 12px squircle */
+            font-size: 10px !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            transition: all 0.2s ease-in-out !important;
+          }
+          .btn-copy { 
+            background: #1e3a8a !important; 
+            box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3) !important;
+          }
+          .btn-copy:hover { background: #1e40af !important; }
+          .btn-print { 
+            background: #1a2138 !important; 
+            box-shadow: 0 10px 15px -3px rgba(26, 33, 56, 0.3) !important;
+          }
+          .btn-print:hover { background: #2a3454 !important; }
+        `}</style>
+        
+        <div className="flex-1 px-2 pt-2 pb-4 min-h-0">
+           <div 
+             className="bg-[#fffdfa] rounded-[24px] border border-slate-200 shadow-sm !overflow-y-scroll admin-report-scroll !p-8"
+             style={{ height: '420px' }}
+           >
+              <pre className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-slate-700 select-all !pl-0">
+                <span className="font-black text-primary">Travel Details</span>
+                {"\n"}Tour Date: {quote.items && quote.items.length > 0 ? `${new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${new Date(quote.items[quote.items.length-1].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : 'N/A'}
+                {"\n"}Arrival Time: {quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+                {"\n"}Pick Up Location: {quote.pickup_location || 'TBA'}
+                {"\n"}Contact Person: {quote.customer_name}
+                {"\n"}Contact Number: {quote.contact_number || 'N/A'}
+                {"\n"}_____________________________________________
+                {"\n"}<span className="font-black text-primary">Expenses</span>
+                {"\n"}{expenses.filter(e => e.included).map(e => `${e.label}: ₱${e.amount.toLocaleString()}`).join('\n')}
+                {"\n"}<span className="font-black text-slate-800">TOTAL: ₱{totalExpenses.toLocaleString()}</span>
+                {"\n"}<span className="font-black text-rose-600">LESS RESERVATION: ₱{totalPaid.toLocaleString()}</span>
+                {"\n"}<span className="font-black text-emerald-700">NET: ₱{net.toLocaleString()}</span> 
+                {"\n"}______________________________________________
+                {"\n"}<span className="font-black text-primary">Itinerary (Include Accomodation if applicable)</span>
+                {"\n"}{quote.items?.map(item => {
+                  const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
+                    ? item.selected_vehicle_ids 
+                    : (quote.fleet || []).map((v: any) => v.id);
+                  const vNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
+                  
+                  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})`;
+                }).join('\n')}
+              </pre>
+           </div>
+        </div>
+
+        <div className="!pt-6 flex items-center justify-center gap-3 shrink-0 border-t border-slate-50 !mt-2 no-print">
+          <button 
+            type="button"
+            onClick={handleCopy}
+            disabled={showCopied}
+            className={`btn-operational btn-copy flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 ${showCopied ? '!bg-blue-500' : ''}`}
+          >
+            {showCopied ? (
+              <>
+                <Check size={14} />
+                <span>COPIED!</span>
+              </>
+            ) : (
+              <>
+                <ArrowRight size={14} className="rotate-[-45deg]" /> 
+                <span>COPY REPORT</span>
+              </>
+            )}
+          </button>
+          <button 
+            type="button"
+            onClick={() => window.print()}
+            className="btn-operational btn-print flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+          >
+            <Printer size={14} />
+            <span>PRINT REPORT</span>
+          </button>
+        </div>
+      </div>
+    </PremiumModalWrapper>
   );
 }
