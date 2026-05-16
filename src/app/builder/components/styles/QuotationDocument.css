@@ -7,32 +7,17 @@
 }
 
 .quotation-document-premium textarea {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: var(--doc-text);
-  line-height: 2;
-  letter-spacing: -0.01em;
-  background-image: 
-    linear-gradient(rgba(226, 232, 240, 0.3) 1px, transparent 1px);
-  background-size: 100% 2.8rem;
-  padding-top: 0.5rem;
-  padding-left: 3rem !important; /* Brought closer to edge */
-  padding-right: 2rem !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2rem !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
-/* Override the global * { margin: 0; padding: 0; } for this modal's internal components */
-.quotation-document-premium button,
-.quotation-document-premium div,
-.quotation-document-premium span {
-  margin: unset;
-  padding: unset;
-}
 
 .quotation-document-premium .paper-container {
   background: var(--doc-paper);
   position: relative;
-  box-shadow: 
-    0 1px 2px rgba(0,0,0,0.02),
-    0 20px 50px -12px rgba(0,0,0,0.04);
   border: 1px solid var(--doc-border);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -105,4 +90,9 @@
     border: none !important;
     box-shadow: none !important;
   }
+}
+
+.quotation-document-premium .modal-footer-actions {
+  margin-top: 0.5rem !important;
+  padding-top: 0.5rem !important;
 }

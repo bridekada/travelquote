@@ -1,13 +1,13 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, Info, X, Copy, Check, Printer, Sparkles, Loader2, RotateCcw, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, Copy, Check, Printer, Sparkles, Loader2, RotateCcw, Plus, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useRef } from "react";
 import { polishQuotation } from "@/app/actions/ai-actions";
 import { 
-  modalOverlay, modalCard, btnPillarPrimary, btnPillarSecondary, 
-  btnAction, btnSecondary, modalTitle, btnPrimary
+  modalOverlay, btnSecondary, btnPillarPrimary, btnPillarSecondary
 } from "@/lib/styles";
+import { PremiumModalWrapper } from "@/app/admin/components/PremiumModalWrapper";
 import "./styles/QuotationDocument.css";
 import "./styles/InfoDialog.css";
 
@@ -82,7 +82,7 @@ interface QuotationPreviewModalProps {
   text: string;
   setText: (v: string) => void;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (text: string) => void;
   onCancel: () => void;
   isSaving: boolean;
   openDialog: (config: any) => void;
@@ -103,6 +103,7 @@ export function QuotationPreviewModal({
 }: QuotationPreviewModalProps) {
   const [isPolishing, setIsPolishing] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
   const originalText = useRef(text);
 
   const handlePolish = async () => {
@@ -127,11 +128,8 @@ export function QuotationPreviewModal({
   };
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
-    openDialog({
-      title: "Copied!",
-      message: "Quotation has been copied to your clipboard and is ready to paste.",
-      type: "success"
-    });
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
   };
 
   const handlePrint = () => {
@@ -139,138 +137,198 @@ export function QuotationPreviewModal({
   };
 
   const handleSave = async () => {
-    await onConfirm();
+    // Explicitly pass the current text to the parent's save function
+    await onConfirm(text);
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
   };
 
   return (
-    <div style={modalOverlay} className="quotation-document-premium">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.98, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        style={{ ...modalCard, width: '100%', maxWidth: '740px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
-      >
-        <div className="px-12 pt-12 pb-8 text-center relative flex flex-col items-center">
-          <div className="w-14 h-14 rounded-[20px] flex items-center justify-center relative mb-4 premium-header-icon text-slate-400">
-            <Printer size={24} strokeWidth={1.5} className="relative" />
-          </div>
-          <h3 className="text-2xl font-black tracking-tight leading-tight title-gradient">Quotation Document</h3>
-          <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mt-3 opacity-60">Final Review & System Validation</p>
-          
-          <div className="flex items-center gap-3 mt-8 no-print">
-            {userRole === 'super_admin' && showPolish && (
-              <>
-                <button 
-                   onClick={handlePolish}
-                   disabled={isPolishing}
-                   style={{ ...btnAction, height: '42px', padding: '0 24px', borderRadius: '10px' }}
-                   className="transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-[10px]"
-                >
-                   {isPolishing ? (
-                     <Loader2 className="w-4 h-4 animate-spin" />
-                   ) : (
-                     <Sparkles className="w-4 h-4" />
-                   )}
-                   <span className="ml-2">{isPolishing ? "Polishing..." : "Polish with AI"}</span>
-                </button>
+    <PremiumModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title="Quotation Document"
+      subtitle="Final Review & System Validation"
+      icon={<Printer size={22} />}
+      maxWidth="540px"
+    >
+      <div className="quotation-document-premium flex flex-col min-h-0">
+        <style>{`
+          .quotation-editor-scroll::-webkit-scrollbar {
+            width: 10px;
+          }
+          .quotation-editor-scroll::-webkit-scrollbar-track {
+            background: #fffaf0;
+            border-radius: 10px;
+          }
+          .quotation-editor-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+            border: 2px solid #fffaf0;
+            transition: all 0.2s ease-in-out;
+          }
+          .quotation-editor-scroll:hover::-webkit-scrollbar-thumb {
+            background: #10b981;
+          }
+          .quotation-editor-scroll::-webkit-scrollbar-thumb:hover {
+            background: #059669 !important;
+          }
+          .btn-operational {
+            height: 3rem !important; /* 48px */
+            border-radius: 0.75rem !important; /* 12px squircle */
+            font-size: 10px !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            transition: all 0.2s ease-in-out !important;
+          }
+          .editor-toolbar {
+            margin-bottom: 0.75rem !important;
+          }
+          .btn-polish { 
+            background: rgba(240, 247, 255, 0.7) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(219, 234, 254, 0.8) !important;
+            color: #2563eb !important;
+            min-width: 200px !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.05) !important;
+          }
+          .btn-polish:hover { 
+            background: rgba(219, 234, 254, 0.8) !important;
+            color: #1d4ed8 !important;
+          }
+          .btn-copy { 
+            background: #1e3a8a !important; 
+            box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3) !important;
+          }
+          .btn-copy:hover { background: #1e40af !important; }
+          .btn-print { 
+            background: #1a2138 !important; 
+            box-shadow: 0 10px 15px -3px rgba(26, 33, 56, 0.3) !important;
+          }
+          .btn-print:hover { background: #2a3454 !important; }
+          .btn-save { 
+            background: #064e3b !important; 
+            box-shadow: 0 10px 15px -3px rgba(6, 78, 59, 0.3) !important;
+          }
+          .btn-save:hover { background: #065f46 !important; }
+          .btn-revert {
+            background: #ffffff !important;
+            border: 1px solid rgba(226, 232, 240, 0.8) !important;
+            color: #94a3b8 !important;
+          }
+          .btn-revert:hover {
+            background: rgba(240, 253, 244, 0.7) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(167, 243, 208, 0.5) !important;
+            color: #059669 !important;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.05) !important;
+          }
+          .quotation-document-premium {
+            overflow: hidden !important;
+          }
+          .paper-container {
+            background: #fffdfa !important;
+            box-shadow: 
+              0 1px 2px rgba(0,0,0,0.02),
+              0 20px 50px -12px rgba(0,0,0,0.04) !important;
+          }
+        `}</style>
 
-                {text !== originalText.current && (
-                  <button 
-                    onClick={handleRevert}
-                    style={{ ...btnSecondary, width: '42px', height: '42px', padding: 0, borderRadius: '10px' }}
-                    className="flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm bg-white"
-                    title="Revert to original"
-                  >
-                    <RotateCcw size={16} />
-                  </button>
-                )}
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-              </>
-            )}
-
-            {showPolish && (
+        {/* Editor Toolbar */}
+        <div className="editor-toolbar flex items-center justify-center gap-3 no-print shrink-0">
+          {userRole === 'super_admin' && showPolish && (
+            <div className="flex items-center gap-3">
               <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                style={{ ...btnAction, height: '42px', padding: '0 28px', borderRadius: '10px' }}
-                className="shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-[10px]"
+                 onClick={handlePolish}
+                 disabled={isPolishing}
+                 className="btn-operational btn-polish px-12 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shadow-lg"
               >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : showSaved ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Plus size={16} className="mr-1.5" />
-                    Save Quotation
-                  </>
-                )}
+                 {isPolishing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                 <span>{isPolishing ? "POLISHING..." : "POLISH WITH AI"}</span>
               </button>
-            )}
-          </div>
 
-          <button onClick={onClose} className="absolute top-10 right-10 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400 hover:rotate-90">
-            <X size={18} strokeWidth={2} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto !px-6 pb-12 custom-scrollbar">
-          <div className="relative group paper-container rounded-[32px] !my-5 px-12 py-16 min-h-[500px]">
-            <div className="absolute top-8 right-10 flex items-center gap-2.5 px-3 py-1.5 rounded-full live-badge">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              <span className="text-[9px] uppercase font-black tracking-[0.2em] italic">Live Intelligence Editor</span>
+              {text !== originalText.current && (
+                <button 
+                  onClick={handleRevert}
+                  className="btn-revert w-12 h-12 flex items-center justify-center transition-all active:scale-95 rounded-xl shadow-sm"
+                  title="Revert to original"
+                >
+                  <RotateCcw size={18} />
+                </button>
+              )}
             </div>
-            <textarea 
-              className="w-full bg-transparent border-none focus:ring-0 p-0 pl-16 pr-4 text-[14px] font-medium outline-none resize-none overflow-hidden mt-8" 
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={1}
-              onInput={(e: any) => {
-                e.target.style.height = "auto";
-                e.target.style.height = e.target.scrollHeight + "px";
-              }}
-              ref={(el) => {
-                if (el) {
-                  el.style.height = "auto";
-                  el.style.height = el.scrollHeight + "px";
-                }
-              }}
-            />
-          </div>
+          )}
         </div>
 
-        <div className="!px-6 !pt-6 !pb-4 flex items-center justify-center gap-4 no-print shrink-0 border-t border-slate-50 bg-slate-50/40">
+        {/* Document Editor Area */}
+        <div className="relative paper-container rounded-[24px] border border-slate-200 shadow-sm flex flex-col bg-[#fffdfa] h-[400px] overflow-hidden">
+          {/* Metadata Badge */}
+          <div className="absolute top-6 right-8 flex items-center gap-3 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100/50 shadow-sm z-10">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[9px] uppercase font-black tracking-widest italic">Live Intelligence Editor</span>
+          </div>
+          
+          <textarea 
+            className="w-full flex-1 bg-transparent border-none focus:ring-0 text-[12px] font-mono leading-relaxed outline-none resize-none overflow-y-auto quotation-editor-scroll text-slate-700 mt-6" 
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </div>
+
+        {/* Modal Footer Actions */}
+        <div className="modal-footer-actions pt-6 flex items-center justify-center gap-3 no-print shrink-0 border-t border-slate-50">
             <button 
               onClick={handleCopy}
-              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px' }}
-              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] flex items-center gap-2 !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
+              disabled={showCopied}
+              className={`btn-operational btn-copy flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 ${showCopied ? '!bg-blue-500' : ''}`}
             >
-              <Copy size={12} className="opacity-80" /> Copy
+              {showCopied ? (
+                <>
+                  <Check size={14} />
+                  <span>COPIED!</span>
+                </>
+              ) : (
+                <>
+                  <ArrowRight size={14} className="rotate-[-45deg]" /> 
+                  <span>COPY REPORT</span>
+                </>
+              )}
             </button>
 
             <button 
               onClick={handlePrint}
-              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px' }}
-              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] flex items-center gap-2 !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
+              className="btn-operational btn-print flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
             >
-              <Printer size={12} className="opacity-80" /> Print
+              <Printer size={14} />
+              <span>PRINT REPORT</span>
             </button>
 
-            <div className="w-px h-6 bg-slate-200 mx-1" />
-
-            <button 
-              onClick={onClose}
-              style={{ ...btnSecondary, height: '36px', padding: '0 20px', borderRadius: '8px', borderColor: '#10B981', color: '#10B981' }}
-              className="!text-[10px] !uppercase !tracking-[0.15em] !font-black transition-all active:scale-[0.98] !shadow-sm !bg-[#1a2138] !text-white hover:!bg-[#2a3454] !border-none"
-            >
-              Back
-            </button>
+            {showPolish && (
+              <button 
+                onClick={handleSave}
+                disabled={isSaving || showSaved}
+                className={`btn-operational btn-save flex-1 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 shadow-lg ${showSaved ? '!bg-emerald-500' : ''}`}
+              >
+                {isSaving ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : showSaved ? (
+                  <>
+                    <Check size={16} />
+                    <span>SAVED!</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} />
+                    <span>SAVE QUOTE</span>
+                  </>
+                )}
+              </button>
+            )}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </PremiumModalWrapper>
   );
 }

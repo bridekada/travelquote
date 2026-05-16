@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car, ChevronLeft, BedDouble, Printer, FileText } from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car, ChevronLeft, BedDouble, Printer, FileText, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
@@ -143,7 +143,7 @@ export default function ConfirmedSummary({
              )}
              <button 
                onClick={onReconfigure}
-               className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2"
+               className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:rose-100 transition-all flex items-center justify-center gap-1 md:gap-2"
              >
                <Settings size={16} /> Reconfigure
              </button>
@@ -766,8 +766,11 @@ ${quote.items?.map(item => {
 }).join('\n')}
   `.trim();
 
+  const [showCopied, setShowCopied] = React.useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(reportText);
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
   };
 
   return (
@@ -800,6 +803,25 @@ ${quote.items?.map(item => {
           .admin-report-scroll::-webkit-scrollbar-thumb:hover {
             background: #059669 !important;
           }
+          .btn-operational {
+            height: 3rem !important; /* 48px */
+            border-radius: 0.75rem !important; /* 12px squircle */
+            font-size: 10px !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            transition: all 0.2s ease-in-out !important;
+          }
+          .btn-copy { 
+            background: #1e3a8a !important; 
+            box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3) !important;
+          }
+          .btn-copy:hover { background: #1e40af !important; }
+          .btn-print { 
+            background: #1a2138 !important; 
+            box-shadow: 0 10px 15px -3px rgba(26, 33, 56, 0.3) !important;
+          }
+          .btn-print:hover { background: #2a3454 !important; }
         `}</style>
         
         <div className="flex-1 px-2 pt-2 pb-4 min-h-0">
@@ -834,22 +856,32 @@ ${quote.items?.map(item => {
            </div>
         </div>
 
-        <div className="!pt-4 flex items-center justify-center gap-4 shrink-0 border-t border-slate-50 !mt-2">
+        <div className="!pt-6 flex items-center justify-center gap-3 shrink-0 border-t border-slate-50 !mt-2 no-print">
           <button 
             type="button"
             onClick={handleCopy}
-            className="flex-1 h-12 bg-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+            disabled={showCopied}
+            className={`btn-operational btn-copy flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 ${showCopied ? '!bg-blue-500' : ''}`}
           >
-            <ArrowRight size={14} className="rotate-[-45deg]" /> 
-            Copy Report
+            {showCopied ? (
+              <>
+                <Check size={14} />
+                <span>COPIED!</span>
+              </>
+            ) : (
+              <>
+                <ArrowRight size={14} className="rotate-[-45deg]" /> 
+                <span>COPY REPORT</span>
+              </>
+            )}
           </button>
           <button 
             type="button"
             onClick={() => window.print()}
-            className="flex-1 h-12 bg-[#1a2138] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2a3454] transition-all flex items-center justify-center gap-2"
+            className="btn-operational btn-print flex-1 text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
           >
-            <Printer size={14} /> 
-            Print Report
+            <Printer size={14} />
+            <span>PRINT REPORT</span>
           </button>
         </div>
       </div>

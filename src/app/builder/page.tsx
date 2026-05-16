@@ -1006,7 +1006,8 @@ function QuoteBuilder() {
 
         if (customStatus === 'Confirmed' || finalStatus === 'Confirmed') {
           setIsReconfiguring(false);
-        } else {
+        } else if (!overrideText) {
+          // Only show success dialog if we're NOT saving from the preview modal
           openDialog({ title: "Success", message: "Quotation record updated.", type: "success" });
         }
       }
@@ -1018,12 +1019,14 @@ function QuoteBuilder() {
   };
 
   const handleConfirmQuote = async (overrideText?: string) => {
+    // Safety check: ensure we're not receiving a React event object
+    const validOverrideText = typeof overrideText === 'string' ? overrideText : undefined;
     if (!selectedPackageId) { openDialog({ title: "Selection Required", message: "Please select a package first.", type: "alert" }); return; }
     openDialog({
       title: "Confirm Quotation",
       message: "Are you sure you want to lock and confirm this quotation? This will move it to the Confirmed status and lock itinerary editing.",
       type: "confirm",
-      onConfirm: () => finalizeSave('Confirmed', false, overrideText)
+      onConfirm: () => finalizeSave('Confirmed', false, validOverrideText)
     });
   };
 
@@ -1191,7 +1194,7 @@ function QuoteBuilder() {
         customerName={quote.customer_name} quoteId={quote.id || null} itemsCount={quote.items.length} 
         selectedPackageId={selectedPackageId} onBack={() => router.push('/dashboard?tab=quotes')}
         onSave={() => finalizeSave(undefined, false)} onCancel={handleCancelQuote}
-        onConfirm={handleConfirmQuote} onDuplicate={handleDuplicate} isImpersonating={false}
+        onConfirm={() => handleConfirmQuote()} onDuplicate={handleDuplicate} isImpersonating={false}
       />
       <div className="flex flex-col lg:flex-row flex-1 relative overflow-hidden">
         <div className="flex-1 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] scroll-smooth px-2 md:px-4 lg:px-6">
@@ -1252,7 +1255,7 @@ function QuoteBuilder() {
             text={previewText} 
             setText={setPreviewText} 
             onClose={() => setIsPreviewOpen(false)} 
-            onConfirm={() => finalizeSave(undefined, false, previewText)} 
+            onConfirm={(t) => finalizeSave(undefined, false, t)} 
             onCancel={handleCancelQuote} 
             isSaving={isSaving} 
             openDialog={openDialog} 
