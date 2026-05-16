@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car } from "lucide-react";
+import React from "react";
+import { CheckCircle, Clock, ShieldCheck, Map as MapIcon, Receipt, Trash2, Plus, X, Settings, ArrowRight, CreditCard, Car, ChevronLeft, BedDouble } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuoteData } from "./types";
 import { 
@@ -9,6 +10,8 @@ import {
   btnPillarPrimary, btnPillarSecondary,
   inputFocus, inputBlur
 } from "@/lib/styles";
+import { PremiumModalWrapper, premiumFormStyles } from "@/app/admin/components/PremiumModalWrapper";
+import { AdminSelect } from "@/app/admin/components/AdminSelect";
 
 interface ConfirmedSummaryProps {
   quote: QuoteData;
@@ -35,6 +38,7 @@ export default function ConfirmedSummary({
   isSaving = false,
   dbMiscPresets = []
 }: ConfirmedSummaryProps) {
+  const [selectedMethod, setSelectedMethod] = React.useState("GCash");
   const details = quote.selected_package_details || {};
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const balanceRemaining = Math.max(0, (details.total_amount || 0) - totalPaid);
@@ -61,7 +65,7 @@ export default function ConfirmedSummary({
   const hasFleet = (quote.fleet || []).length > 0;
 
   if (details.inclusions?.fuel && totalKM > 0 && hasFleet) {
-    incs.push('Fuel & Logistics included');
+    incs.push('Fuel Consumption');
   } else {
     excs.push('Fuel Consumption');
   }
@@ -98,33 +102,40 @@ export default function ConfirmedSummary({
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f8f9fb]">
-      <header className="h-16 bg-white border-b border-[#e8eaed] sticky top-0 z-50 shadow-sm safe-top">
-        <div className="w-full h-full grid grid-cols-[1fr_auto_1fr] items-center px-4 md:px-6 lg:px-10">
+      <header className="h-16 bg-white border-b border-[#e8eaed] sticky top-0 z-50 shadow-sm safe-top !p-0">
+        <div className="w-full h-full !px-4 md:!px-8 lg:!px-10 flex items-center justify-between">
           {/* Left Block */}
-          <div className="flex items-center gap-4 shrink-0">
-            <button onClick={onBack} className="h-10 w-10 rounded-lg border border-[#e8eaed] flex items-center justify-center text-text-secondary hover:bg-[#f0f2f5] transition-all">
-              <CheckCircle size={20} className="text-emerald-500" />
+          <div className="flex items-center gap-3 md:gap-6 shrink-0">
+            <button 
+              onClick={onBack} 
+              className="h-10 md:!h-11 px-4 md:!px-8 !bg-[#1a2138] !text-white !rounded-xl !text-xs md:!text-sm !font-black !flex items-center gap-2 md:gap-3 hover:!opacity-95 disabled:opacity-30 transition-all !shadow-xl !shadow-primary/10 shrink-0"
+            >
+              <ChevronLeft size={18} strokeWidth={2.5} className="text-white" />
+              <span>Back</span>
             </button>
-            <h1 className="text-xl font-bold text-primary tracking-tight italic">Confirmed Record</h1>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-base md:text-xl font-bold text-primary tracking-tight truncate">Confirmed Record</h1>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary leading-none hidden sm:block">Deal Locked in System</p>
+            </div>
           </div>
 
-          {/* Center Block - Geometric Center */}
-          <div className="flex items-center gap-3 whitespace-nowrap">
+          {/* Right Block - Action Area */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
              {!isFullyPaid && (
                <button 
                  onClick={() => setIsPaymentModalOpen(true)}
-                 style={{ ...btnAction, height: '40px' }}
+                 className="h-10 md:!h-11 px-3 md:!px-6 bg-emerald-50 text-emerald-700 border border-emerald-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all flex items-center justify-center gap-1 md:gap-2 disabled:opacity-30"
                >
                  <Plus size={16} /> Record Payment
                </button>
              )}
-             <div className="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shrink-0">
-                <CheckCircle size={12} /> Confirmed Deal
-             </div>
+             <button 
+               onClick={onReconfigure}
+               className="h-10 md:!h-11 px-3 md:!px-6 bg-rose-50 text-rose-700 border border-rose-200/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-1 md:gap-2"
+             >
+               <Settings size={16} /> Reconfigure
+             </button>
           </div>
-
-          {/* Right Block - Balancing Spacer */}
-          <div className="flex justify-end shrink-0" />
         </div>
       </header>
 
@@ -137,13 +148,13 @@ export default function ConfirmedSummary({
             <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-50 rounded-full -mr-40 -mt-40 opacity-40 blur-3xl" />
             
             <div className="relative">
-               <div className="flex items-center gap-4 mb-12">
-                  <div className="w-16 h-16 rounded-[24px] bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/10">
-                     <CheckCircle size={32} strokeWidth={3} />
-                  </div>
-                  <div>
-                     <div className="flex items-center gap-3">
-                        <h2 className="text-3xl font-black text-primary tracking-tighter">Agreement Finalized</h2>
+               <div className="flex flex-col items-center text-center mb-10">
+                  <div className="flex items-center gap-6">
+                     <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <CheckCircle size={24} strokeWidth={3} />
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <h2 className="text-4xl font-black text-primary tracking-tighter">Agreement Finalized</h2>
                         <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${
                           isFullyPaid ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                         }`}>
@@ -151,164 +162,170 @@ export default function ConfirmedSummary({
                           {isFullyPaid ? 'Fully Paid' : 'Payment Collection'}
                         </div>
                      </div>
-                     <p className="text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] mt-1">
-                        {quote.confirmed_at ? `Officially converted on ${new Date(quote.confirmed_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}` : 'Locked in System'}
-                     </p>
                   </div>
+                  <p className="text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] mt-3">
+                     {quote.confirmed_at ? `Officially converted on ${new Date(quote.confirmed_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}` : 'Locked in System'}
+                  </p>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-[40.5px] pb-[81px] border-b border-[#f0f2f5]">
-                  <div className="space-y-8">
+               <div className="flex flex-col items-center border-b border-[#f0f2f5] pb-10">
+                  <div className="space-y-4 text-center max-w-2xl w-full">
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-[#6366f1] ml-1">Confirmed Package</label>
-                        <p className="text-3xl font-black text-primary italic leading-none">{details.package_name}</p>
+                        <p className="text-4xl font-black text-primary leading-tight">{details.package_name}</p>
+                        <div className="flex items-center justify-center gap-3 opacity-60">
+                           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">{quote.customer_name}</span>
+                           {quote.items && quote.items.length > 0 && (
+                             <>
+                               <div className="w-1 h-1 rounded-full bg-slate-300" />
+                               <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">
+                                  {new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
+                                  {quote.items.length > 1 && ` - ${new Date(quote.items[quote.items.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                               </span>
+                             </>
+                           )}
+                        </div>
                      </div>
 
-                     <div className="flex items-baseline gap-10">
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Total Agreed Amount</label>
-                           <p className="text-4xl font-black text-primary tracking-tighter italic">₱{Math.round(details.total_amount || 0).toLocaleString()}</p>
+                     <div className="flex flex-col md:flex-row items-center justify-center gap-16 pt-2">
+                        <div className="space-y-1 text-center">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary">Total Agreed Amount</label>
+                           <p className="text-5xl font-black text-primary tracking-tighter">₱{Math.round(details.total_amount || 0).toLocaleString()}</p>
                         </div>
-                        <div className="space-y-2 translate-y-1">
-                           <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 ml-1">Rate Per Pax ({details.pax_count})</label>
-                           <p className="text-xl font-bold text-emerald-600 font-mono tracking-tight bg-emerald-50 px-3 py-1 rounded-xl">₱{Math.round(details.per_pax || 0).toLocaleString()}</p>
+                        <div className="space-y-1 text-center">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Rate Per Pax ({details.pax_count})</label>
+                           <p className="text-2xl font-black text-emerald-600 font-mono tracking-tight bg-emerald-50 px-5 py-2 rounded-2xl">₱{Math.round(details.per_pax || 0).toLocaleString()}</p>
                         </div>
                      </div>
 
-                     <div className="mt-8 mb-16 pt-8 pb-10 border-t border-[#f0f2f5] space-y-4 max-w-[280px]">
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-tertiary opacity-60">Bill Breakdown</p>
-                        <div className="space-y-3">
-                           <div className="flex justify-between items-center text-[11px] font-bold text-text-tertiary">
-                              <span>Base Package Rate</span>
-                              <span className="font-mono">₱{Math.round(baseRate).toLocaleString()}</span>
-                           </div>
-                           {details.adjustments?.extra_fees?.map((f: any, i: number) => (
-                             <div key={i} className="flex justify-between items-center text-[11px] font-bold text-indigo-600">
-                                <span className="opacity-60">{f.name}</span>
-                                <span className="font-mono">+ ₱{f.amount?.toLocaleString()}</span>
-                             </div>
-                           ))}
-                           
-                           {details.adjustments?.discount > 0 && (
-                             <div className="pt-2 border-t border-dashed border-[#f0f2f5] flex justify-between items-center text-[11px] font-black text-primary/60">
-                                <span>Subtotal before discount</span>
-                                <span className="font-mono">₱{(details.total_amount + details.adjustments.discount).toLocaleString()}</span>
-                             </div>
-                           )}
+                     <div className="mt-4 pt-4 border-t border-dashed border-[#f0f2f5] w-full max-w-md mx-auto !m-0 !p-0 !mt-4 !pt-4 !mx-auto">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-tertiary opacity-60 mb-1 text-center !m-0 !mb-1">Financial Breakdown</p>
+                        <div className="w-full flex justify-center">
+                           <div className="inline-grid grid-cols-[auto_120px] gap-x-8 gap-y-1 !m-0 !p-0">
+                              <span className="text-right opacity-60 text-xs font-bold text-text-tertiary !m-0 !p-0">Base Package Rate:</span>
+                              <span className="font-mono text-xs font-bold text-text-tertiary text-right !m-0 !p-0">₱{Math.round(baseRate).toLocaleString()}</span>
+                              
+                              {details.adjustments?.extra_fees?.map((f: any, i: number) => (
+                                <React.Fragment key={i}>
+                                   <span className="text-right opacity-60 text-xs font-bold text-indigo-600 !m-0 !p-0">{f.name}:</span>
+                                   <span className="font-mono text-xs font-bold text-indigo-600 text-right !m-0 !p-0">+ ₱{f.amount?.toLocaleString()}</span>
+                                </React.Fragment>
+                              ))}
+                              
+                              {details.adjustments?.discount > 0 && (
+                                <React.Fragment>
+                                   <span className="text-right opacity-60 text-xs font-black text-primary/60 pt-2 border-t border-dashed border-[#f0f2f5] !m-0 !p-0 !pt-2">Subtotal before discount:</span>
+                                   <span className="font-mono text-xs font-black text-primary/60 pt-2 border-t border-dashed border-[#f0f2f5] text-right !m-0 !p-0 !pt-2">₱{(details.total_amount + details.adjustments.discount).toLocaleString()}</span>
+                                   
+                                   <span className="text-right opacity-60 text-xs font-bold text-emerald-600 !m-0 !p-0">Client Discount:</span>
+                                   <span className="font-mono text-xs font-bold text-emerald-600 text-right !m-0 !p-0">- ₱{details.adjustments.discount.toLocaleString()}</span>
+                                </React.Fragment>
+                              )}
 
-                           {details.adjustments?.discount > 0 && (
-                             <div key="discount" className="flex justify-between items-center text-[11px] font-bold text-emerald-600">
-                                <span className="opacity-60 italic">Client Discount</span>
-                                <span className="font-mono">- ₱{details.adjustments.discount.toLocaleString()}</span>
-                             </div>
-                           )}
-
-                           <div className="pt-2 border-t border-dashed border-[#f0f2f5] flex justify-between items-center text-[11px] font-bold text-indigo-600">
-                              <span className="opacity-60">Admin Commission ({commissionPercentage}%)</span>
-                              <span className="font-mono">₱{commissionAmount.toLocaleString()}</span>
-                           </div>
-                           
-                           <div className="pt-3 border-t-2 border-primary/10 flex justify-between items-center text-[12px] font-black text-primary uppercase tracking-tight">
-                              <span>Final Agreed Amount</span>
-                              <span className="font-mono">₱{Math.round(details.total_amount || 0).toLocaleString()}</span>
+                              <span className="text-right opacity-60 text-xs font-bold text-indigo-600 pt-1 border-t border-dashed border-[#f0f2f5] !m-0 !p-0 !pt-1">Admin Commission ({commissionPercentage}%):</span>
+                              <span className="font-mono text-xs font-bold text-indigo-600 pt-1 border-t border-dashed border-[#f0f2f5] text-right !m-0 !p-0 !pt-1">₱{commissionAmount.toLocaleString()}</span>
+                              
+                              <span className="text-right text-sm font-black text-primary uppercase tracking-tight pt-2 border-t-2 border-primary/10 !m-0 !p-0 !pt-2">Final Agreed Amount:</span>
+                              <span className="font-mono text-sm font-black text-primary pt-2 border-t-2 border-primary/10 text-right !m-0 !p-0 !pt-2">₱{Math.round(details.total_amount || 0).toLocaleString()}</span>
                            </div>
                         </div>
                      </div>
                   </div>
+               </div>
+               <div className="h-10 w-full" />
+               <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 items-start">
+                  <div className="space-y-12">
+                     <div className="flex items-center gap-3">
+                       <MapIcon size={24} className="text-primary opacity-20" />
+                       <h3 className="text-2xl font-black text-primary tracking-tight">Snapshotted Itinerary</h3>
+                     </div>
+                     <div className="grid grid-cols-1 gap-8 relative">
+                        <div className="absolute left-6 top-8 bottom-8 w-px bg-[#f0f2f5] -translate-x-1/2" />
+                         {quote.items?.map((item: any, i: number) => {
+                           const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
+                             ? item.selected_vehicle_ids 
+                             : (quote.fleet || []).map((v: any) => v.id);
+                           const vehicleNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
 
-                  <div className="space-y-6">
-                     <div className="bg-[#f8f9fb] rounded-[32px] p-8 space-y-10">
+                           return (
+                             <div key={i} className="flex gap-10 items-start relative pb-4">
+                                <div className="w-14 h-14 rounded-[22px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10 sticky top-[72px]">
+                                   <span className="text-[8px] font-black uppercase text-emerald-600 leading-none mb-1 tracking-widest">{new Date(item.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                   <span className="text-lg font-black text-primary leading-none">{new Date(item.date).getDate()}</span>
+                                </div>
+                                <div className="flex-1 space-y-5 pt-1">
+                                   <div className="flex items-baseline gap-3">
+                                      <h4 className="text-xl font-black text-primary tracking-tight">{item.destination}</h4>
+                                   </div>
+      
+                                   {vehicleNames && (
+                                     <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl w-fit">
+                                        <Car size={12} className="text-slate-400" />
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.1em]">{vehicleNames}</span>
+                                     </div>
+                                   )}
+
+                                 {item.guest_accommodation_name && (
+                                   <div className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50/50 rounded-xl border border-emerald-100/30 w-fit transition-all hover:bg-emerald-50">
+                                      <BedDouble size={12} className="text-emerald-600" />
+                                      <div className="flex items-center gap-1.5">
+                                         <span className="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Accommodation</span>
+                                         <div className="w-1 h-1 rounded-full bg-emerald-200" />
+                                         <span className="text-[10px] font-black text-primary uppercase tracking-tight">{item.guest_accommodation_name}</span>
+                                      </div>
+                                   </div>
+                                 )}
+
+                                 {item.tags && item.tags.length > 0 && (
+                                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                      {item.tags.map((tag: string, ti: number) => (
+                                         <span key={ti} className="px-2 py-0.5 bg-rose-50/50 text-rose-400 border border-rose-100/30 rounded text-[7px] font-black uppercase tracking-widest">{tag}</span>
+                                      ))}
+                                   </div>
+                                 )}
+                              </div>
+                           </div>
+                          );
+                         })}
+                     </div>
+                  </div>
+
+                  {/* Sidebar: Inclusions & Exclusions */}
+                  <div className="sticky top-24 space-y-12">
+                     <div className="flex items-center gap-3">
+                       <ShieldCheck size={24} className="text-primary opacity-20" />
+                       <h3 className="text-2xl font-black text-primary tracking-tight">Inclusion / Exclusion</h3>
+                     </div>
+                     <div className="rounded-[32px] p-2 space-y-6">
                         <div className="space-y-4">
                            <div className="flex items-center gap-2">
-                              <CheckCircle size={14} className="text-emerald-500" />
+                              <CheckCircle size={16} className="text-emerald-500" />
                               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Verified Inclusions</p>
                            </div>
-                           <div className="grid grid-cols-1 gap-1.5">
+                           <div className="grid grid-cols-1 gap-0.5 pl-6">
                               {incs.map((inc, i) => (
-                                <div key={i} className="flex items-center gap-3 text-sm font-bold text-primary italic">
-                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
+                                <div key={i} className="flex items-start gap-2 text-[10.5px] font-bold text-black leading-tight">
+                                   <span className="text-black shrink-0 opacity-40">-</span>
                                    {inc}
                                 </div>
                               ))}
                            </div>
                         </div>
 
-                        <div className="space-y-4 pt-8 border-t border-slate-200/50">
+                        <div className="space-y-4 pt-6 border-t border-slate-200/50">
                            <div className="flex items-center gap-2">
-                              <X size={14} className="text-rose-400" />
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 uppercase">Verified Exclusions</p>
+                              <X size={16} className="text-rose-500" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 uppercase">Verified Exclusions</p>
                            </div>
-                           <div className="grid grid-cols-1 gap-1.5 opacity-60">
+                           <div className="grid grid-cols-1 gap-0.5 pl-6">
                               {excs.map((exc, i) => (
-                                 <div key={i} className="flex items-center gap-3 text-sm font-bold text-text-secondary italic">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                 <div key={i} className="flex items-start gap-2 text-[10.5px] font-bold text-black leading-tight">
+                                    <span className="text-black shrink-0 opacity-40">-</span>
                                     {exc}
                                  </div>
                               ))}
                            </div>
                         </div>
                      </div>
-                  </div>
-               </div>
-
-               <div className="h-10 w-full" />
-               <div className="space-y-10">
-                  <div className="flex items-center gap-3">
-                    <MapIcon size={20} className="text-primary opacity-20" />
-                    <h3 className="text-xl font-black text-primary tracking-tight italic">Snapshotted Itinerary</h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-8 relative">
-                     <div className="absolute left-6 top-8 bottom-8 w-px bg-[#f0f2f5] -translate-x-1/2" />
-                      {quote.items?.map((item: any, i: number) => {
-                        const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
-                          ? item.selected_vehicle_ids 
-                          : (quote.fleet || []).map((v: any) => v.id);
-                        const vehicleNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
-
-                        return (
-                          <div key={i} className="flex gap-10 items-start relative pb-4">
-                             <div className="w-12 h-12 rounded-[18px] bg-white border-4 border-[#f0f2f5] flex flex-col items-center justify-center shrink-0 shadow-sm z-10 sticky top-[72px]">
-                                <span className="text-[7px] font-black uppercase opacity-40 leading-none mb-0.5">D{item.day_number}</span>
-                                <span className="text-xs font-black text-primary leading-none">{new Date(item.date).getDate()}</span>
-                             </div>
-                             <div className="flex-1 space-y-4 pt-1">
-                                <div className="space-y-1.5">
-                                   <div className="flex items-center justify-between">
-                                      <h4 className="text-base font-black text-primary tracking-tight">{item.destination}</h4>
-                                   </div>
-                                   <p className="text-[11px] font-bold text-text-tertiary leading-relaxed max-w-2xl">{item.itinerary_details}</p>
-                                </div>
-  
-                                {vehicleNames && (
-                                  <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl w-fit">
-                                     <Car size={12} className="text-slate-400" />
-                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.1em]">{vehicleNames}</span>
-                                  </div>
-                                )}
-
-                              {item.guest_accommodation_name && (
-                                <div className="flex items-center gap-4 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/30 max-w-md transition-all hover:bg-emerald-50">
-                                   <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                      <Receipt size={14} />
-                                   </div>
-                                   <div>
-                                      <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Confirmed Stay</p>
-                                      <p className="text-[11px] font-black text-primary leading-none mt-0.5 italic">{item.guest_accommodation_name}</p>
-                                   </div>
-                                </div>
-                              )}
-
-                              {item.tags && item.tags.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                   {item.tags.map((tag: string, ti: number) => (
-                                     <span key={ti} className="px-2 py-0.5 bg-slate-50 text-slate-400 border border-slate-100 rounded text-[7px] font-black uppercase tracking-widest">{tag}</span>
-                                   ))}
-                                </div>
-                              )}
-                           </div>
-                        </div>
-                       );
-                     })}
                   </div>
                </div>
             </div>
@@ -417,8 +434,8 @@ export default function ConfirmedSummary({
 
                      {/* Transaction Ledger Section */}
                      <div 
-                        className="pt-16 border-t border-slate-100"
-                        style={{ marginTop: '14px' }}
+                        className="pt-20 border-t border-slate-100"
+                        style={{ marginTop: '40px' }}
                      >
                         <div className="flex flex-col md:flex-row items-baseline md:items-center justify-between gap-6 mb-10 px-8">
                            <div className="space-y-1.5 font-sans">
@@ -433,53 +450,55 @@ export default function ConfirmedSummary({
                         <div className="space-y-4">
                            {payments.length > 0 ? (
                              payments.map((p, idx) => (
-                              <motion.div 
-                                 initial={{ opacity: 0, y: 10 }}
-                                 animate={{ opacity: 1, y: 0 }}
-                                 transition={{ delay: idx * 0.05 }}
-                                 key={p.id} 
-                                 className="group bg-white rounded-3xl p-6 border border-[#e8eaed] hover:border-primary/20 hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.03)] transition-all flex flex-col md:flex-row md:items-center gap-8"
-                              >
-                                 <div className="flex items-center gap-6 md:flex-1">
-                                    <div className="w-14 h-14 rounded-2xl bg-[#f8f9fb] flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0 shadow-sm border border-gray-50">
-                                       <CreditCard size={24} />
-                                    </div>
-                                    <div className="min-w-0 space-y-1">
-                                       <div className="flex items-center gap-4">
-                                          <p className="text-2xl font-black text-primary tracking-tighter tabular-nums">₱{p.amount.toLocaleString()}</p>
-                                          <div className="px-3 py-1 bg-emerald-50 border border-emerald-100/50 rounded-full flex items-center gap-1.5">
-                                             <ShieldCheck size={10} className="text-emerald-600" />
-                                             <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Verified Instance</span>
-                                          </div>
-                                       </div>
-                                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                          <span className="text-[11px] font-black text-primary/40 uppercase tracking-widest">{p.payment_method}</span>
-                                          <div className="w-1 h-1 rounded-full bg-gray-200" />
-                                          <span className="text-[11px] font-medium text-text-tertiary">{new Date(p.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                                          {p.reference_number && (
-                                             <span className="text-[11px] font-black text-indigo-500/60 uppercase tracking-widest">#{p.reference_number}</span>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </div>
+                               <motion.div 
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  key={p.id} 
+                                  className="group bg-white rounded-[16px] py-2 px-4 border border-[#e8eaed] hover:border-primary/20 hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center gap-3"
+                               >
+                                  <div className="flex items-center gap-3 md:flex-1">
+                                     <div className="w-8 h-8 rounded-[10px] bg-[#f8f9fb] flex items-center justify-center text-primary/40 group-hover:bg-primary group-hover:text-white transition-all shrink-0 border border-gray-50">
+                                        <CreditCard size={14} />
+                                     </div>
+                                     <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap">
+                                           <p className="text-lg font-black text-primary tracking-tighter tabular-nums">₱{p.amount.toLocaleString()}</p>
+                                           
+                                           <div className="flex items-center gap-2">
+                                              <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest">{p.payment_method}</span>
+                                              <div className="w-0.5 h-0.5 rounded-full bg-gray-200" />
+                                              <span className="text-[9px] font-medium text-text-tertiary">{new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                              {p.reference_number && (
+                                                 <span className="text-[9px] font-black text-indigo-500/30 uppercase tracking-widest">#{p.reference_number}</span>
+                                              )}
+                                           </div>
 
-                                 <div className="flex items-center gap-6 justify-end md:shrink-0">
-                                    {p.notes && (
-                                       <div className="hidden lg:block">
-                                          <p className="text-[10px] font-medium text-text-tertiary italic bg-[#f8f9fb] px-4 py-2 rounded-xl border border-gray-100 max-w-[200px] truncate">
-                                             "{p.notes}"
-                                          </p>
-                                       </div>
-                                    )}
-                                    <button 
-                                       onClick={() => handleVoidPayment(p.id)}
-                                       className="h-12 w-12 rounded-2xl text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center border border-transparent hover:border-red-100 group/btn"
-                                       title="Void Transaction"
-                                    >
-                                       <Trash2 size={18} className="group-hover/btn:scale-110 transition-transform" />
-                                    </button>
-                                 </div>
-                              </motion.div>
+                                           <div className="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100/30 rounded-full flex items-center gap-1">
+                                              <ShieldCheck size={7} className="text-emerald-600" />
+                                              <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Verified</span>
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 justify-end md:shrink-0">
+                                     {p.notes && (
+                                        <div className="hidden lg:block">
+                                           <p className="text-[9px] font-bold text-primary/60 bg-[#f8f9fb] px-2 py-1 rounded-md border border-gray-100 max-w-[150px] truncate">
+                                              {p.notes}
+                                           </p>
+                                        </div>
+                                     )}
+                                     <button 
+                                        onClick={() => handleVoidPayment(p.id)}
+                                        className="h-8 w-8 rounded-lg text-text-tertiary/30 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center group/btn"
+                                        title="Void Transaction"
+                                     >
+                                        <Trash2 size={14} className="group-hover/btn:scale-110 transition-transform" />
+                                     </button>
+                                  </div>
+                               </motion.div>
                              ))
                            ) : (
                               <div className="py-20 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center group">
@@ -500,150 +519,110 @@ export default function ConfirmedSummary({
                </div>
             </div>
          </div>
-
-         {/* Section 3: Action Buttons */}
-         <div 
-           className="pb-32 space-y-10 w-full max-w-4xl"
-           style={{ marginTop: '20px' }}
-         >
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-10 flex-wrap">
-               <button 
-                  onClick={onReconfigure}
-                  className="active:scale-95 group"
-                  style={btnPillarSecondary}
-               >
-                  <Settings size={18} className="opacity-60 group-hover:rotate-45 transition-transform" /> Reconfigure Quote
-               </button>
-               <button 
-                  onClick={onBack}
-                  className="active:scale-95 group"
-                  style={btnPillarPrimary}
-               >
-                  Back to Dashboard <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
-               </button>
-            </div>
-         </div>
       </main>
 
       <AnimatePresence>
         {isPaymentModalOpen && (
-          <div style={modalOverlay}>
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-               style={{ ...modalCard, width: '100%', maxWidth: '540px' }}
-             >
-               <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h3 style={modalTitle}>Record Payment</h3>
-                    <p style={{ ...sectionLabel, color: 'var(--color-brand)', marginTop: '4px' }}>Update collection status</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsPaymentModalOpen(false)} 
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors text-slate-400 hover:text-slate-900"
-                  >
-                    <X size={20} />
-                  </button>
-               </div>
-
-               <form onSubmit={(e: any) => {
-                 e.preventDefault();
-                 handleAddPayment({
-                   amount: e.target.amount.value,
-                   method: e.target.method.value,
-                   reference: e.target.reference.value,
-                   notes: e.target.notes.value
-                 });
-               }} style={modalFormSpace}>
-                 <div className="space-y-6">
-                   <div>
-                      <p style={{ ...sectionLabel, marginBottom: '20px' }}>Transaction Details</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label style={labelStyle}>Payment Method</label>
-                          <select 
-                            name="method" 
-                            required 
-                            style={inputStyle}
-                            onFocus={inputFocus}
-                            onBlur={inputBlur}
-                          >
-                            <option value="GCash">GCash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Credit Card">Credit Card</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label style={labelStyle}>Amount (₱)</label>
-                          <input 
-                            type="number" 
-                            name="amount" 
-                            required 
-                            step="0.01" 
-                            placeholder="0.00" 
-                            style={inputStyle}
-                            onFocus={inputFocus}
-                            onBlur={inputBlur}
-                          />
-                        </div>
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label style={labelStyle}>Reference # (Optional)</label>
-                        <input 
-                          type="text" 
-                          name="reference" 
-                          placeholder="Ref ID" 
-                          style={inputStyle}
-                          onFocus={inputFocus}
-                          onBlur={inputBlur}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label style={labelStyle}>Notes (Optional)</label>
-                        <input 
-                          type="text" 
-                          name="notes" 
-                          placeholder="Internal Notes" 
-                          style={inputStyle}
-                          onFocus={inputFocus}
-                          onBlur={inputBlur}
-                        />
-                      </div>
-                   </div>
+          <PremiumModalWrapper
+            isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
+            title="Record Payment"
+            subtitle="Update collection status and transaction records"
+            icon={<CreditCard size={18} strokeWidth={2.5} />}
+            maxWidth="580px"
+          >
+             <form onSubmit={(e: any) => {
+               e.preventDefault();
+               handleAddPayment({
+                 amount: e.target.amount.value,
+                 method: e.target.method.value,
+                 reference: e.target.reference.value,
+                 notes: e.target.notes.value
+               });
+             }} className="flex flex-col !gap-6">
+               <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-x-6 !gap-y-5">
+                 <div className="!space-y-1 md:!col-span-2">
+                   <label className={premiumFormStyles.label}>Payment Description</label>
+                   <input 
+                     type="text" 
+                     name="notes" 
+                     placeholder="e.g. Deposit for Palawan Trip" 
+                     className={premiumFormStyles.input}
+                   />
                  </div>
 
-                 <div className="pt-8">
-                  <button 
-                    type="submit" 
-                    disabled={isSaving}
-                    style={{
-                      ...btnAction,
-                      width: '100%',
-                      height: '52px',
-                    }}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Clock size={18} className="animate-spin" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Recording Transaction...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={18} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Confirm Transaction Record</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-               </form>
-             </motion.div>
-          </div>
+                  <div className="!space-y-1">
+                    <label className={premiumFormStyles.label}>Payment Method</label>
+                    <input type="hidden" name="method" value={selectedMethod} />
+                    <AdminSelect 
+                      value={selectedMethod}
+                      onValueChange={setSelectedMethod}
+                      options={[
+                        { v: 'GCash', l: 'GCash' },
+                        { v: 'Bank Transfer', l: 'Bank Transfer' },
+                        { v: 'Cash', l: 'Cash' },
+                        { v: 'Credit Card', l: 'Credit Card' },
+                        { v: 'Maya', l: 'Maya' },
+                        { v: 'Check', l: 'Check' }
+                      ]}
+                      getLabel={o => o.l}
+                      getValue={o => o.v}
+                      placeholder="Select Method"
+                      className="!h-14"
+                    />
+                  </div>
+
+                 <div className="!space-y-1">
+                   <label className={premiumFormStyles.label}>Amount (₱)</label>
+                   <input 
+                     type="number" 
+                     name="amount" 
+                     required 
+                     step="0.01" 
+                     placeholder="0.00" 
+                     className={premiumFormStyles.input}
+                   />
+                 </div>
+
+                 <div className="!space-y-1 md:!col-span-2">
+                   <label className={premiumFormStyles.label}>Reference # (Optional)</label>
+                   <input 
+                     type="text" 
+                     name="reference" 
+                     placeholder="Ref ID / Transaction #" 
+                     className={premiumFormStyles.input}
+                   />
+                 </div>
+               </div>
+
+               <div className="!pt-6 !border-t !border-emerald-500/10 !flex !gap-4">
+                 <button 
+                   type="button" 
+                   onClick={() => setIsPaymentModalOpen(false)} 
+                   className={premiumFormStyles.secondaryButton + " !flex-1 !h-14 !text-[13px]"}
+                 >
+                   Cancel
+                 </button>
+                 <button 
+                   type="submit" 
+                   disabled={isSaving} 
+                   className={premiumFormStyles.button + " !flex-[1.5] !h-14 !text-[13px]"}
+                 >
+                   {isSaving ? (
+                     <>
+                       <Clock size={16} className="animate-spin opacity-50" />
+                       <span>Recording...</span>
+                     </>
+                   ) : (
+                     <>
+                       <CreditCard size={16} strokeWidth={2.5} className="opacity-80" />
+                       <span>Confirm Transaction</span>
+                     </>
+                   )}
+                 </button>
+               </div>
+             </form>
+          </PremiumModalWrapper>
         )}
       </AnimatePresence>
     </div>

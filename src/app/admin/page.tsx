@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Globe, ShieldCheck, Search, X, MoveRight, Loader2, Users, Mail, UserPlus, AlertCircle, Settings, Trash2, LogOut, CheckCircle, LayoutGrid, MessageCircle, Camera, Share2, User2, Plus, Minus, Pencil, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { inviteOperatorUser, deletePersonnel, getAllPersonnel, updateProfile, getOperatorStats, updateOperator, updatePersonnel } from "@/app/actions/user-management";
+import { PremiumModalWrapper, premiumFormStyles } from "./components/PremiumModalWrapper";
+import { AdminSelect } from "./components/AdminSelect";
+import { cn } from "@/lib/utils";
 import {
   cardStyle, chipGreen, chipGray, btnPrimary, btnIcon,
   inputStyle, labelStyle, sectionLabel,
@@ -564,637 +567,581 @@ export function AdminPortal() {
 
       {/* ──────────── MODALS ──────────── */}
       {/* ── INVITE USER MODAL ─── */}
-      <AnimatePresence>
-          {isInviting && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
-                style={{ ...modalOverlay, zIndex: 0 }}
-                className="absolute inset-0"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={modalTitle}>{generatedLink ? 'Invite Link Generated' : 'Invite New User'}</h3>
-                  <button onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }} className="flex items-center justify-center hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                    <X size={20} />
-                  </button>
-                </div>
-
-                {generatedLink ? (
-                  <div className="flex flex-col" style={{ gap: '20px' }}>
-                    <div className="flex flex-col items-center text-center" style={{ padding: '24px', background: 'var(--color-brand-soft)', borderRadius: '16px' }}>
-                      <div className="flex items-center justify-center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-success)', color: 'white', marginBottom: '16px' }}>
-                        <CheckCircle size={24} />
-                      </div>
-                      <h4 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', fontSize: '15px' }}>User Profile Created</h4>
-                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.5, maxWidth: '220px' }}>
-                        Share the link below with the user to grant access.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label style={{ ...labelStyle, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Private Access URL</label>
-                      <div className="flex gap-2">
-                        <div className="flex-1 truncate" style={{ ...inputStyle, height: '42px', padding: '0 14px', background: 'var(--color-bg-subtle)', fontSize: '12px', fontFamily: 'monospace', display: 'flex', alignItems: 'center' }}>
-                          {generatedLink}
-                        </div>
-                        <button
-                          onClick={copyToClipboard}
-                          className="flex items-center gap-2 transition-all"
-                          style={{ ...btnPrimary, padding: '0 20px', height: '42px', background: copied ? 'var(--color-success)' : 'var(--color-brand)' }}
-                        >
-                          {copied ? <CheckCircle size={14} /> : <Mail size={14} />}
-                          {copied ? 'Copied' : 'Copy'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
-                      style={{ width: '100%', height: '44px', border: '1px solid var(--color-border-default)', borderRadius: '12px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', background: 'white', fontFamily: 'inherit' }}
-                    >
-                      Done
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleInviteSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                    <div>
-                      <label style={labelStyle}>Full Name</label>
-                      <input name="fullName" type="text" style={inputStyle} placeholder="e.g. Gabriel Rossetti" required
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Email Address</label>
-                      <input name="email" type="email" style={inputStyle} placeholder="personnel@agency.com" required
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label style={labelStyle}>Operator</label>
-                        <select
-                          name="operatorId"
-                          style={{ ...inputStyle, opacity: inviteRole === 'super_admin' ? 0.5 : 1 }}
-                          required={inviteRole !== 'super_admin'}
-                          disabled={inviteRole === 'super_admin'}
-                        >
-                          <option value="">{inviteRole === 'super_admin' ? 'All Operators' : 'Select...'}</option>
-                          {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Role</label>
-                        <select
-                          name="role"
-                          style={inputStyle}
-                          required
-                          value={inviteRole}
-                          onChange={(e) => setInviteRole(e.target.value)}
-                        >
-                          <option value="operator_sales">Sales</option>
-                          <option value="operator_admin">Manager</option>
-                          <option value="super_admin">Global Admin</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {inviteRole === 'super_admin' && (
-                      <div style={{ padding: '14px 16px', background: 'var(--color-brand-soft)', borderRadius: '12px', border: '1px solid var(--color-brand-border)' }}>
-                        <p style={{ fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
-                          <strong style={{ display: 'block', marginBottom: '2px' }}>Global Admin Notice</strong>
-                          This user will have full administrative access to all operators.
-                        </p>
-                      </div>
-                    )}
-
-                    {inviteStatus && (
-                      <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: inviteStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: inviteStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                        {inviteStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                        {inviteStatus.msg}
-                      </div>
-                    )}
-
-                    <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                      style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                    >
-                      {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invite Link'}
-                    </button>
-                  </form>
-                )}
-              </motion.div>
+      {/* ── INVITE USER MODAL ─── */}
+      <PremiumModalWrapper
+        isOpen={isInviting}
+        onClose={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
+        title={generatedLink ? 'Invite Link' : 'Invite User'}
+        subtitle={generatedLink ? 'The secure invitation URL is ready' : 'Add a new member to your administrative team'}
+        icon={<UserPlus size={18} strokeWidth={2.5} />}
+      >
+        {generatedLink ? (
+          <div className="flex flex-col !gap-6">
+            <div className="flex flex-col items-center text-center !p-6 !bg-emerald-50/30 !rounded-[20px] !border !border-emerald-100">
+              <div className="flex items-center justify-center w-12 h-12 !rounded-full !bg-emerald-500 !text-white !mb-4 !shadow-lg !shadow-emerald-500/20">
+                <CheckCircle size={22} strokeWidth={2.5} />
+              </div>
+              <h4 className="!font-bold !text-slate-900 !mb-1 !text-base">Link Ready</h4>
+              <p className="!text-[12px] !text-slate-500 !max-w-[200px] !leading-relaxed">
+                The invitation has been successfully generated and is ready to share.
+              </p>
             </div>
-          )}
-        </AnimatePresence>
+
+            <div className="!space-y-2">
+              <label className={premiumFormStyles.label}>Access Link</label>
+              <div className="flex gap-2">
+                <div className="flex-1 truncate !h-11 !px-4 !bg-emerald-50/10 !border !border-emerald-100/50 !rounded-xl !text-[12px] !font-mono !flex !items-center !text-emerald-700">
+                  {generatedLink}
+                </div>
+                <button
+                  onClick={copyToClipboard}
+                  className={cn(
+                    "!px-5 !h-11 !rounded-xl !font-bold !text-[12px] !transition-all !flex !items-center !justify-center !gap-2",
+                    copied ? "!bg-emerald-500 !text-white" : "!bg-emerald-900 !text-white"
+                  )}
+                >
+                  {copied ? <CheckCircle size={14} strokeWidth={2.5} /> : <Mail size={14} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setIsInviting(false); setGeneratedLink(null); fetchPersonnel(); }}
+              className={premiumFormStyles.secondaryButton}
+            >
+              Close Window
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleInviteSubmit} className="flex flex-col !gap-6">
+            <div className="!space-y-4">
+              <div className="!space-y-1">
+                <label className={premiumFormStyles.label}>Full Name</label>
+                <input name="fullName" type="text" className={premiumFormStyles.input} placeholder="e.g. Gabriel Rossetti" required />
+              </div>
+              <div className="!space-y-1">
+                <label className={premiumFormStyles.label}>Email Address</label>
+                <input name="email" type="email" className={premiumFormStyles.input} placeholder="personnel@agency.com" required />
+              </div>
+              <div className="grid grid-cols-2 !gap-4">
+                <div className="!space-y-1">
+                  <label className={premiumFormStyles.label}>Operator</label>
+                  <AdminSelect
+                    value={inviteRole === 'super_admin' ? '' : undefined}
+                    onValueChange={(val) => {
+                      const select = document.querySelector('select[name="operatorId"]') as HTMLSelectElement;
+                      if (select) {
+                        select.value = val;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    }}
+                    options={operators}
+                    getLabel={(op) => op.name}
+                    getValue={(op) => op.id}
+                    placeholder={inviteRole === 'super_admin' ? 'Global Scope' : 'Select Agency'}
+                    disabled={inviteRole === 'super_admin'}
+                  />
+                  {/* Hidden select for form submission */}
+                  <select name="operatorId" className="hidden" required={inviteRole !== 'super_admin'}>
+                    <option value="">Select Agency</option>
+                    {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
+                  </select>
+                </div>
+                <div className="!space-y-1">
+                  <label className={premiumFormStyles.label}>Role</label>
+                  <AdminSelect
+                    value={inviteRole}
+                    onValueChange={(val) => {
+                      setInviteRole(val);
+                      const select = document.querySelector('select[name="role"]') as HTMLSelectElement;
+                      if (select) {
+                        select.value = val;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    }}
+                    options={[
+                      { id: 'operator_sales', name: 'Sales' },
+                      { id: 'operator_admin', name: 'Manager' },
+                      { id: 'super_admin', name: 'Global Admin' }
+                    ]}
+                    getLabel={(r) => r.name}
+                    getValue={(r) => r.id}
+                    placeholder="Select Role"
+                  />
+                  <select name="role" className="hidden" value={inviteRole} onChange={() => {}} required>
+                    <option value="operator_sales">Sales</option>
+                    <option value="operator_admin">Manager</option>
+                    <option value="super_admin">Global Admin</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {inviteRole === 'super_admin' && (
+              <div className="!p-4 !bg-amber-50/50 !rounded-xl !border !border-amber-100/50">
+                <p className="!text-[11px] !text-amber-800 !leading-relaxed">
+                  <strong className="!block !mb-1 !text-[10px] !uppercase !tracking-wider !font-black">Security Notice</strong>
+                  This user will be granted full administrative control across the entire system.
+                </p>
+              </div>
+            )}
+
+            {inviteStatus && (
+              <div className={inviteStatus.type === 'success' ? premiumFormStyles.success : premiumFormStyles.error}>
+                {inviteStatus.type === 'success' ? <CheckCircle size={14} strokeWidth={2.5} /> : <AlertCircle size={14} strokeWidth={2.5} />}
+                {inviteStatus.msg}
+              </div>
+            )}
+
+            <button type="submit" disabled={formLoading} className={premiumFormStyles.button}>
+              {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Generate Invitation'}
+            </button>
+          </form>
+        )}
+      </PremiumModalWrapper>
 
         {/* ── ADD OPERATOR MODAL ─── */}
-      <AnimatePresence>
-          {isAddingOperator && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                onClick={() => setIsAddingOperator(false)}
-                style={{ ...modalOverlay, zIndex: 0 }}
-                className="absolute inset-0"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={modalTitle}>Register New Operator</h3>
-                  <button onClick={() => setIsAddingOperator(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                    <X size={20} />
+      {/* ── ADD OPERATOR MODAL ─── */}
+      <PremiumModalWrapper
+        isOpen={isAddingOperator}
+        onClose={() => setIsAddingOperator(false)}
+        title="New Agency"
+        subtitle="Initialize a new profile in the cloud"
+        icon={<Building2 size={20} strokeWidth={2.5} />}
+      >
+        <form onSubmit={handleAddOperatorSubmit} className="flex flex-col !gap-6">
+          <div className="!space-y-4">
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>Legal Name</label>
+              <input name="name" type="text" className={premiumFormStyles.input} placeholder="e.g. Skyline Travel" required />
+            </div>
+            <div className="!space-y-1">
+              <label className={premiumFormStyles.label}>Official Domain</label>
+              <input name="website" type="text" className={premiumFormStyles.input} placeholder="e.g. skyline.com" />
+            </div>
+          </div>
+          
+          <div className="!space-y-3">
+            <div className="flex items-center justify-between !px-0.5">
+              <label className={premiumFormStyles.label}>Social Links</label>
+              <button type="button" onClick={addSocialField} className="!flex !items-center !gap-1.5 !text-[10px] !font-bold !text-emerald-600 !uppercase !tracking-wider hover:!opacity-70 !transition-all">
+                <Plus size={12} /> Add Field
+              </button>
+            </div>
+            <div className="flex flex-col !gap-2 max-h-[160px] overflow-y-auto custom-scrollbar !pr-1">
+              {newSocialLinks.map((link, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute top-1/2 -translate-y-1/2 left-4 !text-emerald-500/50">
+                      {getSocialIcon(link)}
+                    </div>
+                    <input
+                      name="socialLinks"
+                      type="text"
+                      className={cn(premiumFormStyles.input, "!pl-12 !h-10")}
+                      placeholder="e.g. fb.com/agency"
+                      value={link}
+                      onChange={(e) => updateSocialField(idx, e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeSocialField(idx)}
+                    className="!w-10 !h-10 !flex !items-center !justify-center !rounded-xl !border-2 !border-slate-50 !text-slate-300 hover:!text-rose-500 hover:!bg-rose-50 !transition-all shrink-0"
+                  >
+                    <Minus size={14} />
                   </button>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <form onSubmit={handleAddOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div className="space-y-4">
-                    <div>
-                      <label style={labelStyle}>Agency Name</label>
-                      <input name="name" type="text" style={inputStyle} placeholder="e.g. Skyline Travel" required
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Official Website</label>
-                      <input name="website" type="text" style={inputStyle} placeholder="e.g. skyline.com"
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
+          <div className="!space-y-1.5">
+            <label className={premiumFormStyles.label}>Quote Disclaimers</label>
+            <textarea 
+              name="quotation_agency_notes"
+              className={premiumFormStyles.textarea}
+              placeholder="Terms and conditions for generated quotes..."
+            />
+          </div>
+          
+          <div className="!space-y-3">
+            <div className="flex items-center justify-between !px-0.5">
+              <button 
+                type="button" 
+                onClick={() => setIsAddTitlesExpanded(!isAddTitlesExpanded)}
+                className="!flex !items-center !gap-2 !text-[10px] !font-black !uppercase !tracking-widest !text-slate-400 hover:!text-slate-900 !transition-all"
+              >
+                <ChevronDown size={14} className={cn("!transition-transform !duration-300", isAddTitlesExpanded && "!rotate-180")} />
+                Presets ({newQuoteTitlePresets?.length || 0})
+              </button>
+              {isAddTitlesExpanded && (
+                <button type="button" onClick={addTitlePresetField} className="!flex !items-center !gap-1.5 !text-[10px] !font-bold !text-emerald-600 !uppercase !tracking-wider hover:!opacity-70 !transition-all">
+                  <Plus size={12} /> Add New
+                </button>
+              )}
+            </div>
+            
+            <AnimatePresence>
+              {isAddTitlesExpanded && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col !gap-2 max-h-[140px] overflow-y-auto custom-scrollbar !pr-1">
+                    {newQuoteTitlePresets.map((title, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          name="quoteTitlePresets"
+                          type="text"
+                          className={cn(premiumFormStyles.input, "!h-10")}
+                          placeholder="e.g. Standard Quotation"
+                          value={title}
+                          onChange={(e) => updateTitlePresetField(idx, e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeTitlePresetField(idx)}
+                          className="!w-10 !h-10 !flex !items-center !justify-center !rounded-xl !border-2 !border-slate-50 !text-slate-300 hover:!text-rose-500 hover:!bg-rose-50 !transition-all shrink-0"
+                        >
+                          <Minus size={14} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
-                      <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                        <Plus size={12} /> Add Channel
-                      </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {operatorStatus && (
+            <div className={operatorStatus.type === 'success' ? premiumFormStyles.success : premiumFormStyles.error}>
+              {operatorStatus.type === 'success' ? <CheckCircle size={14} strokeWidth={2.5} /> : <AlertCircle size={14} strokeWidth={2.5} />}
+              {operatorStatus.msg}
+            </div>
+          )}
+
+          <button type="submit" disabled={formLoading} className={premiumFormStyles.button}>
+            {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Register Agency'}
+          </button>
+        </form>
+      </PremiumModalWrapper>
+
+      <PremiumModalWrapper
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="Settings"
+        subtitle="Manage your identity and authentication keys"
+        icon={<Settings size={18} strokeWidth={2.5} />}
+        maxWidth="420px"
+      >
+        <form onSubmit={handleUpdateProfile} className="flex flex-col gap-5">
+          <div className="space-y-1">
+            <label className={premiumFormStyles.label}>Personal Name</label>
+            <input 
+              type="text" 
+              className={premiumFormStyles.input} 
+              value={newFullName} 
+              onChange={(e) => setNewFullName(e.target.value)} 
+              placeholder="Your full name"
+              required 
+            />
+          </div>
+
+          <div className="pt-5 !border-t !border-slate-100">
+            <p className="!text-[9px] !font-black !uppercase !tracking-[0.2em] !text-slate-400 !mb-4 !px-0.5">Authentication Update</p>
+            <div className="flex flex-col gap-4">
+              <div className="space-y-1">
+                <label className={premiumFormStyles.label}>New Security Key</label>
+                <input 
+                  type="password" 
+                  className={premiumFormStyles.input} 
+                  placeholder="Minimum 6 characters" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={premiumFormStyles.label}>Verify Key</label>
+                <input 
+                  type="password" 
+                  className={premiumFormStyles.input} 
+                  placeholder="Confirm new key" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {passwordError && (
+            <div className={premiumFormStyles.error}>
+              <AlertCircle size={14} strokeWidth={2.5} />
+              {passwordError}
+            </div>
+          )}
+
+          <button type="submit" disabled={formLoading} className={premiumFormStyles.button}>
+            {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Update Identity'}
+          </button>
+        </form>
+      </PremiumModalWrapper>
+
+      {/* ── EDIT AGENCY MODAL ─── */}
+      <PremiumModalWrapper
+        isOpen={!!editingOperator}
+        onClose={() => setEditingOperator(null)}
+        title="Edit Agency"
+        subtitle="Modify profile and quotation configuration"
+        icon={<Building2 size={18} strokeWidth={2.5} />}
+      >
+        {editingOperator && (
+          <form onSubmit={handleEditOperatorSubmit} className="flex flex-col gap-5">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className={premiumFormStyles.label}>Agency Identity</label>
+                <input 
+                  name="name" 
+                  type="text" 
+                  className={premiumFormStyles.input} 
+                  defaultValue={editingOperator.name} 
+                  required 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={premiumFormStyles.label}>Official Domain</label>
+                <input 
+                  name="website" 
+                  type="text" 
+                  className={premiumFormStyles.input} 
+                  defaultValue={editingOperator.website} 
+                />
+              </div>
+            </div>
+
+            <div className="pt-5 !border-t !border-slate-100">
+              <div className="flex items-center justify-between mb-3 px-0.5">
+                <label className="!text-[9px] !font-black !uppercase !tracking-[0.2em] !text-slate-400">Social Channels</label>
+                <button type="button" onClick={addSocialField} className="!flex !items-center !gap-1.5 !text-[9px] !font-black !text-primary !uppercase !tracking-widest hover:!opacity-70 !transition-all">
+                  <Plus size={10} /> Add Channel
+                </button>
+              </div>
+              <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+                {newSocialLinks.map((link, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <div className="absolute top-1/2 -translate-y-1/2 left-3 !text-slate-400">
+                        {getSocialIcon(link)}
+                      </div>
+                      <input
+                        name="socialLinks"
+                        type="text"
+                        className={cn(premiumFormStyles.input, "!pl-10 !h-9 !text-[11px]")}
+                        placeholder="e.g. fb.com/agency"
+                        value={link}
+                        onChange={(e) => updateSocialField(idx, e.target.value)}
+                      />
                     </div>
-                    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
-                      {newSocialLinks.map((link, idx) => (
+                    <button
+                      type="button"
+                      onClick={() => removeSocialField(idx)}
+                      className="!w-9 !h-9 !flex !items-center !justify-center !rounded-lg !border !border-slate-200 !text-slate-400 hover:!text-rose-500 hover:!bg-rose-50 !transition-all shrink-0"
+                    >
+                      <Minus size={12} />
+                    </button>
+                  </div>
+                ))}
+                {newSocialLinks.length === 0 && (
+                  <p className="!text-[10px] !text-slate-400 !italic !text-center !py-2">No active channels</p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-5 !border-t !border-slate-100">
+              <div className="space-y-1.5">
+                <label className={premiumFormStyles.label}>Quotation Disclaimers</label>
+                <textarea 
+                  name="quotation_agency_notes"
+                  className="!w-full !min-h-[100px] !rounded-xl !bg-slate-50/50 !border !border-slate-200/60 focus:!bg-white focus:!ring-1 focus:!ring-slate-900/10 focus:!border-slate-900/30 !transition-all !p-3 !text-[12px] !font-medium !text-slate-700 !outline-none !resize-none !placeholder:text-slate-300"
+                  defaultValue={editingOperator.quotation_agency_notes}
+                  placeholder="Terms and conditions for generated quotes..."
+                />
+              </div>
+            </div>
+
+            <div className="pt-5 !border-t !border-slate-100">
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditTitlesExpanded(!isEditTitlesExpanded)}
+                  className="!flex !items-center !gap-2 !text-[9px] !font-black !uppercase !tracking-[0.2em] !text-slate-400 hover:!text-slate-600 !transition-all"
+                >
+                  <ChevronDown size={12} className={cn("!transition-transform !duration-300", isEditTitlesExpanded && "!rotate-180")} />
+                  Title Presets ({newQuoteTitlePresets?.length || 0})
+                </button>
+                {isEditTitlesExpanded && (
+                  <button type="button" onClick={addTitlePresetField} className="!flex !items-center !gap-1.5 !text-[9px] !font-black !text-primary !uppercase !tracking-widest hover:!opacity-70 !transition-all">
+                    <Plus size={10} /> Add Preset
+                  </button>
+                )}
+              </div>
+              
+              <AnimatePresence>
+                {isEditTitlesExpanded && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar mt-2 pr-1">
+                      {newQuoteTitlePresets.map((title, idx) => (
                         <div key={idx} className="flex gap-2">
-                          <div className="relative flex-1">
-                            <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
-                              {getSocialIcon(link)}
-                            </div>
-                            <input
-                              name="socialLinks"
-                              type="text"
-                              style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
-                              placeholder="fb.com/page or ig.com/user"
-                              value={link}
-                              onChange={(e) => updateSocialField(idx, e.target.value)}
-                            />
-                          </div>
+                          <input
+                            name="quoteTitlePresets"
+                            type="text"
+                            className={cn(premiumFormStyles.input, "!h-9 !text-[11px]")}
+                            placeholder="e.g. Standard Quote"
+                            value={title}
+                            onChange={(e) => updateTitlePresetField(idx, e.target.value)}
+                          />
                           <button
                             type="button"
-                            onClick={() => removeSocialField(idx)}
-                            className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                            style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
+                            onClick={() => removeTitlePresetField(idx)}
+                            className="!w-9 !h-9 !flex !items-center !justify-center !rounded-lg !border !border-slate-200 !text-slate-400 hover:!text-rose-500 hover:!bg-rose-50 !transition-all shrink-0"
                           >
-                            <Minus size={14} />
+                            <Minus size={12} />
                           </button>
                         </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex flex-col gap-1.5">
-                      <label style={labelStyle}>Quotation Important Notes</label>
-                      <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
-                      <textarea 
-                        name="quotation_agency_notes"
-                        style={{ ...inputStyle, minHeight: '100px', paddingTop: '12px', paddingBottom: '12px', resize: 'vertical' }}
-                        placeholder="e.g. 50% downpayment required to confirm booking..."
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex items-center justify-between" style={{ marginBottom: isAddTitlesExpanded ? '12px' : '0' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsAddTitlesExpanded(!isAddTitlesExpanded)}
-                        className="flex items-center gap-2 hover:opacity-80 transition-all"
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
-                        <div className={`transition-transform duration-200 ${isAddTitlesExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
-                        </div>
-                        <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
-                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({newQuoteTitlePresets?.length || 0})</span>
-                      </button>
-                      {isAddTitlesExpanded && (
-                        <button type="button" onClick={addTitlePresetField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                          <Plus size={12} /> Add Title
-                        </button>
-                      )}
-                    </div>
-                    
-                    <AnimatePresence>
-                      {isAddTitlesExpanded && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px' }}>
-                            {newQuoteTitlePresets.map((title, idx) => (
-                              <div key={idx} className="flex gap-2">
-                                <input
-                                  name="quoteTitlePresets"
-                                  type="text"
-                                  style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
-                                  placeholder="e.g. Standard Quotation"
-                                  value={title}
-                                  onChange={(e) => updateTitlePresetField(idx, e.target.value)}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeTitlePresetField(idx)}
-                                  className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
-                                >
-                                  <Minus size={14} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {operatorStatus && (
-                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: operatorStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: operatorStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                      {operatorStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                      {operatorStatus.msg}
-                    </div>
-                  )}
-
-                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                  >
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Register Agency'}
-                  </button>
-                </form>
-              </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
-        </AnimatePresence>
 
+            {editStatus && (
+              <div className={editStatus.type === 'success' ? premiumFormStyles.success : premiumFormStyles.error}>
+                {editStatus.type === 'success' ? <CheckCircle size={14} strokeWidth={2.5} /> : <AlertCircle size={14} strokeWidth={2.5} />}
+                {editStatus.msg}
+              </div>
+            )}
 
-        <AnimatePresence>
-          {isSettingsOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                onClick={() => setIsSettingsOpen(false)}
-                style={{ ...modalOverlay, zIndex: 0 }}
-                className="absolute inset-0"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, zIndex: 1, maxWidth: '400px', padding: '36px' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={modalTitle}>Account Settings</h3>
-                  <button onClick={() => setIsSettingsOpen(false)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                    <X size={20} />
-                  </button>
+            <button type="submit" disabled={formLoading} className={premiumFormStyles.button}>
+              {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Modifications'}
+            </button>
+          </form>
+        )}
+      </PremiumModalWrapper>
+
+      {/* ── EDIT STAFF MEMBER MODAL ─── */}
+      <PremiumModalWrapper
+        isOpen={!!editingPersonnel}
+        onClose={() => setEditingPersonnel(null)}
+        title="Edit Staff"
+        subtitle="Manage authorization scope"
+        icon={<User2 size={20} strokeWidth={2.5} />}
+      >
+        {editingPersonnel && (
+          <form onSubmit={handleEditPersonnelSubmit} className="flex flex-col !gap-6">
+            <div className="!space-y-4">
+              <div className="!space-y-1">
+                <label className={premiumFormStyles.label}>Full Name</label>
+                <input 
+                  name="fullName" 
+                  type="text" 
+                  className={premiumFormStyles.input} 
+                  defaultValue={editingPersonnel.full_name} 
+                  required 
+                />
+              </div>
+              <div className="!space-y-1">
+                <label className={premiumFormStyles.label}>Identity Email (Locked)</label>
+                <input 
+                  name="email" 
+                  type="email" 
+                  className={cn(premiumFormStyles.input, "!bg-slate-50 !cursor-not-allowed !text-slate-400 !border-slate-100")} 
+                  defaultValue={editingPersonnel.email} 
+                  readOnly 
+                  disabled 
+                />
+              </div>
+              <div className="grid grid-cols-2 !gap-4">
+                <div className="!space-y-1">
+                  <label className={premiumFormStyles.label}>Assignment</label>
+                  <AdminSelect
+                    value={editingPersonnel.operator_id || ''}
+                    onValueChange={(val) => {
+                      const select = document.querySelector('select[name="operatorId"]') as HTMLSelectElement;
+                      if (select) {
+                        select.value = val;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    }}
+                    options={[{ id: '', name: 'Global Assignment' }, ...operators]}
+                    getLabel={(op) => op.name}
+                    getValue={(op) => op.id}
+                    placeholder="Select Agency"
+                  />
+                  <select
+                    name="operatorId"
+                    className="hidden"
+                    defaultValue={editingPersonnel.operator_id || ''}
+                  >
+                    <option value="">Global Assignment</option>
+                    {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
+                  </select>
                 </div>
-
-                <form onSubmit={handleUpdateProfile} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div>
-                    <label style={labelStyle}>Full Name</label>
-                    <input type="text" style={inputStyle} value={newFullName} onChange={(e) => setNewFullName(e.target.value)} required
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', marginBottom: '16px' }}>Security Key Setup</p>
-                    <div className="flex flex-col" style={{ gap: '14px' }}>
-                      <div>
-                        <label style={labelStyle}>New Security Key</label>
-                        <input type="password" style={inputStyle} placeholder="Min. 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                          onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Confirm Security Key</label>
-                        <input type="password" style={inputStyle} placeholder="Re-enter to confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                          onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {passwordError && (
-                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: '#FEF2F2', color: 'var(--color-danger)' }}>
-                      <AlertCircle size={14} />
-                      {passwordError}
-                    </div>
-                  )}
-
-                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
+                <div className="!space-y-1">
+                  <label className={premiumFormStyles.label}>Access Role</label>
+                  <AdminSelect
+                    value={editingPersonnel.role}
+                    onValueChange={(val) => {
+                      const select = document.querySelector('select[name="role"]') as HTMLSelectElement;
+                      if (select) {
+                        select.value = val;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    }}
+                    options={[
+                      { id: 'operator_sales', name: 'Sales' },
+                      { id: 'operator_admin', name: 'Manager' },
+                      { id: 'super_admin', name: 'Global Admin' }
+                    ]}
+                    getLabel={(r) => r.name}
+                    getValue={(r) => r.id}
+                    placeholder="Select Role"
+                  />
+                  <select
+                    name="role"
+                    className="hidden"
+                    required
+                    defaultValue={editingPersonnel.role}
                   >
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Update Account'}
-                  </button>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {editingOperator && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                onClick={() => setEditingOperator(null)}
-                style={{ ...modalOverlay, zIndex: 0 }}
-                className="absolute inset-0"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={modalTitle}>Edit Agency</h3>
-                  <button onClick={() => setEditingOperator(null)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                    <X size={20} />
-                  </button>
+                    <option value="operator_sales">Sales</option>
+                    <option value="operator_admin">Manager</option>
+                    <option value="super_admin">Global Admin</option>
+                  </select>
                 </div>
-
-                <form onSubmit={handleEditOperatorSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div className="space-y-4">
-                    <div>
-                      <label style={labelStyle}>Agency Name</label>
-                      <input name="name" type="text" style={inputStyle} defaultValue={editingOperator.name} required
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Official Website</label>
-                      <input name="website" type="text" style={inputStyle} defaultValue={editingOperator.website}
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)' }}>Social Channels</label>
-                      <button type="button" onClick={addSocialField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                        <Plus size={12} /> Add Channel
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar" style={{ maxHeight: '140px' }}>
-                      {newSocialLinks.map((link, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <div className="relative flex-1">
-                            <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '14px', color: 'var(--color-text-faint)' }}>
-                              {getSocialIcon(link)}
-                            </div>
-                            <input
-                              name="socialLinks"
-                              type="text"
-                              style={{ ...inputStyle, paddingLeft: '38px', height: '40px', fontSize: '13px' }}
-                              placeholder="fb.com/page or ig.com/user"
-                              value={link}
-                              onChange={(e) => updateSocialField(idx, e.target.value)}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeSocialField(idx)}
-                            className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                            style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
-                          >
-                            <Minus size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex flex-col gap-1.5">
-                      <label style={labelStyle}>Quotation Important Notes</label>
-                      <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginBottom: '4px' }}>These notes will be added in the generated quotations.</p>
-                      <textarea 
-                        name="quotation_agency_notes"
-                        style={{ ...inputStyle, minHeight: '100px', paddingTop: '12px', paddingBottom: '12px', resize: 'vertical' }}
-                        defaultValue={editingOperator.quotation_agency_notes}
-                        placeholder="e.g. 50% downpayment required to confirm booking..."
-                        onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                        onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div className="flex items-center justify-between" style={{ marginBottom: isEditTitlesExpanded ? '12px' : '0' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsEditTitlesExpanded(!isEditTitlesExpanded)}
-                        className="flex items-center gap-2 hover:opacity-80 transition-all"
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
-                        <div className={`transition-transform duration-200 ${isEditTitlesExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={14} style={{ color: 'var(--color-text-faint)' }} />
-                        </div>
-                        <label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-faint)', cursor: 'pointer' }}>Quote Title Presets</label>
-                        <span style={{ fontSize: '10px', color: 'var(--color-text-faint)', fontWeight: 400 }}>({newQuoteTitlePresets?.length || 0})</span>
-                      </button>
-                      {isEditTitlesExpanded && (
-                        <button type="button" onClick={addTitlePresetField} className="flex items-center gap-1 hover:opacity-80" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                          <Plus size={12} /> Add Title
-                        </button>
-                      )}
-                    </div>
-                    
-                    <AnimatePresence>
-                      {isEditTitlesExpanded && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar mt-3" style={{ maxHeight: '140px' }}>
-                            {newQuoteTitlePresets.map((title, idx) => (
-                              <div key={idx} className="flex gap-2">
-                                <input
-                                  name="quoteTitlePresets"
-                                  type="text"
-                                  style={{ ...inputStyle, height: '40px', fontSize: '13px' }}
-                                  placeholder="e.g. Standard Quotation"
-                                  value={title}
-                                  onChange={(e) => updateTitlePresetField(idx, e.target.value)}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeTitlePresetField(idx)}
-                                  className="flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
-                                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent' }}
-                                >
-                                  <Minus size={14} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {editStatus && (
-                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: editStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: editStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                      {editStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                      {editStatus.msg}
-                    </div>
-                  )}
-
-                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                  >
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
-                  </button>
-                </form>
-              </motion.div>
+              </div>
             </div>
-          )}
-        </AnimatePresence>
 
-        <AnimatePresence>
-          {editingPersonnel && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ padding: '24px' }}>
-              <motion.div
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                onClick={() => setEditingPersonnel(null)}
-                style={{ ...modalOverlay, zIndex: 0 }}
-                className="absolute inset-0"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
-                style={{ ...modalCard, zIndex: 1, maxWidth: '480px', padding: '36px' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: '28px' }}>
-                  <h3 style={modalTitle}>Edit Staff Member</h3>
-                  <button onClick={() => setEditingPersonnel(null)} className="hover:opacity-70" style={{ color: 'var(--color-text-faint)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
-                    <X size={20} />
-                  </button>
-                </div>
+            {editStatus && (
+              <div className={editStatus.type === 'success' ? premiumFormStyles.success : premiumFormStyles.error}>
+                {editStatus.type === 'success' ? <CheckCircle size={14} strokeWidth={2.5} /> : <AlertCircle size={14} strokeWidth={2.5} />}
+                {editStatus.msg}
+              </div>
+            )}
 
-                <form onSubmit={handleEditPersonnelSubmit} className="flex flex-col" style={{ gap: '20px' }}>
-                  <div>
-                    <label style={labelStyle}>Full Name</label>
-                    <input name="fullName" type="text" style={inputStyle} defaultValue={editingPersonnel.full_name} required
-                      onFocus={(e) => { e.target.style.borderColor = 'var(--color-brand)'; e.target.style.boxShadow = '0 0 0 3px var(--color-brand-soft)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-default)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Email Address (Read-only)</label>
-                    <input name="email" type="email" style={{ ...inputStyle, background: 'var(--color-bg-subtle)', cursor: 'not-allowed' }} defaultValue={editingPersonnel.email} readOnly disabled />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label style={labelStyle}>Operator</label>
-                      <select
-                        name="operatorId"
-                        style={inputStyle}
-                        defaultValue={editingPersonnel.operator_id || ''}
-                      >
-                        <option value="">No Agency Assignment</option>
-                        {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Role</label>
-                      <select
-                        name="role"
-                        style={inputStyle}
-                        required
-                        defaultValue={editingPersonnel.role}
-                      >
-                        <option value="operator_sales">Sales</option>
-                        <option value="operator_admin">Manager</option>
-                        <option value="super_admin">Global Admin</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {editStatus && (
-                    <div className="flex items-center gap-2" style={{ padding: '14px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 500, background: editStatus.type === 'success' ? '#ECFDF5' : '#FEF2F2', color: editStatus.type === 'success' ? '#059669' : 'var(--color-danger)' }}>
-                      {editStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
-                      {editStatus.msg}
-                    </div>
-                  )}
-
-                  <button type="submit" disabled={formLoading} className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                    style={{ ...btnPrimary, width: '100%', height: '48px', opacity: formLoading ? 0.7 : 1 }}
-                  >
-                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
-                  </button>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+            <button type="submit" disabled={formLoading} className={premiumFormStyles.button}>
+              {formLoading ? <Loader2 className="animate-spin" size={18} /> : 'Commit Changes'}
+            </button>
+          </form>
+        )}
+      </PremiumModalWrapper>
 
       </div>
     );
