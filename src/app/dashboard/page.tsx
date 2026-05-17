@@ -60,6 +60,7 @@ function DashboardContent() {
   const [dateFilter, setDateFilter] = useState("All Time");
   const [sortMethod, setSortMethod] = useState<'priority' | 'updated'>('updated');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [visibleQuotesCount, setVisibleQuotesCount] = useState(20);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAgencySettingsOpen, setIsAgencySettingsOpen] = useState(false);
   const [agencyFormLoading, setAgencyFormLoading] = useState(false);
@@ -109,6 +110,10 @@ function DashboardContent() {
       }
     }
   }, [profile]);
+
+  useEffect(() => {
+    setVisibleQuotesCount(20);
+  }, [searchQuery, quoteStatusFilter, agentFilter, dateFilter, activeTab]);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
@@ -682,22 +687,22 @@ function DashboardContent() {
               <div className="flex items-center gap-4 ml-6">
                 <div className="h-8 w-[1px] bg-slate-200" />
                 <div className="station-header-pill group/station">
-                  <div className="station-header-icon">
-                    {profile?.operators?.name?.substring(0, 1).toUpperCase() || 'A'}
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <span className="station-header-label">Station</span>
-                    <span className="station-header-name">{profile?.operators?.name || 'Loading...'}</span>
-                  </div>
                   {(profile?.role === 'super_admin' || profile?.role === 'operator_admin') && (
                     <button 
                       onClick={() => setIsAgencySettingsOpen(true)}
-                      className="ml-2 p-1.5 hover:bg-slate-100 rounded-lg text-slate-300 hover:text-emerald-600 transition-all group/btn"
+                      className="mr-1 p-1.5 hover:bg-slate-100 rounded-lg text-slate-300 hover:text-emerald-600 transition-all group/btn"
                       title="Agency Settings"
                     >
                       <Settings size={14} className="group-hover/btn:rotate-90 transition-transform duration-500" />
                     </button>
                   )}
+                  <div className="flex flex-col justify-center text-right">
+                    <span className="station-header-label">Station</span>
+                    <span className="station-header-name">{profile?.operators?.name || 'Loading...'}</span>
+                  </div>
+                  <div className="station-header-icon">
+                    {profile?.operators?.name?.substring(0, 1).toUpperCase() || 'A'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -715,7 +720,7 @@ function DashboardContent() {
               #dashboard-main-content {
                 padding-left: 64px !important;
                 padding-right: 64px !important;
-                padding-top: 32px !important;
+                padding-top: ${activeTab === 'analytics' || activeTab === 'calendar' ? '16px' : '32px'} !important;
                 padding-bottom: 32px !important;
                 background: #f8f9fb !important;
               }
@@ -769,13 +774,44 @@ function DashboardContent() {
               .btn-header-action:hover svg {
                 transform: scale(1.1) !important;
               }
+              .btn-load-more {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 8px !important;
+                background: #eff6ff !important;
+                color: #2563eb !important;
+                border: 1px solid #bfdbfe !important;
+                border-radius: 10px !important;
+                padding: 8px 18px !important;
+                height: auto !important;
+                min-height: 32px !important;
+                font-size: 9.5px !important;
+                font-weight: 800 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.1em !important;
+                transition: all 0.2s ease !important;
+                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06) !important;
+                cursor: pointer !important;
+                line-height: 1 !important;
+              }
+              .btn-load-more:hover {
+                background: #dbeafe !important;
+                border-color: #93c5fd !important;
+                color: #1d4ed8 !important;
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12) !important;
+                transform: translateY(-1px) !important;
+              }
+              .btn-load-more:active {
+                transform: translateY(0px) scale(0.98) !important;
+              }
               .station-header-pill {
                 display: flex !important;
                 align-items: center !important;
                 gap: 12px !important;
-                padding: 6px 16px 6px 6px !important;
-                background: #f8fafc !important;
-                border: 1px solid #e2e8f0 !important;
+                padding: 6px 6px 6px 16px !important;
+                background: transparent !important;
+                border: 1px solid transparent !important;
                 border-radius: 12px !important;
                 margin-right: 8px !important;
                 transition: all 0.2s ease !important;
@@ -819,7 +855,7 @@ function DashboardContent() {
             `}} />
             <main id="dashboard-main-content" className="flex-1 flex flex-col overflow-hidden bg-[#f8f9fb]">
               {/* Fixed Header Section */}
-              <div className="flex flex-col gap-6 shrink-0 px-8 pt-8 pb-4">
+              <div className={`flex flex-col gap-6 shrink-0 px-8 ${activeTab !== 'analytics' && activeTab !== 'calendar' ? 'pt-8 pb-4' : 'pt-0 pb-0'}`}>
                 <style dangerouslySetInnerHTML={{ __html: `
                   .sort-toggle-container {
                     display: flex !important;
@@ -959,8 +995,8 @@ function DashboardContent() {
               </div>
 
               {/* Scrollable Content Body */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-8 flex flex-col gap-6">
-                <div className="h-1 shrink-0" />
+              <div className={`flex-1 overflow-y-auto custom-scrollbar px-8 pb-8 flex flex-col ${activeTab === 'analytics' || activeTab === 'calendar' ? 'gap-0 pt-2' : 'gap-6'}`}>
+                {activeTab !== 'analytics' && activeTab !== 'calendar' && <div className="h-1 shrink-0" />}
 
         <div className="flex flex-col gap-2">
           {tabLoading ? (
@@ -972,25 +1008,31 @@ function DashboardContent() {
           <>
           {activeTab === 'analytics' && (
             <div className="flex flex-col gap-6">
-              <div className="relative flex items-center bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border-default)] w-fit mb-4 overflow-hidden shadow-sm gap-1">
-                {[7, 30, 90].map((days) => (
-                  <button
-                    key={days}
-                    onClick={() => setAnalyticsDays(days as 7 | 30 | 90)}
-                    className={`relative z-10 px-4 py-2 min-w-[64px] rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${
-                      analyticsDays === days ? "text-white" : "text-text-tertiary hover:text-text-primary"
-                    }`}
-                  >
-                    <span>{days}D</span>
-                    {analyticsDays === days && (
-                      <motion.div
-                        layoutId="activeRange"
-                        className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-lg shadow-primary/20"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                      />
-                    )}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon size={16} className="text-emerald-600" />
+                  <span className="text-xs font-black tracking-widest text-slate-400 uppercase">Range</span>
+                </div>
+                <div className="relative flex items-center bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border-default)] w-fit overflow-hidden shadow-sm gap-1.5">
+                  {[7, 30, 90].map((days) => (
+                    <button
+                      key={days}
+                      onClick={() => setAnalyticsDays(days as 7 | 30 | 90)}
+                      className={`relative z-10 px-5 py-2.5 min-w-[72px] rounded-xl text-xs font-black uppercase tracking-widest transition-colors duration-300 ${
+                        analyticsDays === days ? "text-white" : "text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      <span>{days}D</span>
+                      {analyticsDays === days && (
+                        <motion.div
+                          layoutId="activeRange"
+                          className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-lg shadow-primary/20"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
 
 
@@ -1103,58 +1145,76 @@ function DashboardContent() {
                       );
                     }
 
-                    return displayQuotes.map((quote: any) => {
-                      const now = new Date();
-                      now.setHours(0, 0, 0, 0);
-                      const twoWeeks = new Date();
-                      twoWeeks.setDate(now.getDate() + 14);
-                      twoWeeks.setHours(23, 59, 59, 999);
-                      
-                      const tripDate = new Date(quote.eta);
-                      tripDate.setHours(0, 0, 0, 0);
-                      
-                      const isUrgent = ['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(quote.status || '') && 
-                        quote.eta && tripDate >= now && tripDate <= twoWeeks;
+                    const paginatedQuotes = displayQuotes.slice(0, visibleQuotesCount);
 
-                      return (
-                        <QuoteListItem 
-                          key={quote.id}
-                          quoteId={quote.id}
-                          customer={quote.customer_name} 
-                          route={(() => {
-                            const fleet = quote.fleet_json || quote.fleet || [];
-                            if (Array.isArray(fleet) && fleet.length > 0) {
-                              const names = fleet.map((v: any) => v.model);
-                              if (names.length > 2) {
-                                return `${names[0]}, ${names[1]}, ...`;
-                              }
-                              return names.join(", ");
-                            }
-                            return quote.vehicle_model || "Private Trip";
-                          })()} 
-                          date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
-                          etd={quote.etd ? new Date(quote.etd).toLocaleDateString() : null} 
-                          rawEta={quote.eta}
-                          rawEtd={quote.etd}
-                          status={quote.status} 
-                          isUrgent={isUrgent}
-                          amount={`₱${Math.round(quote.grand_total || 0).toLocaleString()}`}
-                          totalPaid={paymentTotals[quote.id] || 0}
-                          adminCommission={quote.admin_commission || 0}
-                          agent={quote.creator?.full_name}
-                          createdAt={quote.created_at}
-                          modifier={quote.modifier?.full_name}
-                          updatedAt={quote.updated_at}
-                          currentUserId={profile?.id}
-                          paxCount={quote.pax_count}
-                          onClick={() => router.push(`/builder?id=${quote.id}`)}
-                          onStatusChange={(newStatus: string) => {
-                            setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
-                          }}
-                          onDelete={() => handleDelete('quote', quote.id, quote.customer_name || 'Untitled Quote')}
-                        />
-                      );
-                    });
+                    return (
+                      <>
+                        {paginatedQuotes.map((quote: any) => {
+                          const now = new Date();
+                          now.setHours(0, 0, 0, 0);
+                          const twoWeeks = new Date();
+                          twoWeeks.setDate(now.getDate() + 14);
+                          twoWeeks.setHours(23, 59, 59, 999);
+                          
+                          const tripDate = new Date(quote.eta);
+                          tripDate.setHours(0, 0, 0, 0);
+                          
+                          const isUrgent = ['Draft', 'Quotation Sent', 'Follow-up Needed'].includes(quote.status || '') && 
+                            quote.eta && tripDate >= now && tripDate <= twoWeeks;
+
+                          return (
+                            <QuoteListItem 
+                              key={quote.id}
+                              quoteId={quote.id}
+                              customer={quote.customer_name} 
+                              route={(() => {
+                                const fleet = quote.fleet_json || quote.fleet || [];
+                                if (Array.isArray(fleet) && fleet.length > 0) {
+                                  const names = fleet.map((v: any) => v.model);
+                                  if (names.length > 2) {
+                                    return `${names[0]}, ${names[1]}, ...`;
+                                  }
+                                  return names.join(", ");
+                                }
+                                return quote.vehicle_model || "Private Trip";
+                              })()} 
+                              date={quote.eta ? new Date(quote.eta).toLocaleDateString() : "TBD"} 
+                              etd={quote.etd ? new Date(quote.etd).toLocaleDateString() : null} 
+                              rawEta={quote.eta}
+                              rawEtd={quote.etd}
+                              status={quote.status} 
+                              isUrgent={isUrgent}
+                              amount={`₱${Math.round(quote.grand_total || 0).toLocaleString()}`}
+                              totalPaid={paymentTotals[quote.id] || 0}
+                              adminCommission={quote.admin_commission || 0}
+                              agent={quote.creator?.full_name}
+                              createdAt={quote.created_at}
+                              modifier={quote.modifier?.full_name}
+                              updatedAt={quote.updated_at}
+                              currentUserId={profile?.id}
+                              paxCount={quote.pax_count}
+                              onClick={() => router.push(`/builder?id=${quote.id}`)}
+                              onStatusChange={(newStatus: string) => {
+                                setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
+                              }}
+                              onDelete={() => handleDelete('quote', quote.id, quote.customer_name || 'Untitled Quote')}
+                            />
+                          );
+                        })}
+                        {displayQuotes.length > visibleQuotesCount && (
+                          <div className="flex justify-center pt-8 pb-12">
+                            <button
+                              type="button"
+                              onClick={() => setVisibleQuotesCount(prev => prev + 20)}
+                              className="btn-load-more"
+                            >
+                              <Plus size={14} strokeWidth={2.5} className="text-blue-500" />
+                              <span>Load More Records ({displayQuotes.length - visibleQuotesCount} remaining)</span>
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
                   })()}
                 </div>
               </div>
