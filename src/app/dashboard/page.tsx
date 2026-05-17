@@ -1930,10 +1930,91 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
              <h3 style={labelStyle} className="!mb-0 truncate">{customer}</h3>
              {isUrgent && <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest animate-pulse">URGENT: Confirm this quote</span>}
+             {/* Status badge inline with name */}
+             <div className="relative" onClick={(e) => e.stopPropagation()}>
+               <button
+                 onMouseDown={(e) => e.stopPropagation()}
+                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); setIsDropdownOpen(!isDropdownOpen); }}
+                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-sm`}
+               >
+                 <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                 {displayName}
+                 <ChevronDown size={12} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+               </button>
+               <AnimatePresence>
+                 {isDropdownOpen && (
+                   <motion.div
+                     ref={dropdownRef}
+                     initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                     animate={{ opacity: 1, y: 0, scale: 1 }}
+                     className="absolute left-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.12)] border border-slate-200/80 w-[175px] py-1.5 px-0 overflow-hidden h-auto"
+                     onClick={(e) => e.stopPropagation()}
+                   >
+                     <div className="flex flex-col gap-0.5 p-0 m-0">
+                       {(() => {
+                         const StatusItem = ({ s }: { s: string }) => {
+                           const isActive = status === s;
+                           return (
+                             <button
+                               onClick={() => handleStatusSelect(s)}
+                               className={`w-full status-hub-btn flex items-center justify-between px-3 py-1.5 m-0 border-0 outline-none transition-all ${
+                                 isActive ? (statusConfig[s]?.text || 'text-primary font-bold') : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                               }`}
+                             >
+                               <div className="flex items-center gap-2 leading-none min-w-0">
+                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-current' : (statusConfig[s]?.dot || 'bg-slate-300')}`} />
+                                 <span className="text-[11px] leading-none truncate">{s}</span>
+                               </div>
+                               {isActive && <Check size={10} className="shrink-0 ml-2" />}
+                             </button>
+                           );
+                         };
+                         const showPlanning = !isConfirmedFlow && !isDeadFlow;
+                         const showPayment = !isDeadFlow;
+                         return (
+                           <>
+                             {showPlanning && (
+                               <>
+                                 {['Draft', 'Quotation Sent', 'Follow-up Needed'].map(s => (
+                                   <StatusItem key={s} s={s} />
+                                 ))}
+                                 <div className="mx-3 my-1.5 border-t border-slate-100" />
+                               </>
+                             )}
+                             {showPayment && (
+                               <>
+                                 {['Confirmed', 'Payment Started', 'Payment Complete'].map(s => (
+                                   <StatusItem key={s} s={s} />
+                                 ))}
+                                 <div className="my-1.5 border-t border-slate-100" />
+                               </>
+                             )}
+                             <div className="grid grid-cols-2 mt-1 border-t border-slate-100 bg-slate-50/50">
+                               {['Lost', 'Cancelled'].map(s => (
+                                 <button
+                                   key={s}
+                                   onClick={() => handleStatusSelect(s)}
+                                   className={`flex items-center justify-center status-hub-btn flex-1 text-[9px] font-bold uppercase tracking-wider py-2 border-r last:border-r-0 border-slate-100 transition-all ${
+                                     status === s ? 'bg-rose-50 text-rose-600' : 'text-rose-500 hover:bg-rose-50/50'
+                                   }`}
+                                 >
+                                   {s}
+                                 </button>
+                               ))}
+                             </div>
+                           </>
+                         );
+                       })()}
+                     </div>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+             </div>
           </div>
+
           <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
             <span style={sectionLabel} className="!text-[9px] truncate">{route}</span>
             <span className="text-text-tertiary">·</span>
@@ -1982,98 +2063,7 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
         </div>
       </div>
 
-      <div className="flex items-center gap-6 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-        <div className="relative">
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setIsDropdownOpen(!isDropdownOpen);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-sm`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-            {displayName}
-            <ChevronDown size={8} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          <AnimatePresence>
-            {isDropdownOpen && (
-              <motion.div
-                ref={dropdownRef}
-                initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 z-50 bg-white rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-[#eff1f4] w-[140px] py-1 px-0 overflow-hidden h-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex flex-col gap-[1px] p-0 m-0">
-                  {(() => {
-                    const StatusItem = ({ s, activeColor }: { s: string, activeColor: string }) => {
-                      const isActive = status === s;
-                      return (
-                        <button
-                          onClick={() => handleStatusSelect(s)}
-                          className={`w-full status-hub-btn flex items-center justify-between px-2 m-0 border-0 outline-none transition-all ${
-                            isActive ? (statusConfig[s]?.text || 'text-primary') : 'text-text-secondary hover:text-text-primary'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 leading-none">
-                            <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-current' : (statusConfig[s]?.dot || 'bg-gray-400')}`} />
-                            <span className="text-[8px] font-bold leading-none truncate">{s}</span>
-                          </div>
-                          {isActive && <Check size={7} className="shrink-0" />}
-                        </button>
-                      );
-                    };
-
-                    const showPlanning = !isConfirmedFlow && !isDeadFlow;
-                    const showPayment = !isDeadFlow;
-
-                    return (
-                      <>
-                        {showPlanning && (
-                          <>
-                            {['Draft', 'Quotation Sent', 'Follow-up Needed'].map(s => (
-                              <StatusItem key={s} s={s} activeColor="text-primary" />
-                            ))}
-                            <div className="mx-2 my-1 border-t border-[#f1f3f5]" />
-                          </>
-                        )}
-
-                        {showPayment && (
-                          <>
-                            {['Confirmed', 'Payment Started', 'Payment Complete'].map(s => (
-                              <StatusItem key={s} s={s} activeColor="" />
-                            ))}
-                            <div className="my-[1px] border-t border-[#f1f3f5]" />
-                          </>
-                        )}
-
-                        <div className="grid grid-cols-2">
-                          {['Lost', 'Cancelled'].map(s => (
-                            <button
-                              key={s}
-                              onClick={() => handleStatusSelect(s)}
-                              className={`flex items-center justify-center status-hub-btn flex-1 text-[7px] font-bold uppercase tracking-wider border-r last:border-r-0 border-[#f1f3f5] transition-all ${
-                                status === s 
-                                  ? 'bg-rose-50 text-rose-600' 
-                                  : 'text-rose-400 hover:bg-rose-50/50'
-                              }`}
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
+      <div className="flex items-center gap-4 shrink-0">
         <div className="text-right flex flex-col items-end">
           <div className="text-sm font-bold text-primary">{amount}</div>
           {adminCommission > 0 && (
