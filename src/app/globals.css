@@ -374,17 +374,17 @@ input[type="checkbox"] {
 
 /* STATUS HUB DENSITY OVERRIDE */
 .status-hub-btn {
-  min-height: 0 !important;
-  min-width: 0 !important;
-  height: 32px !important; /* Touch-friendly mobile height */
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 8px 16px !important;
   box-shadow: none !important;
 }
 
 @media (min-width: 640px) {
   .status-hub-btn {
-    height: 22px !important; /* Surgical density for desktop */
+    min-height: 28px !important;
+    height: auto !important;
+    padding: 6px 16px !important; /* Surgical density but with beautiful internal padding */
   }
 }
 
