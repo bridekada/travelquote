@@ -41,13 +41,13 @@ export default function OperationalMatrix({
   readOnly = false,
   fleet
 }: OperationalMatrixProps) {
-  const accomColWidth = 120;
-  const dynamicColsWidth = dbMiscPresets.length * 100;
-  const matrixWidth = Math.max(1200, 700 + accomColWidth + dynamicColsWidth);
+  const colWidth = 125;
+  const totalCols = 7 + dbMiscPresets.length;
+  const matrixWidth = Math.max(1200, totalCols * colWidth);
 
   // High-Density Styles (Emerald surgical theme)
-  const cellStyle = "px-3 py-1.5 border-none text-[11px]";
-  const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[10px] font-black uppercase tracking-[0.15em] text-text-tertiary whitespace-nowrap";
+  const cellStyle = "px-3 py-1.5 border-none text-[11px] align-middle";
+  const headerStyle = "px-3 py-3 border-b border-[#f0f2f5] text-[10px] font-black uppercase tracking-[0.15em] text-text-tertiary align-middle";
   const inputStyle = "w-full bg-transparent border-none text-[11px] font-bold text-primary focus:ring-0 p-0 placeholder:opacity-20 focus:bg-emerald-50/50 rounded transition-all";
 
   // Calculate fleet aggregate rate
@@ -68,44 +68,44 @@ export default function OperationalMatrix({
         </div>
 
         <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-left border-collapse" style={{ minWidth: `${matrixWidth}px` }}>
+        <table className="w-full text-left border-collapse table-fixed" style={{ minWidth: `${matrixWidth}px` }}>
           <thead>
             <tr className="bg-[#f8f9fb]">
-              <th className={headerStyle + " !pl-8 w-16"}>
-                <div className="flex items-center justify-between">
-                  Day
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle + " !pl-8"} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Day">Day</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
-              <th className={headerStyle + " w-[180px]"}>
-                <div className="flex items-center justify-between">
-                  Destination
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Destination">Destination</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
-              <th className={headerStyle + " w-[100px]"}>
-                <div className="flex items-center justify-between">
-                  Fleet Rate
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Fleet Rate">Fleet Rate</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
-              <th className={headerStyle + " w-[80px]"}>
-                <div className="flex items-center justify-between">
-                  Est. KM
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Est. KM">Est. KM</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
-              <th className={headerStyle + " w-[90px]"}>
-                <div className="flex items-center justify-between">
-                  Fuel
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Fuel">Fuel</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
               
-              <th className={headerStyle + " w-[110px] text-primary"}>
-                <div className="flex items-center justify-between">
-                  Guest Accom
-                  <span className="text-slate-300 select-none ml-2">|</span>
+              <th className={headerStyle + " text-primary"} style={{ width: `${colWidth}px` }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title="Guest Accom">Guest Accom</span>
+                  <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                 </div>
               </th>
 
@@ -115,22 +115,26 @@ export default function OperationalMatrix({
                 const showWarning = isIncludedInAnyPkg && totalCost === 0;
 
                 return (
-                  <th key={p.id} className={headerStyle + " w-[90px] text-indigo-500"}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        {p.name}
+                  <th key={p.id} className={headerStyle + " text-indigo-500"} style={{ width: `${colWidth}px` }}>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight min-w-0 flex-1" title={p.name}>
+                          {p.name}
+                        </span>
                         {showWarning && (
-                          <div className="w-3 h-3 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 animate-pulse" title="Included in package but cost is zero.">
+                          <div className="w-3 h-3 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 animate-pulse shrink-0" title="Included in package but cost is zero.">
                             <AlertTriangle size={8} />
                           </div>
                         )}
                       </div>
-                      <span className="text-slate-300 select-none ml-2">|</span>
+                      <span className="text-slate-300 select-none ml-2 shrink-0">|</span>
                     </div>
                   </th>
                 );
               })}
-              <th className={headerStyle + " !pr-8 text-right w-[120px] bg-rose-50/30 border-l border-rose-100/50"}>Row Total</th>
+              <th className={headerStyle + " !pr-8 text-right bg-rose-50/30 border-l border-rose-100/50"} style={{ width: `${colWidth}px` }}>
+                <span className="line-clamp-2 whitespace-normal text-ellipsis overflow-hidden font-black leading-tight inline-block" title="Row Total">Row Total</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f0f2f5]">

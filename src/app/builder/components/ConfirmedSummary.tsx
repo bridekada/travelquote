@@ -191,8 +191,8 @@ export default function ConfirmedSummary({
                              <>
                                <div className="w-1 h-1 rounded-full bg-slate-300" />
                                <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-widest">
-                                  {new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
-                                  {quote.items.length > 1 && ` - ${new Date(quote.items[quote.items.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                                  {quote.eta ? new Date(quote.eta).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' @ ' + new Date(quote.eta).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
+                                  {quote.items.length > 1 && ` - ${quote.etd ? new Date(quote.etd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' @ ' + new Date(quote.etd).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : new Date(quote.items[quote.items.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                                </span>
                              </>
                            )}
@@ -743,24 +743,26 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
   const reportText = `
 Travel Details
 Tour Date: ${quote.items && quote.items.length > 0 ? `${new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${new Date(quote.items[quote.items.length-1].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : 'N/A'}
-Arrival Time: ${quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+Pick Up Time (ETA): ${quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+Drop-off Time (ETD): ${quote.etd ? new Date(quote.etd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
 Pick Up Location: ${quote.pickup_location || 'TBA'}
 Contact Person: ${quote.customer_name}
 Contact Number: ${quote.contact_number || 'N/A'}
-_____________________________________________
+__________
 Expenses
 ${expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
 LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}
-______________________________________________
+__________
 Itinerary (Include Accomodation if applicable)
 ${quote.items?.map(item => {
   const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
     ? item.selected_vehicle_ids 
     : (quote.fleet || []).map((v: any) => v.id);
   const vNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
+  const detailsStr = item.itinerary_details ? `\nDetails:\n*****\n${item.itinerary_details}\n*****` : '';
   
-  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})`;
-}).join('\n')}
+  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})${detailsStr}`;
+}).join('\n\n')}
   `.trim();
 
   const [showCopied, setShowCopied] = React.useState(false);
@@ -829,24 +831,26 @@ ${quote.items?.map(item => {
               <pre className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-slate-700 select-all !pl-0">
                 <span className="font-black text-primary">Travel Details</span>
                 {"\n"}Tour Date: {quote.items && quote.items.length > 0 ? `${new Date(quote.items[0].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${new Date(quote.items[quote.items.length-1].date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : 'N/A'}
-                {"\n"}Arrival Time: {quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+                {"\n"}Pick Up Time (ETA): {quote.eta ? new Date(quote.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
+                {"\n"}Drop-off Time (ETD): {quote.etd ? new Date(quote.etd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
                 {"\n"}Pick Up Location: {quote.pickup_location || 'TBA'}
                 {"\n"}Contact Person: {quote.customer_name}
                 {"\n"}Contact Number: {quote.contact_number || 'N/A'}
-                {"\n"}_____________________________________________
+                {"\n"}__________
                 {"\n"}<span className="font-black text-primary">Expenses</span>
                 {"\n"}{expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
                 {"\n"}<span className="font-black text-rose-600">LESS RESERVATION: ₱{Math.round(totalPaid).toLocaleString()}</span>
-                {"\n"}______________________________________________
+                {"\n"}__________
                 {"\n"}<span className="font-black text-primary">Itinerary (Include Accomodation if applicable)</span>
                 {"\n"}{quote.items?.map(item => {
                   const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 
                     ? item.selected_vehicle_ids 
                     : (quote.fleet || []).map((v: any) => v.id);
                   const vNames = (quote.fleet || []).filter((v: any) => activeIds.includes(v.id)).map((v: any) => v.model).join(', ');
+                  const detailsStr = item.itinerary_details ? `\nDetails:\n*****\n${item.itinerary_details}\n*****` : '';
                   
-                  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})`;
-                }).join('\n')}
+                  return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || 'n/a'}) (Accoms: ${item.guest_accommodation_name || 'n/a'})${detailsStr}`;
+                }).join('\n\n')}
               </pre>
            </div>
         </div>

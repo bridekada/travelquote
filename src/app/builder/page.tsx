@@ -158,6 +158,13 @@ function QuoteBuilder() {
     }
   }, [dbVehicles, quoteId, copyFromId, isLoaded, quote.fleet]);
 
+  const getLocalDateStr = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleRefreshData = async () => {
     if (!selectedOperatorId) return;
     if (!quoteId && !copyFromId) {
@@ -203,7 +210,7 @@ function QuoteBuilder() {
         for (let i = 0; i < days; i++) {
           const currentDate = new Date(start);
           currentDate.setDate(start.getDate() + i);
-          const dateStr = currentDate.toISOString().split('T')[0];
+          const dateStr = getLocalDateStr(currentDate);
           const existing = rawItems.find(item => Number(item.day_number) === i + 1);
           
           if (existing) {
@@ -301,14 +308,14 @@ function QuoteBuilder() {
     const shiftedItems = quote.items.map(item => {
       const itemDate = new Date(item.date);
       itemDate.setDate(itemDate.getDate() + offsetDays);
-      return { ...item, date: itemDate.toISOString().split('T')[0] };
+      return { ...item, date: getLocalDateStr(itemDate) };
     });
 
     // Atomic update: ETA, ETD, and items all shift together
     setQuote(prev => ({
       ...prev,
       eta: iso,
-      etd: formatForInput(newEtd.toISOString()),
+      etd: formatForInput(getLocalDateStr(newEtd) + 'T' + (newEtd.toTimeString().slice(0, 5))),
       items: shiftedItems
     }));
   };
@@ -331,7 +338,7 @@ function QuoteBuilder() {
         for (let i = 0; i < days; i++) {
           const currentDate = new Date(start);
           currentDate.setDate(start.getDate() + i);
-          const dateStr = currentDate.toISOString().split('T')[0];
+          const dateStr = getLocalDateStr(currentDate);
           const existing = quote.items.find(item => Number(item.day_number) === i + 1);
           if (existing) {
             newItems.push({ 
@@ -493,7 +500,7 @@ function QuoteBuilder() {
 
       const newItem: QuoteItem = {
         day_number: prev.items.length + 1,
-        date: newDate.toISOString(),
+        date: getLocalDateStr(newDate),
         destination: "",
         vehicle_rate: fleetTotalRate,
         km: 0,
@@ -512,12 +519,11 @@ function QuoteBuilder() {
       
       // Update ETD to match the new duration
       const etdDate = new Date(newDate);
-      const etdIso = etdDate.toISOString();
 
       return { 
         ...prev, 
         items: nextItems,
-        etd: etdIso.split('T')[0] + (prev.etd && prev.etd.includes('T') ? 'T' + prev.etd.split('T')[1] : 'T12:00')
+        etd: getLocalDateStr(etdDate) + (prev.etd && prev.etd.includes('T') ? 'T' + prev.etd.split('T')[1] : 'T12:00')
       };
     });
   };
@@ -532,7 +538,7 @@ function QuoteBuilder() {
       let nextEtd = prev.etd;
       if (lastItem) {
         const d = new Date(lastItem.date);
-        nextEtd = d.toISOString().split('T')[0] + (prev.etd && prev.etd.includes('T') ? 'T' + prev.etd.split('T')[1] : 'T12:00');
+        nextEtd = getLocalDateStr(d) + (prev.etd && prev.etd.includes('T') ? 'T' + prev.etd.split('T')[1] : 'T12:00');
       }
 
       return { 
@@ -623,14 +629,36 @@ function QuoteBuilder() {
     const tourSummary = currentQuote.quotation_description || currentItems.map(i => i.destination).filter(Boolean).join(" + ");
     const durationCount = currentItems.length;
     const duration = durationCount > 0 ? `${durationCount}D${durationCount - 1}N` : "N/A";
+
+    const formatDateTime = (iso: string | undefined) => {
+      if (!iso) return 'TBA';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return 'TBA';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' @ ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatTimeOnly = (iso: string | undefined, fallback: string) => {
+      if (!iso) return fallback;
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return fallback;
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const etaStr = formatDateTime(currentQuote.eta);
+    const etdStr = formatDateTime(currentQuote.etd);
+
     let text = `Hi ${currentQuote.customer_name || 'Guest'},\n\nHere’s our estimated cost for ${duration} | ${currentQuote.pax_count} pax | ${tourSummary}\n\n`;
+    text += `📅 Travel Schedule: ${etaStr} – ${etdStr}\n\n`;
     
     if (includeItineraryInText && currentItems.length > 0) {
       text += `--- ITINERARY ---\n\n`;
       currentItems.forEach((item, idx) => {
         const d = new Date(item.date);
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        text += `Day ${idx + 1} (${dateStr}): ${item.destination || 'TBA'}\n`;
+        const isFirst = idx === 0;
+        const isLast = idx === currentItems.length - 1;
+        const timeNote = isFirst ? ` (Pickup / Start: ${formatTimeOnly(currentQuote.eta, '08:00 AM')})` : isLast ? ` (Drop-off / End: ${formatTimeOnly(currentQuote.etd, '05:00 PM')})` : '';
+        text += `Day ${idx + 1} (${dateStr})${timeNote}: ${item.destination || 'TBA'}\n`;
         if (item.itinerary_details) item.itinerary_details.split('\n').filter(Boolean).forEach((d: string) => text += `• ${d.replace(/^•\s*/, '')}\n`);
         text += `\n`;
       });

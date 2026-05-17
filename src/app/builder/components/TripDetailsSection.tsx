@@ -169,7 +169,11 @@ export default function TripDetailsSection({
                   const d1 = new Date(date);
                   const d2 = new Date(quote.eta);
                   const isSameDay = d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-                  if (!isSameDay) onEtaChangeRequest(date, newIso);
+                  if (!isSameDay) {
+                    onEtaChangeRequest(date, newIso);
+                  } else {
+                    setQuote({ ...quote, eta: newIso });
+                  }
                 }}
               />
               <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600/50" size={14} />
