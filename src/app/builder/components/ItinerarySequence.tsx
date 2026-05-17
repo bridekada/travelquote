@@ -207,30 +207,28 @@ export default function ItinerarySequence({
                       clearable={true}
                       renderOption={(a) => (
                         <>
-                          {a.name} <span className="opacity-50 text-[10px] ml-2">(₱{a.amount?.toLocaleString()})</span>
+                          {a.name} <span className="opacity-50 text-[10px] ml-2">({a.pax_count} Pax | ₱{a.amount?.toLocaleString()})</span>
                         </>
                       )}
                       className={`!h-[34px] !px-4 !bg-white shadow-sm !border-slate-300 font-bold text-primary !text-[11px] w-full !rounded-xl ${readOnly ? "opacity-60 grayscale cursor-default" : ""}`}
                     />
                   </div>
 
-                  {!item.guest_accommodation_id && (
-                    <div className="col-span-4 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Manual Price (₱)</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
-                          style={{ height: '34px', fontSize: '11px' }}
-                          placeholder="0"
-                          value={item.guest_accommodation_amount || ""}
-                          onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
-                          disabled={readOnly}
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
-                      </div>
+                  <div className="col-span-4 space-y-1 animate-in fade-in slide-in-from-left-1 duration-200">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Manual Price (₱)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="input !py-1 !px-3 !bg-rose-50/10 shadow-sm !border-rose-300/50 font-bold text-primary pr-6 !rounded-lg disabled:opacity-40 disabled:grayscale transition-all"
+                        style={{ height: '34px', fontSize: '11px' }}
+                        placeholder="0"
+                        value={item.guest_accommodation_amount || ""}
+                        onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })}
+                        disabled={readOnly}
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-rose-600/40">₱</span>
                     </div>
-                  )}
+                  </div>
 
                   <div className="col-span-4 space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-widest text-text-tertiary ml-1 mb-0.5 inline-block">Hotel Link (URL)</label>
