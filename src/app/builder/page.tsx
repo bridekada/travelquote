@@ -1295,6 +1295,7 @@ function QuoteBuilder() {
           payment_method: data.method || 'Cash',
           reference_number: data.reference,
           notes: data.notes,
+          actual_date: data.actual_date,
           updated_by: profile?.id,
           updated_at: new Date().toISOString()
         }).eq('id', editingPayment.id);
@@ -1322,6 +1323,7 @@ function QuoteBuilder() {
           payment_method: data.method || 'Cash', 
           reference_number: data.reference, 
           notes: data.notes,
+          actual_date: data.actual_date,
           created_by: profile?.id
         }]);
 
@@ -1397,6 +1399,7 @@ function QuoteBuilder() {
           amount: parseFloat(data.amount),
           reference_number: data.reference,
           notes: data.notes,
+          actual_date: data.actual_date,
           updated_by: profile?.id,
           updated_at: new Date().toISOString()
         }).eq('id', editingDisbursement.id);
@@ -1415,6 +1418,7 @@ function QuoteBuilder() {
           amount: parseFloat(data.amount), 
           reference_number: data.reference, 
           notes: data.notes,
+          actual_date: data.actual_date,
           created_by: profile?.id
         }]);
 
