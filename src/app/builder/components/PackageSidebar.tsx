@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Settings, ChevronDown, Trash2, CheckCircle, Star, Sparkles, CreditCard, Receipt, ShieldCheck, FileText, ArrowRight, Save, Layout, Car, Fuel, Users } from "lucide-react";
+import { Plus, X, Settings, ChevronDown, Trash2, Check, Star, Sparkles, CreditCard, Receipt, ShieldCheck, FileText, ArrowRight, Save, Layout, Car, Fuel, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExtraFee } from "./types";
 
@@ -72,6 +72,74 @@ export default function PackageSidebar({
 
   return (
     <div className="w-full lg:w-[480px] bg-white lg:border-l border-t lg:border-t-0 border-slate-300 shadow-sm transition-all flex flex-col shrink-0 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] overflow-hidden lg:shadow-2xl">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .override-adjust-card {
+          padding: 16px !important;
+          background-color: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 12px !important;
+          display: block !important;
+          box-sizing: border-box !important;
+        }
+        .override-adjust-field-group {
+          margin-bottom: 12px !important;
+          display: block !important;
+        }
+        .override-adjust-input {
+          padding: 8px 12px !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          border-radius: 8px !important;
+          box-sizing: border-box !important;
+          display: block !important;
+          width: 100% !important;
+          background-color: #ffffff !important;
+          border: 1px solid #cbd5e1 !important;
+          color: #0f172a !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          outline: none !important;
+        }
+        .override-adjust-input:focus {
+          border-color: #006644 !important;
+        }
+        .override-adjust-input::placeholder {
+          color: #94a3b8 !important;
+          opacity: 0.6 !important;
+        }
+        .override-adjust-label {
+          margin-bottom: 4px !important;
+          margin-left: 2px !important;
+          font-size: 8.5px !important;
+          font-weight: 900 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.1em !important;
+          color: #64748b !important;
+          display: block !important;
+        }
+        .override-adjust-button {
+          height: 36px !important;
+          min-height: 36px !important;
+          background-color: #006644 !important;
+          color: #ffffff !important;
+          border-radius: 8px !important;
+          font-size: 9px !important;
+          font-weight: 900 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.15em !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 6px !important;
+          width: 100% !important;
+          border: none !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+        }
+        .override-adjust-button:hover {
+          background-color: #005538 !important;
+        }
+      `}} />
       <div className="px-4 md:px-8 lg:!px-12 pt-6 md:pt-8 lg:!pt-10 pb-6 md:pb-8 lg:!pb-10 flex-1 lg:overflow-y-auto space-y-8 md:space-y-10 custom-scrollbar">
         
         <div className="space-y-6 md:space-y-8">
@@ -94,7 +162,7 @@ export default function PackageSidebar({
                   {/* Card Header */}
                   <div className="flex justify-between items-center card-header-spacious">
                     <div className="flex items-center gap-2">
-                       <div className={`px-2.5 py-1 rounded-md text-[7px] font-black uppercase tracking-[0.2em] shadow-sm ${
+                       <div className={`!px-2.5 !py-1 rounded-md text-[7px] font-black uppercase tracking-[0.2em] shadow-sm ${
                         isSelected ? "bg-white/10 text-white/50 border border-white/5" : "bg-gray-50 text-text-tertiary border border-gray-100"
                       }`}>
                         Package {i + 1}
@@ -128,7 +196,7 @@ export default function PackageSidebar({
                       )}
                       {isSelected && (
                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                            <CheckCircle size={18} fill="currentColor" className="text-emerald-400 drop-shadow-glow" />
+                            <Check size={20} className="text-emerald-400 font-extrabold drop-shadow-glow stroke-[3]" />
                          </motion.div>
                       )}
                     </div>
@@ -153,7 +221,7 @@ export default function PackageSidebar({
                       <span className={`text-[8px] font-black uppercase tracking-[0.25em] mb-1 transition-colors ${isSelected ? "text-white/40" : "text-text-tertiary/40"}`}>
                         Proposal Amount
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-start">
                         <div className="flex items-center">
                           <span className={`text-base font-bold mr-1 transition-colors ${isSelected ? "text-white/30" : "text-primary/10"}`}>₱</span>
                           <span className={`text-2xl md:text-3xl font-black tracking-tighter leading-none transition-colors ${isSelected ? "text-white" : "text-primary"}`}>
@@ -161,7 +229,7 @@ export default function PackageSidebar({
                           </span>
                         </div>
                         {pkg.commissionAmount > 0 && (
-                          <div className={`px-2 py-0.5 rounded-md text-[8px] font-bold lowercase tracking-tight transition-all flex items-center gap-1 ${
+                          <div className={`!px-2.5 !py-1 rounded-md text-[8px] font-bold lowercase tracking-tight transition-all flex items-center gap-1 !mt-1.5 ${
                             isSelected ? "bg-amber-400/10 text-amber-400 border border-amber-400/20" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                           }`}>
                             + ₱{Math.round(pkg.commissionAmount).toLocaleString()} commission
@@ -272,37 +340,37 @@ export default function PackageSidebar({
 
           <div className="space-y-4">
             {isAdjustOpen && (
-              <div className="p-6 bg-gray-50/50 rounded-[20px] space-y-4 animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-2">
-                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-tertiary ml-1">Fee Description</label>
+              <div className="override-adjust-card animate-in fade-in slide-in-from-top-3 duration-200">
+                <div className="override-adjust-field-group">
+                  <label className="override-adjust-label">Fee Description</label>
                   <input 
                     type="text" 
                     placeholder="e.g., Early Bird Discount" 
-                    className="w-full bg-white border border-slate-300 shadow-sm transition-all rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
+                    className="override-adjust-input"
                     value={newFeeName}
                     onChange={(e) => setNewFeeName(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-tertiary">Amount (₱)</label>
-                    <span className="text-[7px] font-bold text-text-tertiary/50 uppercase tracking-widest leading-none">
-                      Use <span className="text-rose-500">-</span> for discount, <span className="text-emerald-600">+</span> for markup
+                <div className="override-adjust-field-group" style={{ marginBottom: '24px' }}>
+                  <div className="flex justify-between items-center mb-2 ml-1">
+                    <label className="override-adjust-label" style={{ marginBottom: '0px' }}>Amount (₱)</label>
+                    <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                      Use <span className="text-rose-500 font-black">-</span> for discount, <span className="text-emerald-600 font-black">+</span> for markup
                     </span>
                   </div>
                   <input 
                     type="number" 
                     placeholder="Enter amount..." 
-                    className="w-full bg-white border border-slate-300 shadow-sm transition-all rounded-xl px-4 py-3 text-xs font-bold outline-none ring-primary/20 focus:ring-1"
+                    className="override-adjust-input"
                     value={newFeeAmount}
                     onChange={(e) => setNewFeeAmount(e.target.value)}
                   />
                 </div>
                 <button 
                   onClick={handleAddFee}
-                  className="w-full h-8 bg-primary text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  className="override-adjust-button"
                 >
-                  <Plus size={14} /> Add adjustment
+                  <Plus size={12} /> Add adjustment
                 </button>
               </div>
             )}

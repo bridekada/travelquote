@@ -2271,13 +2271,23 @@ function MiscPresetListItem({ preset, onEdit, onDelete }: any) {
         </div>
         <div>
           <h3 style={labelStyle} className="!mb-0.5 truncate">{preset.name}</h3>
-          {preset.multiply_by_vehicle && (
-            <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {preset.multiply_by_vehicle && (
               <div className="bg-blue-50 text-blue-600 border border-blue-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
                 <CarFront size={8} /> Scale by Vehicle
               </div>
-            </div>
-          )}
+            )}
+            {preset.multiply_by_guest && (
+              <div className="bg-purple-50 text-purple-600 border border-purple-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
+                <Users size={8} className="mr-0.5" /> Scale by Guest
+              </div>
+            )}
+            {preset.hide_in_quote && (
+              <div className="bg-rose-50 text-rose-600 border border-rose-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
+                <X size={8} strokeWidth={3} className="mr-0.5" /> Hidden in Quote
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
@@ -2637,6 +2647,44 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
               <div className="!flex !flex-col">
                 <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Scale by Vehicle Count</span>
                 <span className="!text-[10px] !text-slate-500 !font-medium">Multiply this fee by the number of vehicles assigned</span>
+              </div>
+            </label>
+          </div>
+
+          <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+            <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">
+              <div className="relative !flex !items-center !justify-center">
+                <input 
+                  type="checkbox" 
+                  name="multiply_by_guest" 
+                  value="true" 
+                  defaultChecked={editingItem?.multiply_by_guest} 
+                  className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
+                />
+                <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
+              </div>
+              <div className="!flex !flex-col">
+                <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Scale by Guest Count</span>
+                <span className="!text-[10px] !text-slate-500 !font-medium">Multiply this fee by the total number of guests (pax count)</span>
+              </div>
+            </label>
+          </div>
+
+          <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+            <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">
+              <div className="relative !flex !items-center !justify-center">
+                <input 
+                  type="checkbox" 
+                  name="hide_in_quote" 
+                  value="true" 
+                  defaultChecked={editingItem?.hide_in_quote} 
+                  className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
+                />
+                <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
+              </div>
+              <div className="!flex !flex-col">
+                <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Do not show in quote</span>
+                <span className="!text-[10px] !text-slate-500 !font-medium">Hide this miscellaneous fee item from the compiled quotation inclusions/exclusions text</span>
               </div>
             </label>
           </div>

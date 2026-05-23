@@ -728,6 +728,7 @@ function QuoteBuilder() {
       let driverExcluded = false;
 
       dbMiscPresets.forEach(m => {
+        if (m.hide_in_quote) return;
         const name = m.name.toLowerCase();
         if (name.includes('car wash') || name.includes('parking') || name.includes('overtime') || name === 'ot' || name.split(' ').includes('ot')) return;
 
@@ -751,6 +752,7 @@ function QuoteBuilder() {
       excs.push("Guest meals");
       excs.push("Entrance fees");
       excs.push("Activity fees");
+      excs.push("Any other items not included in the inclusions");
 
       text += `✔ INCLUSIONS:\n`;
       incs.forEach(inc => text += `• ${inc}\n`);

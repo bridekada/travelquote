@@ -128,6 +128,13 @@ export default function ItinerarySequence({
                       options={dbPresets}
                       getLabel={(p) => p.title}
                       getValue={(p) => p.id}
+                      renderOption={(p) => (
+                        <>
+                          {p.title} {p.default_km !== undefined && p.default_km !== null && p.default_km > 0 && (
+                            <span className="opacity-50 text-[10px] ml-2">({p.default_km} KM)</span>
+                          )}
+                        </>
+                      )}
                       placeholder="Select or type itinerary..."
                       searchPlaceholder="Search or type new..."
                       disabled={readOnly}
