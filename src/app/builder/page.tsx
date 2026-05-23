@@ -108,17 +108,87 @@ function QuoteBuilder() {
     confirmed_at: null, items: [], fleet: [], quotation_description: ""
   });
 
+  const [profilesCache, setProfilesCache] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadProfilesCache = async () => {
+      const { data } = await supabase.from('profiles').select('id, full_name');
+      if (data) {
+        const cache: Record<string, string> = {};
+        data.forEach(p => {
+          if (p.id && p.full_name) cache[p.id] = p.full_name;
+        });
+        setProfilesCache(cache);
+      }
+    };
+    loadProfilesCache();
+  }, []);
+
   const [payments, setPayments] = useState<any[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaymentSaving, setIsPaymentSaving] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any | null>(null);
 
   const fetchPayments = async () => {
     if (!quoteId) return;
-    const { data } = await supabase.from('payments').select('*').eq('quote_id', quoteId).order('created_at', { ascending: false });
-    if (data) setPayments(data);
+    const { data, error } = await supabase.from('payments')
+      .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.warn("Payments join fetch failed, trying fallback select...", error);
+      const { data: fallbackData } = await supabase.from('payments')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .order('created_at', { ascending: false });
+      if (fallbackData) {
+        const hydrated = fallbackData.map(p => ({
+          ...p,
+          creator: p.created_by ? { full_name: profilesCache[p.created_by] || (p.created_by === profile?.id ? profile?.full_name : 'System') } : null,
+          modifier: p.updated_by ? { full_name: profilesCache[p.updated_by] || (p.updated_by === profile?.id ? profile?.full_name : 'System') } : null
+        }));
+        setPayments(hydrated);
+      }
+    } else if (data) {
+      setPayments(data);
+    }
   };
 
-  useEffect(() => { if (quoteId) fetchPayments(); }, [quoteId]);
+  useEffect(() => { if (quoteId) fetchPayments(); }, [quoteId, profilesCache]);
+
+  const [disbursements, setDisbursements] = useState<any[]>([]);
+  const [isDisbursementModalOpen, setIsDisbursementModalOpen] = useState(false);
+  const [isDisbursementSaving, setIsDisbursementSaving] = useState(false);
+  const [editingDisbursement, setEditingDisbursement] = useState<any | null>(null);
+
+  const fetchDisbursements = async () => {
+    if (!quoteId) return;
+    const { data, error } = await supabase.from('disbursements')
+      .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.warn("Disbursements join fetch failed, trying fallback select...", error);
+      const { data: fallbackData } = await supabase.from('disbursements')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .order('created_at', { ascending: false });
+      if (fallbackData) {
+        const hydrated = fallbackData.map(d => ({
+          ...d,
+          creator: d.created_by ? { full_name: profilesCache[d.created_by] || (d.created_by === profile?.id ? profile?.full_name : 'System') } : null,
+          modifier: d.updated_by ? { full_name: profilesCache[d.updated_by] || (d.updated_by === profile?.id ? profile?.full_name : 'System') } : null
+        }));
+        setDisbursements(hydrated);
+      }
+    } else if (data) {
+      setDisbursements(data);
+    }
+  };
+
+  useEffect(() => { if (quoteId) fetchDisbursements(); }, [quoteId, profilesCache]);
 
   // Data Loading
   useEffect(() => {
@@ -279,8 +349,9 @@ function QuoteBuilder() {
     }
     setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
     
-    // Also refresh payments
+    // Also refresh payments & disbursements
     fetchPayments();
+    fetchDisbursements();
 
     hasHydrated.current = true;
     setIsLoaded(true);
@@ -1218,32 +1289,61 @@ function QuoteBuilder() {
 
     setIsPaymentSaving(true);
     try {
-      const { error } = await supabase.from('payments').insert([{ 
-        quote_id: quote.id, 
-        amount: parseFloat(data.amount), 
-        payment_method: data.method, 
-        reference_number: data.reference, 
-        notes: data.notes 
-      }]);
+      if (editingPayment) {
+        const { error } = await supabase.from('payments').update({
+          amount: parseFloat(data.amount),
+          payment_method: data.method || 'Cash',
+          reference_number: data.reference,
+          notes: data.notes,
+          updated_by: profile?.id,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingPayment.id);
 
-      if (error) {
-        throw new Error(`Failed to record payment: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to update payment: ${error.message}`);
+        }
+
+        const { data: remainingPayments } = await supabase.from('payments').select('amount').eq('quote_id', quote.id);
+        const totalPaid = (remainingPayments || []).reduce((s, p) => s + p.amount, 0);
+        const totalAgreed = quote.selected_package_details?.total_amount || 0;
+        const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
+
+        await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+        setQuote(prev => ({ ...prev, status: nextStatus }));
+
+        setEditingPayment(null);
+        setIsPaymentModalOpen(false);
+        await fetchPayments();
+        openDialog({ title: "Success", message: "Payment successfully updated.", type: "success" });
+      } else {
+        const { error } = await supabase.from('payments').insert([{ 
+          quote_id: quote.id, 
+          amount: parseFloat(data.amount), 
+          payment_method: data.method || 'Cash', 
+          reference_number: data.reference, 
+          notes: data.notes,
+          created_by: profile?.id
+        }]);
+
+        if (error) {
+          throw new Error(`Failed to record payment: ${error.message}`);
+        }
+
+        const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
+        const totalAgreed = quote.selected_package_details?.total_amount || 0;
+        const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
+
+        const { error: updateError } = await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+        
+        if (updateError) {
+          throw new Error(`Payment recorded but failed to update quote status: ${updateError.message}`);
+        }
+
+        setIsPaymentModalOpen(false); 
+        await fetchPayments(); 
+        setQuote(prev => ({ ...prev, status: nextStatus }));
+        openDialog({ title: "Success", message: "Payment successfully recorded.", type: "success" });
       }
-
-      const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
-      const totalAgreed = quote.selected_package_details?.total_amount || 0;
-      const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
-
-      const { error: updateError } = await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
-      
-      if (updateError) {
-        throw new Error(`Payment recorded but failed to update quote status: ${updateError.message}`);
-      }
-
-      setIsPaymentModalOpen(false); 
-      await fetchPayments(); 
-      setQuote(prev => ({ ...prev, status: nextStatus }));
-      openDialog({ title: "Success", message: "Payment successfully recorded.", type: "success" });
     } catch (e: any) {
       openDialog({ title: "Payment Error", message: e.message, type: "warning" });
     } finally {
@@ -1284,6 +1384,74 @@ function QuoteBuilder() {
     });
   };
 
+  const handleAddDisbursementLocal = async (data: any) => {
+    if (!quote.id) {
+      openDialog({ title: "System Error", message: "Quote ID missing. Please refresh and try again.", type: "warning" });
+      return;
+    }
+
+    setIsDisbursementSaving(true);
+    try {
+      if (editingDisbursement) {
+        const { error } = await supabase.from('disbursements').update({
+          amount: parseFloat(data.amount),
+          reference_number: data.reference,
+          notes: data.notes,
+          updated_by: profile?.id,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingDisbursement.id);
+
+        if (error) {
+          throw new Error(`Failed to update disbursement: ${error.message}`);
+        }
+
+        setEditingDisbursement(null);
+        setIsDisbursementModalOpen(false);
+        await fetchDisbursements();
+        openDialog({ title: "Success", message: "Disbursement successfully updated.", type: "success" });
+      } else {
+        const { error } = await supabase.from('disbursements').insert([{ 
+          quote_id: quote.id, 
+          amount: parseFloat(data.amount), 
+          reference_number: data.reference, 
+          notes: data.notes,
+          created_by: profile?.id
+        }]);
+
+        if (error) {
+          throw new Error(`Failed to record disbursement: ${error.message}`);
+        }
+
+        setIsDisbursementModalOpen(false); 
+        await fetchDisbursements(); 
+        openDialog({ title: "Success", message: "Disbursement successfully recorded.", type: "success" });
+      }
+    } catch (e: any) {
+      openDialog({ title: "Disbursement Error", message: e.message, type: "warning" });
+    } finally {
+      setIsDisbursementSaving(true);
+      setTimeout(() => setIsDisbursementSaving(false), 500);
+    }
+  };
+
+  const handleVoidDisbursementLocal = async (id: string) => {
+    openDialog({
+      title: "Void Disbursement",
+      message: "Are you sure you want to permanently void this disbursement record? This action cannot be undone.",
+      type: "warning",
+      confirmText: "Void Disbursement",
+      onConfirm: async () => {
+        const { error } = await supabase.from('disbursements').delete().eq('id', id);
+        if (error) {
+          openDialog({ title: "Error", message: error.message, type: "warning" });
+        } else {
+          await fetchDisbursements();
+          openDialog({ title: "Disbursement Voided", message: "The disbursement ledger has been updated.", type: "success" });
+        }
+      }
+    });
+  };
+
   const handleDuplicate = () => {
     if (!quoteId) return;
     openDialog({
@@ -1310,6 +1478,16 @@ function QuoteBuilder() {
           isSaving={isPaymentSaving}
           dbMiscPresets={dbMiscPresets}
           onRefresh={handleRefreshData}
+          disbursements={disbursements}
+          isDisbursementModalOpen={isDisbursementModalOpen}
+          setIsDisbursementModalOpen={setIsDisbursementModalOpen}
+          handleAddDisbursement={handleAddDisbursementLocal}
+          handleVoidDisbursement={handleVoidDisbursementLocal}
+          isDisbursementSaving={isDisbursementSaving}
+          editingPayment={editingPayment}
+          setEditingPayment={setEditingPayment}
+          editingDisbursement={editingDisbursement}
+          setEditingDisbursement={setEditingDisbursement}
         />
         <InfoDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
       </>
