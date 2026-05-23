@@ -70,6 +70,15 @@ function QuoteBuilder() {
   const [dbAccommodations, setDbAccommodations] = useState<any[]>([]);
   const [livePackages, setLivePackages] = useState<any[]>([]);
 
+  // Helper to resolve vehicle overrides by matching quote fleet dynamic IDs with database vehicle models
+  const getOverrideRate = (vid: string, p: any, fleet: any[]) => {
+    const fleetVehicle = (fleet || []).find(v => v.id === vid);
+    if (!fleetVehicle) return p.default_amount;
+    const dbV = dbVehicles.find(dv => dv.model === fleetVehicle.model);
+    const lookupId = dbV ? dbV.id : vid;
+    return p.vehicle_overrides?.[lookupId] !== undefined ? p.vehicle_overrides[lookupId] : p.default_amount;
+  };
+
   // Dialog State
   const [dialogConfig, setDialogConfig] = useState<{
     isOpen: boolean; title: string; message: string; type: 'confirm' | 'alert' | 'success' | 'warning';
@@ -443,8 +452,17 @@ function QuoteBuilder() {
           
           if (updates.tags) {
             if (isCurrentlyActive && !wasPreviouslyActive) {
-              // This is a NEWLY added tag: Apply default
-              dCosts[p.id] = p.multiply_by_vehicle ? (p.default_amount * vehicleCount) : p.default_amount;
+              // This is a NEWLY added tag: Apply default or override
+              if (p.multiply_by_vehicle) {
+                let cost = 0;
+                activeIds.forEach(vid => {
+                  const rate = getOverrideRate(vid, p, prev.fleet);
+                  cost += rate;
+                });
+                dCosts[p.id] = cost;
+              } else {
+                dCosts[p.id] = p.default_amount;
+              }
             } else if (!isCurrentlyActive && wasPreviouslyActive) {
               // Tag was EXPLICITLY REMOVED: Set to 0
               dCosts[p.id] = 0;
@@ -452,7 +470,12 @@ function QuoteBuilder() {
             // If it's an existing manual entry with no tag, OR an existing tag, we leave it alone!
           } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive && p.multiply_by_vehicle) {
             // Vehicle changed: Only update fees that are explicitly marked to scale
-            dCosts[p.id] = p.default_amount * vehicleCount;
+            let cost = 0;
+            activeIds.forEach(vid => {
+              const rate = getOverrideRate(vid, p, prev.fleet);
+              cost += rate;
+            });
+            dCosts[p.id] = cost;
           }
         });
         updated.dynamic_costs = dCosts;
@@ -822,11 +845,15 @@ function QuoteBuilder() {
         const activeIds = validSelectedIds.length > 0 
           ? validSelectedIds 
           : newFleet.map(v => v.id);
-        const vehicleCount = activeIds.length || 1;
 
         dbMiscPresets.forEach(p => {
           if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
-            dCosts[p.id] = p.default_amount * vehicleCount;
+            let cost = 0;
+            activeIds.forEach(vid => {
+              const rate = getOverrideRate(vid, p, newFleet);
+              cost += rate;
+            });
+            dCosts[p.id] = cost;
           }
         });
         updated.dynamic_costs = dCosts;
@@ -841,10 +868,14 @@ function QuoteBuilder() {
           
           // Re-update dCosts for added vehicles
           const newActiveIds = updated.selected_vehicle_ids;
-          const newVehicleCount = newActiveIds.length;
           dbMiscPresets.forEach(p => {
             if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
-              dCosts[p.id] = p.default_amount * newVehicleCount;
+              let cost = 0;
+              newActiveIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, newFleet);
+                cost += rate;
+              });
+              dCosts[p.id] = cost;
             }
           });
         }

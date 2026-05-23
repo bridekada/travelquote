@@ -135,12 +135,26 @@ export async function saveMiscPreset(formData: FormData, operatorId: string) {
   const supabase = await getSupabase();
   const id = formData.get('id') as string;
   const name = (formData.get('name') as string).trim();
+
+  // Extract vehicle overrides from formData
+  const vehicle_overrides: Record<string, number> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('vehicle_override_')) {
+      const vehicleId = key.replace('vehicle_override_', '');
+      const rate = parseFloat(value as string);
+      if (!isNaN(rate) && rate > 0) {
+        vehicle_overrides[vehicleId] = rate;
+      }
+    }
+  }
+
   const data: any = {
     name,
     default_amount: parseFloat(formData.get('default_amount') as string) || 0,
     multiply_by_vehicle: formData.get('multiply_by_vehicle') === 'true',
     hide_in_quote: formData.get('hide_in_quote') === 'true',
     multiply_by_guest: formData.get('multiply_by_guest') === 'true',
+    vehicle_overrides,
   };
 
   try {

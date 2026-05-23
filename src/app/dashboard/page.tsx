@@ -2586,6 +2586,20 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
 
 function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [multiplyByVehicle, setMultiplyByVehicle] = useState(editingItem?.multiply_by_vehicle || false);
+  const [defaultAmount, setDefaultAmount] = useState(editingItem?.default_amount || 0);
+
+  useEffect(() => {
+    async function loadVehicles() {
+      const res = await getVehicles(operatorId);
+      if (!res.error) {
+        setVehicles(res.data || []);
+      }
+    }
+    loadVehicles();
+  }, [operatorId]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -2610,26 +2624,32 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
         {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
         <div className="!space-y-4">
-          <div className="!space-y-1">
-            <label className={premiumFormStyles.label}>FEE NAME</label>
-            <input 
-              name="name" 
-              defaultValue={editingItem?.name} 
-              className={premiumFormStyles.input} 
-              placeholder="e.g. Ferry Fare" 
-              required 
-            />
-          </div>
-          <div className="!space-y-1">
-            <label className={premiumFormStyles.label}>DEFAULT AMOUNT (₱)</label>
-            <input 
-              name="default_amount" 
-              type="number" 
-              defaultValue={editingItem?.default_amount} 
-              className={premiumFormStyles.input} 
-              placeholder="0" 
-              required 
-            />
+          <div className="!flex !gap-4">
+            <div className="!flex-1 !space-y-1">
+              <label className={premiumFormStyles.label}>FEE NAME</label>
+              <input 
+                name="name" 
+                defaultValue={editingItem?.name} 
+                className="!w-full !h-9 !px-3 !bg-emerald-50/20 !border-2 !border-slate-200 !rounded-xl !text-[12px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-2 focus:!ring-emerald-500/5 !transition-all !outline-none" 
+                placeholder="e.g. Ferry Fare" 
+                required 
+              />
+            </div>
+            <div className="!w-40 shrink-0 !space-y-1">
+              <label className={premiumFormStyles.label}>DEFAULT AMOUNT</label>
+              <div className="relative !flex !items-center">
+                <span className="absolute !left-3 !text-[12px] !font-bold !text-slate-400">₱</span>
+                <input 
+                  name="default_amount" 
+                  type="number" 
+                  defaultValue={editingItem?.default_amount} 
+                  onChange={(e) => setDefaultAmount(parseFloat(e.target.value) || 0)}
+                  className="!w-full !h-9 !px-3 !bg-emerald-50/20 !border-2 !border-slate-200 !rounded-xl !text-[12px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-2 focus:!ring-emerald-500/5 !transition-all !outline-none !pl-7" 
+                  placeholder="0" 
+                  required 
+                />
+              </div>
+            </div>
           </div>
           
           <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
@@ -2639,7 +2659,8 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
                   type="checkbox" 
                   name="multiply_by_vehicle" 
                   value="true" 
-                  defaultChecked={editingItem?.multiply_by_vehicle} 
+                  checked={multiplyByVehicle} 
+                  onChange={(e) => setMultiplyByVehicle(e.target.checked)}
                   className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
                 />
                 <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
@@ -2650,6 +2671,39 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
               </div>
             </label>
           </div>
+
+          {multiplyByVehicle && vehicles.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="!bg-slate-50/50 !p-5 !rounded-2xl !border !border-slate-100 !space-y-4 !my-2"
+            >
+              <div className="!flex !flex-col">
+                <span className="!text-[11px] !font-bold !text-slate-800 !uppercase !tracking-wider">Vehicle Rate Overrides (Optional)</span>
+                <span className="!text-[10px] !text-slate-500 !mt-0.5">Specify a custom rate for specific vehicles. Leave blank to use the standard default amount.</span>
+              </div>
+              <div className="!flex !flex-col !gap-1.5">
+                {vehicles.map((v) => (
+                  <div key={v.id} className="!flex !items-center !justify-between !gap-3 !bg-white !py-1.5 !px-3 !rounded-lg !border !border-slate-200/60 shadow-sm transition-all hover:border-slate-300">
+                    <div className="!flex !flex-col !min-w-0 !flex-1">
+                      <span className="!text-[10px] !font-bold !text-slate-800 !truncate">{v.model}</span>
+                      <span className="!text-[8px] !text-slate-400 !font-bold !uppercase !tracking-wider">{v.category}</span>
+                    </div>
+                    <div className="relative !flex !items-center !w-28 shrink-0">
+                      <span className="absolute !left-2 !text-[10px] !font-bold !text-slate-400">₱</span>
+                      <input 
+                        name={`vehicle_override_${v.id}`}
+                        type="number"
+                        defaultValue={editingItem?.vehicle_overrides?.[v.id]}
+                        className="!w-full !h-7 !px-2.5 !bg-slate-50/50 !border !border-slate-200 !rounded-md !text-[10px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-1 focus:!ring-emerald-500/5 !transition-all !outline-none !pl-5.5"
+                        placeholder={`${defaultAmount}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
             <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">

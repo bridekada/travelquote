@@ -86,6 +86,8 @@ export default function ConfirmedSummary({
 
   // 4. Misc Persistence Logic
   dbMiscPresets.forEach(m => {
+    if (m.hide_in_quote) return; // Skip completely if flagged as hidden from quote
+    
     const isIncludedInConfig = (details.inclusions?.misc_details || []).some((md: any) => md.name === m.name);
     const totalValue = quote.items?.reduce((sum, item) => {
       return sum + (item.dynamic_costs?.[m.id] || 0);
