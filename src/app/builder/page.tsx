@@ -71,7 +71,7 @@ function QuoteBuilder() {
   const [livePackages, setLivePackages] = useState<any[]>([]);
 
   // Helper to resolve vehicle overrides by matching quote fleet dynamic IDs with database vehicle models
-  const getOverrideRate = (vid: string, p: any, fleet: any[]) => {
+  const getOverrideRate = (vid: string, p: any, fleet: any[] = []) => {
     const fleetVehicle = (fleet || []).find(v => v.id === vid);
     if (!fleetVehicle) return p.default_amount;
     const dbV = dbVehicles.find(dv => dv.model === fleetVehicle.model);
@@ -368,6 +368,59 @@ function QuoteBuilder() {
     }
   }, [quote.eta, quote.etd, quote.items.length, quoteId, copyFromId, isLoaded, quote.default_fuel_price, quote.vehicle_model, dbVehicles]);
 
+  // Automatically recalculate guest-scaled miscellaneous costs whenever pax_count changes
+  useEffect(() => {
+    if (!isLoaded || dbMiscPresets.length === 0) return;
+    
+    setQuote(prev => {
+      let changed = false;
+      const updatedItems = prev.items.map(item => {
+        const dCosts = { ...item.dynamic_costs };
+        let itemChanged = false;
+        
+        dbMiscPresets.forEach(p => {
+          if (item.tags.includes(p.name) && p.multiply_by_guest) {
+            // Recalculate guest-scaled fee
+            const paxCount = Number(prev.pax_count) || 1;
+            let baseCost = 0;
+            if (p.multiply_by_vehicle) {
+              const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0
+                ? item.selected_vehicle_ids
+                : (prev.fleet?.map(v => v.id) || []);
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, prev.fleet || []);
+                baseCost += rate;
+              });
+            } else {
+              baseCost = p.default_amount;
+            }
+            
+            const newCost = baseCost * paxCount;
+            if (dCosts[p.id] !== newCost) {
+              dCosts[p.id] = newCost;
+              itemChanged = true;
+            }
+          }
+        });
+        
+        if (itemChanged) {
+          changed = true;
+          const updatedItem = { ...item, dynamic_costs: dCosts };
+          return {
+            ...updatedItem,
+            row_total: calculateRowTotal(updatedItem, prev.admin_commission || 0, prev.fleet)
+          };
+        }
+        return item;
+      });
+      
+      if (changed) {
+        return { ...prev, items: updatedItems };
+      }
+      return prev;
+    });
+  }, [quote.pax_count, dbMiscPresets, dbVehicles, isLoaded]);
+
   // Calculations Memo
   const totals = useMemo(() => {
     const packagesToCompute = livePackages.length > 0 ? livePackages : [{ name: 'Total Amount', includes_vehicle: true, includes_fuel: true, includes_accommodation: true, includes_misc_ids: dbMiscPresets.map(p => p.id) }];
@@ -453,29 +506,43 @@ function QuoteBuilder() {
           if (updates.tags) {
             if (isCurrentlyActive && !wasPreviouslyActive) {
               // This is a NEWLY added tag: Apply default or override
+              let cost = 0;
               if (p.multiply_by_vehicle) {
-                let cost = 0;
                 activeIds.forEach(vid => {
-                  const rate = getOverrideRate(vid, p, prev.fleet);
+                  const rate = getOverrideRate(vid, p, prev.fleet || []);
                   cost += rate;
                 });
-                dCosts[p.id] = cost;
               } else {
-                dCosts[p.id] = p.default_amount;
+                cost = p.default_amount;
               }
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+              }
+
+              dCosts[p.id] = cost;
             } else if (!isCurrentlyActive && wasPreviouslyActive) {
               // Tag was EXPLICITLY REMOVED: Set to 0
               dCosts[p.id] = 0;
             }
             // If it's an existing manual entry with no tag, OR an existing tag, we leave it alone!
-          } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive && p.multiply_by_vehicle) {
+          } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive) {
             // Vehicle changed: Only update fees that are explicitly marked to scale
-            let cost = 0;
-            activeIds.forEach(vid => {
-              const rate = getOverrideRate(vid, p, prev.fleet);
-              cost += rate;
-            });
-            dCosts[p.id] = cost;
+            if (p.multiply_by_vehicle) {
+              let cost = 0;
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, prev.fleet || []);
+                cost += rate;
+              });
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+              }
+
+              dCosts[p.id] = cost;
+            }
           }
         });
         updated.dynamic_costs = dCosts;
@@ -847,13 +914,29 @@ function QuoteBuilder() {
           : newFleet.map(v => v.id);
 
         dbMiscPresets.forEach(p => {
-          if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
+          if (item.tags.includes(p.name)) {
             let cost = 0;
-            activeIds.forEach(vid => {
-              const rate = getOverrideRate(vid, p, newFleet);
-              cost += rate;
-            });
-            dCosts[p.id] = cost;
+            let shouldUpdate = false;
+            
+            if (p.multiply_by_vehicle) {
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, newFleet);
+                cost += rate;
+              });
+              shouldUpdate = true;
+            } else {
+              cost = p.default_amount;
+            }
+
+            if (p.multiply_by_guest) {
+              const paxCount = Number(prev.pax_count) || 1;
+              cost = cost * paxCount;
+              shouldUpdate = true;
+            }
+
+            if (shouldUpdate || p.multiply_by_vehicle) {
+              dCosts[p.id] = cost;
+            }
           }
         });
         updated.dynamic_costs = dCosts;
@@ -869,13 +952,29 @@ function QuoteBuilder() {
           // Re-update dCosts for added vehicles
           const newActiveIds = updated.selected_vehicle_ids;
           dbMiscPresets.forEach(p => {
-            if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
+            if (item.tags.includes(p.name)) {
               let cost = 0;
-              newActiveIds.forEach(vid => {
-                const rate = getOverrideRate(vid, p, newFleet);
-                cost += rate;
-              });
-              dCosts[p.id] = cost;
+              let shouldUpdate = false;
+              
+              if (p.multiply_by_vehicle) {
+                newActiveIds.forEach(vid => {
+                  const rate = getOverrideRate(vid, p, newFleet);
+                  cost += rate;
+                });
+                shouldUpdate = true;
+              } else {
+                cost = p.default_amount;
+              }
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+                shouldUpdate = true;
+              }
+
+              if (shouldUpdate || p.multiply_by_vehicle) {
+                dCosts[p.id] = cost;
+              }
             }
           });
         }
