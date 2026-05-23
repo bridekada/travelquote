@@ -132,10 +132,10 @@ function QuoteBuilder() {
   }, [selectedOperatorId, authLoading, profile]);
 
   useEffect(() => {
-    if (dbPackagePresets.length > 0 && livePackages.length === 0 && !quoteId) {
+    if (dbPackagePresets.length > 0 && livePackages.length === 0 && !quoteId && !copyFromId) {
       setLivePackages(dbPackagePresets);
     }
-  }, [dbPackagePresets, quoteId, livePackages.length]);
+  }, [dbPackagePresets, quoteId, copyFromId, livePackages.length]);
 
   // Auto-select first vehicle and apply defaults for NEW quotes
   useEffect(() => {
@@ -322,7 +322,7 @@ function QuoteBuilder() {
 
   // Date/Timeline Synchronization
   useEffect(() => {
-    if (!hasHydrated.current || (quoteId && !isLoaded)) return;
+    if (!hasHydrated.current || ((quoteId || copyFromId) && !isLoaded)) return;
     if (quote.eta && quote.etd) {
       const start = new Date(quote.eta);
       const end = new Date(quote.etd);
@@ -357,7 +357,7 @@ function QuoteBuilder() {
         if (JSON.stringify(quote.items) !== JSON.stringify(newItems)) setQuote(prev => ({ ...prev, items: newItems }));
       }
     }
-  }, [quote.eta, quote.etd, quote.items.length, quoteId, isLoaded, quote.default_fuel_price, quote.vehicle_model, dbVehicles]);
+  }, [quote.eta, quote.etd, quote.items.length, quoteId, copyFromId, isLoaded, quote.default_fuel_price, quote.vehicle_model, dbVehicles]);
 
   // Calculations Memo
   const totals = useMemo(() => {
@@ -767,10 +767,6 @@ function QuoteBuilder() {
       currentFees.forEach(f => text += `• ${f.name}: + ₱${f.amount.toLocaleString()}\n`);
       if (currentDiscount > 0) text += `• DISCOUNT: - ₱${currentDiscount.toLocaleString()}\n`;
       text += `\n`;
-    }
-
-    if (currentQuote.notes) {
-      text += `--- NOTES ---\n\n${currentQuote.notes}\n\n`;
     }
 
     const agencyNotes = profile?.operators?.quotation_agency_notes;

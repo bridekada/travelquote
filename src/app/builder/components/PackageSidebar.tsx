@@ -360,11 +360,11 @@ export default function PackageSidebar({
               <div className="!mt-12 space-y-10">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Additional Notes</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-tertiary">Internal Notes</span>
                   </div>
                   <textarea 
                     className="w-full min-h-[100px] !px-6 !py-5 bg-white border border-slate-300 shadow-sm rounded-[24px] text-[13px] font-medium text-text-secondary focus:ring-0 focus:border-primary/20 outline-none transition-all placeholder:opacity-30 resize-none disabled:opacity-40 overflow-hidden"
-                    placeholder="Add operational details..."
+                    placeholder="Input all additional information about this quote, the guests, the accommodation, etc. This will not be added in the quotation."
                     value={notes || ""}
                     onChange={(e) => onUpdateNotes(e.target.value)}
                     onInput={(e: any) => {

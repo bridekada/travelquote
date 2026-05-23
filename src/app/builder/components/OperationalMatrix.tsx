@@ -167,7 +167,7 @@ export default function OperationalMatrix({
                       <span className="text-[9px] font-bold text-gray-300">₱</span>
                       <input 
                         type="text" 
-                        className={inputStyle + " font-black disabled:opacity-50 !cursor-default"} 
+                        className={inputStyle + " font-black !cursor-default select-none pointer-events-none"} 
                         value={dailyFleetRate.toLocaleString()} 
                         readOnly
                       />
@@ -206,11 +206,10 @@ export default function OperationalMatrix({
                       <span className="text-[9px] font-bold text-gray-300">₱</span>
                       <input 
                         type="number" 
-                        className={inputStyle + " disabled:opacity-50"} 
+                        className={inputStyle + " font-black !cursor-default select-none pointer-events-none"} 
                         placeholder="0" 
                         value={item.guest_accommodation_amount === 0 ? "" : item.guest_accommodation_amount} 
-                        onChange={(e) => onUpdateItem(index, { guest_accommodation_amount: parseFloat(e.target.value) || 0 })} 
-                        disabled={readOnly}
+                        readOnly
                       />
                       <span className="text-slate-300 ml-2 select-none">|</span>
                     </div>

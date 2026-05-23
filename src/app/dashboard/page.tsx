@@ -454,7 +454,8 @@ function DashboardContent() {
         q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         fleetSearchText.includes(searchQuery.toLowerCase()) ||
         durationStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        paxStr.toLowerCase().includes(searchQuery.toLowerCase());
+        paxStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.quotation_description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
         
       // Date Filtering Logic
@@ -1193,6 +1194,7 @@ function DashboardContent() {
                               updatedAt={quote.updated_at}
                               currentUserId={profile?.id}
                               paxCount={quote.pax_count}
+                              quotationDescription={quote.quotation_description}
                               onClick={() => router.push(`/builder?id=${quote.id}`)}
                               onStatusChange={(newStatus: string) => {
                                 setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
@@ -1906,7 +1908,7 @@ function LeaderboardItem({ rank, name, value, subValue, colorClass }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, paxCount, onStatusChange, onDelete }: any) {
+function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, paxCount, onStatusChange, onDelete, quotationDescription }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -2073,6 +2075,12 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
                  )}
                </AnimatePresence>
              </div>
+             {isConfirmedFlow && (
+               <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-600 border-emerald-100/50 leading-none">
+                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                 Paid: {Math.round(paymentProgress)}% (₱{totalPaid.toLocaleString()})
+               </span>
+             )}
           </div>
 
           <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
@@ -2098,13 +2106,13 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
                   {paxCount}PAX
                 </span>
               )}
+              {quotationDescription && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[7px] font-black tracking-tighter border border-purple-100/50 truncate max-w-[200px] normal-case" title={quotationDescription}>
+                  {quotationDescription}
+                </span>
+              )}
             </span>
-            {isConfirmedFlow && (
-              <>
-                <span className="text-text-tertiary">·</span>
-                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">Paid: {Math.round(paymentProgress)}% (₱{totalPaid.toLocaleString()})</span>
-              </>
-            )}
+            {/* Paid removed from here */}
           </div>
           
           <div className="flex items-center gap-2 mt-1 opacity-60">
