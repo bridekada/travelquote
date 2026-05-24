@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import DashboardSidebar from "./components/DashboardSidebar";
+import PaymentTrackerView from "./components/PaymentTrackerView";
+import { CreditCard, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -53,6 +55,8 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [paymentTotals, setPaymentTotals] = useState<Record<string, number>>({});
+  const [payments, setPayments] = useState<any[]>([]);
+  const [disbursements, setDisbursements] = useState<any[]>([]);
   const confirmedStatuses = ['Confirmed', 'Payment Started', 'Payment Complete'];
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
@@ -70,7 +74,7 @@ function DashboardContent() {
   const [newAgencySocials, setNewAgencySocials] = useState<string[]>([]);
   const [newAgencyTitlePresets, setNewAgencyTitlePresets] = useState<string[]>([]);
   const searchParams = useSearchParams();
-  const validTabs = ['analytics', 'quotes', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
+  const validTabs = ['analytics', 'quotes', 'payments', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'quotes');
   const [tabLoading, setTabLoading] = useState(false);
@@ -125,7 +129,7 @@ function DashboardContent() {
     
     try {
       setTabLoading(true);
-      if (activeTab === 'quotes' || activeTab === 'analytics') {
+      if (activeTab === 'quotes' || activeTab === 'analytics' || activeTab === 'payments') {
         const { data, error } = await supabase
           .from('quotes')
           .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
@@ -140,16 +144,60 @@ function DashboardContent() {
           // Fetch payment totals for all quotes
           const quoteIds = (data || []).map((q: any) => q.id);
           if (quoteIds.length > 0) {
-            const { data: payments } = await supabase
+            const { data: paymentsRes } = await supabase
               .from('payments')
               .select('quote_id, amount')
               .in('quote_id', quoteIds);
             
             const totals: Record<string, number> = {};
-            (payments || []).forEach((p: any) => {
+            (paymentsRes || []).forEach((p: any) => {
               totals[p.quote_id] = (totals[p.quote_id] || 0) + (p.amount || 0);
             });
             setPaymentTotals(totals);
+
+            if (activeTab === 'payments') {
+              const [fullPaymentsRes, fullDisbursementsRes] = await Promise.all([
+                supabase
+                  .from('payments')
+                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false }),
+                supabase
+                  .from('disbursements')
+                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false })
+              ]);
+
+              let finalPayments = fullPaymentsRes.data || [];
+              if (fullPaymentsRes.error) {
+                console.warn("Dashboard payments join fetch failed, trying fallback select...", fullPaymentsRes.error);
+                const { data: fallbackPData } = await supabase
+                  .from('payments')
+                  .select('*')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false });
+                if (fallbackPData) {
+                  finalPayments = fallbackPData;
+                }
+              }
+
+              let finalDisbursements = fullDisbursementsRes.data || [];
+              if (fullDisbursementsRes.error) {
+                console.warn("Dashboard disbursements join fetch failed, trying fallback select...", fullDisbursementsRes.error);
+                const { data: fallbackDData } = await supabase
+                  .from('disbursements')
+                  .select('*')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false });
+                if (fallbackDData) {
+                  finalDisbursements = fallbackDData;
+                }
+              }
+
+              setPayments(finalPayments);
+              setDisbursements(finalDisbursements);
+            }
           }
         }
       } else if (activeTab === 'vehicles') {
@@ -610,6 +658,7 @@ function DashboardContent() {
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 shadow-sm">
                   {activeTab === 'quotes' && <FileText className="text-emerald-600" size={24} />}
+                  {activeTab === 'payments' && <CreditCard className="text-emerald-600" size={24} />}
                   {activeTab === 'calendar' && <CalendarIcon className="text-emerald-600" size={24} />}
                   {activeTab === 'analytics' && <BarChart3 className="text-emerald-600" size={24} />}
                   {activeTab === 'vehicles' && <CarFront className="text-emerald-600" size={24} />}
@@ -621,6 +670,7 @@ function DashboardContent() {
                 <div>
                   <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1.5 flex items-center gap-2">
                     {activeTab === 'quotes' && "Quotation List"}
+                    {activeTab === 'payments' && "Payment & Cashflow Tracker"}
                     {activeTab === 'calendar' && "Deployment Schedule"}
                     {activeTab === 'analytics' && "Business Analytics"}
                     {activeTab === 'vehicles' && "Vehicle Fleet"}
@@ -631,6 +681,7 @@ function DashboardContent() {
                   </h1>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">
                     {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
+                    {activeTab === 'payments' && "Track payments and disbursements across all confirmed quotations."}
                     {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
                     {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
                     {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
@@ -918,7 +969,7 @@ function DashboardContent() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    {activeTab === 'quotes' && (
+                    {(activeTab === 'quotes' || activeTab === 'payments') && (
                       <div className="flex items-center gap-3">
                         <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "All Time")}>
                           <SelectTrigger className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all">
@@ -1228,6 +1279,18 @@ function DashboardContent() {
                 actionLabel="Launch Builder"
               />
             )
+          )}
+
+          {activeTab === 'payments' && (
+            <PaymentTrackerView 
+              quotes={quotes}
+              payments={payments}
+              disbursements={disbursements}
+              searchQuery={searchQuery}
+              onManageQuote={(quoteId) => router.push(`/builder?id=${quoteId}`)}
+              agentFilter={agentFilter}
+              dateFilter={dateFilter}
+            />
           )}
 
           {activeTab === 'vehicles' && (

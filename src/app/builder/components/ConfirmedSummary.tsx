@@ -135,11 +135,11 @@ export default function ConfirmedSummary({
 
   const totalDisbursed = disbursements.reduce((sum, d) => sum + (d.amount || 0), 0);
 
-  const balanceRemaining = Math.max(0, (details.total_amount || 0) - totalPaid);
+  const balanceRemaining = Math.max(0, Math.round(((details.total_amount || 0) - totalPaid) * 100) / 100);
 
   const paymentProgress = details.total_amount > 0 ? (totalPaid / details.total_amount) * 100 : 0;
 
-  const isFullyPaid = balanceRemaining <= 0;
+  const isFullyPaid = balanceRemaining <= 0.01;
 
   // Derived Inclusions & Exclusions (Mirroring Quotation Text Logic)
 
@@ -985,76 +985,48 @@ export default function ConfirmedSummary({
 
                                             </div>
 
-                                            <p className="text-[14px] font-black text-emerald-800 tracking-tight tabular-nums shrink-0">₱{p.amount.toLocaleString()}</p>
+                                            <span className="text-[13px] font-black text-emerald-800 tracking-tight tabular-nums min-w-[65px]">
+                                               ₱{p.amount.toLocaleString()}
+                                            </span>
 
                                             <div className="w-px h-6 bg-slate-100 shrink-0" />
 
-                                            <div className="flex flex-col min-w-0">
-
-                                               {/* First Line: Created, Updated, Reference (Sized smaller to text-[8px], bold uppercase) */}
-
-                                               <div className="flex items-center gap-2 flex-wrap">
-
-                                                   <span className="text-[8px] text-emerald-700 font-extrabold uppercase tracking-wider bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100/50">
-
-                                                      DATE: {new Date(p.actual_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-
+                                            <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                               {/* First Line: TRX DATE, REFERENCE, Description */}
+                                               <div className="flex items-center gap-1.5 flex-wrap text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                                                   <span className="text-emerald-700 bg-emerald-50 border border-emerald-100/50 px-1.5 py-0.5 rounded text-[8px] font-extrabold shrink-0">
+                                                      TRX DATE: {new Date(p.actual_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                    </span>
+                                                   
+                                                   {p.reference_number && (
+                                                      <>
+                                                         <span className="text-slate-300">•</span>
+                                                         <span className="text-indigo-500 font-extrabold tracking-wider">REFERENCE: #{p.reference_number}</span>
+                                                      </>
+                                                   )}
 
-                                                   <span className="text-slate-300 text-[10px] font-light">•</span>
+                                                   <span className="text-slate-300">•</span>
+                                                   
+                                                   <span className="text-slate-500 font-bold tracking-tight normal-case truncate max-w-[200px]" title={p.notes || "No description"}>
+                                                      {p.notes ? p.notes : <span className="text-slate-300 italic text-[8.5px]">No description</span>}
+                                                   </span>
+                                               </div>
 
-                                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-
-                                                     created: {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-
-                                                     {p.creator?.full_name ? ` by ${p.creator.full_name}` : ''}
-
+                                               {/* Second Line: Created & Updated Metas (below Trx Date) */}
+                                               <div className="flex items-center gap-1.5 flex-wrap text-[7px] font-bold text-slate-400 uppercase tracking-wider leading-none mt-0.5 opacity-65">
+                                                  <span>
+                                                     CREATED: {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} BY {p.creator?.full_name || 'SYSTEM'}
                                                   </span>
 
                                                   {p.updated_at && p.updated_at !== p.created_at && (
-
                                                      <>
-
-                                                        <span className="text-slate-300 text-[10px] font-light">•</span>
-
-                                                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-
-                                                           updated: {new Date(p.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-
-                                                           {p.modifier?.full_name ? ` by ${p.modifier.full_name}` : ''}
-
+                                                        <span className="text-slate-300 opacity-60">•</span>
+                                                        <span>
+                                                           UPDATED: {new Date(p.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} BY {p.modifier?.full_name || 'SYSTEM'}
                                                         </span>
-
                                                      </>
-
                                                   )}
-
-                                                  {p.reference_number && (
-
-                                                     <>
-
-                                                        <span className="text-slate-300 text-[10px] font-light">•</span>
-
-                                                        <span className="text-[8px] font-bold text-indigo-400/80 uppercase tracking-wider">#{p.reference_number}</span>
-
-                                                     </>
-
-                                                  )}
-
                                                </div>
-
-                                               {/* Second Line: Description / Note (Small, gray, below the metadata) */}
-
-                                               {p.notes && (
-
-                                                  <p className="text-[10px] text-slate-400 font-medium tracking-tight mt-0.5">
-
-                                                     {p.notes}
-
-                                                  </p>
-
-                                               )}
-
                                             </div>
 
                                          </div>
@@ -1171,76 +1143,48 @@ export default function ConfirmedSummary({
 
                                             </div>
 
-                                            <p className="text-[14px] font-black text-amber-800 tracking-tight tabular-nums shrink-0">₱{d.amount.toLocaleString()}</p>
+                                            <span className="text-[13px] font-black text-amber-800 tracking-tight tabular-nums min-w-[65px]">
+                                               ₱{d.amount.toLocaleString()}
+                                            </span>
 
                                             <div className="w-px h-6 bg-slate-100 shrink-0" />
 
-                                            <div className="flex flex-col min-w-0">
-
-                                               {/* First Line: Created, Updated, Reference (Sized smaller to text-[8px], bold uppercase) */}
-
-                                               <div className="flex items-center gap-2 flex-wrap">
-
-                                                   <span className="text-[8px] text-amber-700 font-extrabold uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100/50">
-
-                                                      DATE: {new Date(d.actual_date || d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-
+                                            <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                               {/* First Line: TRX DATE, REFERENCE, Description */}
+                                               <div className="flex items-center gap-1.5 flex-wrap text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                                                   <span className="text-amber-700 bg-amber-50 border border-amber-100/50 px-1.5 py-0.5 rounded text-[8px] font-extrabold shrink-0">
+                                                      TRX DATE: {new Date(d.actual_date || d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                    </span>
+                                                   
+                                                   {d.reference_number && (
+                                                      <>
+                                                         <span className="text-slate-300">•</span>
+                                                         <span className="text-indigo-500 font-extrabold tracking-wider">REFERENCE: #{d.reference_number}</span>
+                                                      </>
+                                                   )}
 
-                                                   <span className="text-slate-300 text-[10px] font-light">•</span>
+                                                   <span className="text-slate-300">•</span>
+                                                   
+                                                   <span className="text-slate-500 font-bold tracking-tight normal-case truncate max-w-[200px]" title={d.notes || "No description"}>
+                                                      {d.notes ? d.notes : <span className="text-slate-300 italic text-[8.5px]">No description</span>}
+                                                   </span>
+                                               </div>
 
-                                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-
-                                                     created: {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-
-                                                     {d.creator?.full_name ? ` by ${d.creator.full_name}` : ''}
-
+                                               {/* Second Line: Created & Updated Metas (below Trx Date) */}
+                                               <div className="flex items-center gap-1.5 flex-wrap text-[7px] font-bold text-slate-400 uppercase tracking-wider leading-none mt-0.5 opacity-65">
+                                                  <span>
+                                                     CREATED: {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} BY {d.creator?.full_name || 'SYSTEM'}
                                                   </span>
 
                                                   {d.updated_at && d.updated_at !== d.created_at && (
-
                                                      <>
-
-                                                        <span className="text-slate-300 text-[10px] font-light">•</span>
-
-                                                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-
-                                                           updated: {new Date(d.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-
-                                                           {d.modifier?.full_name ? ` by ${d.modifier.full_name}` : ''}
-
+                                                        <span className="text-slate-300 opacity-60">•</span>
+                                                        <span>
+                                                           UPDATED: {new Date(d.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} BY {d.modifier?.full_name || 'SYSTEM'}
                                                         </span>
-
                                                      </>
-
                                                   )}
-
-                                                  {d.reference_number && (
-
-                                                     <>
-
-                                                        <span className="text-slate-300 text-[10px] font-light">•</span>
-
-                                                        <span className="text-[8px] font-bold text-indigo-400/80 uppercase tracking-wider">#{d.reference_number}</span>
-
-                                                     </>
-
-                                                  )}
-
                                                </div>
-
-                                               {/* Second Line: Description / Note (Small, gray, below the metadata) */}
-
-                                               {d.notes && (
-
-                                                  <p className="text-[10px] text-slate-400 font-medium tracking-tight mt-0.5">
-
-                                                     {d.notes}
-
-                                                  </p>
-
-                                               )}
-
                                             </div>
 
                                          </div>

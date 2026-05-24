@@ -353,6 +353,11 @@ function QuoteBuilder() {
     fetchPayments();
     fetchDisbursements();
 
+    const isEditMode = searchParams.get('edit') === 'true';
+    if (isEditMode) {
+      setIsReconfiguring(true);
+    }
+
     hasHydrated.current = true;
     setIsLoaded(true);
   };
