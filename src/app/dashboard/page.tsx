@@ -4,6 +4,8 @@ import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import CalendarView from "./components/CalendarView";
 import DashboardSidebar from "./components/DashboardSidebar";
+import PaymentTrackerView from "./components/PaymentTrackerView";
+import { CreditCard, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -53,6 +55,8 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [paymentTotals, setPaymentTotals] = useState<Record<string, number>>({});
+  const [payments, setPayments] = useState<any[]>([]);
+  const [disbursements, setDisbursements] = useState<any[]>([]);
   const confirmedStatuses = ['Confirmed', 'Payment Started', 'Payment Complete'];
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
@@ -70,7 +74,7 @@ function DashboardContent() {
   const [newAgencySocials, setNewAgencySocials] = useState<string[]>([]);
   const [newAgencyTitlePresets, setNewAgencyTitlePresets] = useState<string[]>([]);
   const searchParams = useSearchParams();
-  const validTabs = ['analytics', 'quotes', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
+  const validTabs = ['analytics', 'quotes', 'payments', 'calendar', 'vehicles', 'accommodation', 'miscellaneous', 'itinerary', 'packages'] as const;
   const tabParam = searchParams.get('tab') as typeof validTabs[number] | null;
   const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(validTabs.includes(tabParam as any) ? tabParam! : 'quotes');
   const [tabLoading, setTabLoading] = useState(false);
@@ -125,7 +129,7 @@ function DashboardContent() {
     
     try {
       setTabLoading(true);
-      if (activeTab === 'quotes' || activeTab === 'analytics') {
+      if (activeTab === 'quotes' || activeTab === 'analytics' || activeTab === 'payments') {
         const { data, error } = await supabase
           .from('quotes')
           .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
@@ -140,16 +144,60 @@ function DashboardContent() {
           // Fetch payment totals for all quotes
           const quoteIds = (data || []).map((q: any) => q.id);
           if (quoteIds.length > 0) {
-            const { data: payments } = await supabase
+            const { data: paymentsRes } = await supabase
               .from('payments')
               .select('quote_id, amount')
               .in('quote_id', quoteIds);
             
             const totals: Record<string, number> = {};
-            (payments || []).forEach((p: any) => {
+            (paymentsRes || []).forEach((p: any) => {
               totals[p.quote_id] = (totals[p.quote_id] || 0) + (p.amount || 0);
             });
             setPaymentTotals(totals);
+
+            if (activeTab === 'payments') {
+              const [fullPaymentsRes, fullDisbursementsRes] = await Promise.all([
+                supabase
+                  .from('payments')
+                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false }),
+                supabase
+                  .from('disbursements')
+                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false })
+              ]);
+
+              let finalPayments = fullPaymentsRes.data || [];
+              if (fullPaymentsRes.error) {
+                console.warn("Dashboard payments join fetch failed, trying fallback select...", fullPaymentsRes.error);
+                const { data: fallbackPData } = await supabase
+                  .from('payments')
+                  .select('*')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false });
+                if (fallbackPData) {
+                  finalPayments = fallbackPData;
+                }
+              }
+
+              let finalDisbursements = fullDisbursementsRes.data || [];
+              if (fullDisbursementsRes.error) {
+                console.warn("Dashboard disbursements join fetch failed, trying fallback select...", fullDisbursementsRes.error);
+                const { data: fallbackDData } = await supabase
+                  .from('disbursements')
+                  .select('*')
+                  .in('quote_id', quoteIds)
+                  .order('actual_date', { ascending: false });
+                if (fallbackDData) {
+                  finalDisbursements = fallbackDData;
+                }
+              }
+
+              setPayments(finalPayments);
+              setDisbursements(finalDisbursements);
+            }
           }
         }
       } else if (activeTab === 'vehicles') {
@@ -454,7 +502,8 @@ function DashboardContent() {
         q.vehicle_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         fleetSearchText.includes(searchQuery.toLowerCase()) ||
         durationStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        paxStr.toLowerCase().includes(searchQuery.toLowerCase());
+        paxStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.quotation_description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesAgent = agentFilter === "All" || q.creator?.full_name === agentFilter;
         
       // Date Filtering Logic
@@ -609,6 +658,7 @@ function DashboardContent() {
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 shadow-sm">
                   {activeTab === 'quotes' && <FileText className="text-emerald-600" size={24} />}
+                  {activeTab === 'payments' && <CreditCard className="text-emerald-600" size={24} />}
                   {activeTab === 'calendar' && <CalendarIcon className="text-emerald-600" size={24} />}
                   {activeTab === 'analytics' && <BarChart3 className="text-emerald-600" size={24} />}
                   {activeTab === 'vehicles' && <CarFront className="text-emerald-600" size={24} />}
@@ -620,6 +670,7 @@ function DashboardContent() {
                 <div>
                   <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1.5 flex items-center gap-2">
                     {activeTab === 'quotes' && "Quotation List"}
+                    {activeTab === 'payments' && "Payment & Cashflow Tracker"}
                     {activeTab === 'calendar' && "Deployment Schedule"}
                     {activeTab === 'analytics' && "Business Analytics"}
                     {activeTab === 'vehicles' && "Vehicle Fleet"}
@@ -630,6 +681,7 @@ function DashboardContent() {
                   </h1>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">
                     {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
+                    {activeTab === 'payments' && "Track payments and disbursements across all confirmed quotations."}
                     {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
                     {activeTab === 'analytics' && `Company-wide performance for the last ${analyticsDays} days.`}
                     {activeTab === 'vehicles' && "Manage your transportation fleet and standard service rates."}
@@ -917,7 +969,7 @@ function DashboardContent() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    {activeTab === 'quotes' && (
+                    {(activeTab === 'quotes' || activeTab === 'payments') && (
                       <div className="flex items-center gap-3">
                         <Select value={dateFilter} onValueChange={(val) => setDateFilter(val || "All Time")}>
                           <SelectTrigger className="!w-fit min-w-[140px] !h-9 !rounded-xl !bg-white !border-[#e8eaed] !px-4 text-[10px] font-bold uppercase tracking-widest hover:!border-primary transition-all">
@@ -1193,6 +1245,7 @@ function DashboardContent() {
                               updatedAt={quote.updated_at}
                               currentUserId={profile?.id}
                               paxCount={quote.pax_count}
+                              quotationDescription={quote.quotation_description}
                               onClick={() => router.push(`/builder?id=${quote.id}`)}
                               onStatusChange={(newStatus: string) => {
                                 setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, status: newStatus } : q));
@@ -1226,6 +1279,18 @@ function DashboardContent() {
                 actionLabel="Launch Builder"
               />
             )
+          )}
+
+          {activeTab === 'payments' && (
+            <PaymentTrackerView 
+              quotes={quotes}
+              payments={payments}
+              disbursements={disbursements}
+              searchQuery={searchQuery}
+              onManageQuote={(quoteId) => router.push(`/builder?id=${quoteId}`)}
+              agentFilter={agentFilter}
+              dateFilter={dateFilter}
+            />
           )}
 
           {activeTab === 'vehicles' && (
@@ -1906,7 +1971,7 @@ function LeaderboardItem({ rank, name, value, subValue, colorClass }: any) {
   );
 }
 
-function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, paxCount, onStatusChange, onDelete }: any) {
+function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amount, totalPaid, adminCommission, onClick, isUrgent, agent, createdAt, modifier, updatedAt, currentUserId, quoteId, paxCount, onStatusChange, onDelete, quotationDescription }: any) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const statusConfig: any = {
@@ -2073,6 +2138,12 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
                  )}
                </AnimatePresence>
              </div>
+             {isConfirmedFlow && (
+               <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-600 border-emerald-100/50 leading-none">
+                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                 Paid: {Math.round(paymentProgress)}% (₱{totalPaid.toLocaleString()})
+               </span>
+             )}
           </div>
 
           <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
@@ -2098,13 +2169,13 @@ function QuoteListItem({ customer, route, date, etd, rawEta, rawEtd, status, amo
                   {paxCount}PAX
                 </span>
               )}
+              {quotationDescription && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[7px] font-black tracking-tighter border border-purple-100/50 truncate max-w-[200px] normal-case" title={quotationDescription}>
+                  {quotationDescription}
+                </span>
+              )}
             </span>
-            {isConfirmedFlow && (
-              <>
-                <span className="text-text-tertiary">·</span>
-                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600">Paid: {Math.round(paymentProgress)}% (₱{totalPaid.toLocaleString()})</span>
-              </>
-            )}
+            {/* Paid removed from here */}
           </div>
           
           <div className="flex items-center gap-2 mt-1 opacity-60">
@@ -2263,13 +2334,23 @@ function MiscPresetListItem({ preset, onEdit, onDelete }: any) {
         </div>
         <div>
           <h3 style={labelStyle} className="!mb-0.5 truncate">{preset.name}</h3>
-          {preset.multiply_by_vehicle && (
-            <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {preset.multiply_by_vehicle && (
               <div className="bg-blue-50 text-blue-600 border border-blue-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
                 <CarFront size={8} /> Scale by Vehicle
               </div>
-            </div>
-          )}
+            )}
+            {preset.multiply_by_guest && (
+              <div className="bg-purple-50 text-purple-600 border border-purple-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
+                <Users size={8} className="mr-0.5" /> Scale by Guest
+              </div>
+            )}
+            {preset.hide_in_quote && (
+              <div className="bg-rose-50 text-rose-600 border border-rose-100/50 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 leading-none">
+                <X size={8} strokeWidth={3} className="mr-0.5" /> Hidden in Quote
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
@@ -2568,6 +2649,20 @@ function AddPresetModal({ onClose, editingItem, operatorId, miscPresets, onSucce
 
 function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [multiplyByVehicle, setMultiplyByVehicle] = useState(editingItem?.multiply_by_vehicle || false);
+  const [defaultAmount, setDefaultAmount] = useState(editingItem?.default_amount || 0);
+
+  useEffect(() => {
+    async function loadVehicles() {
+      const res = await getVehicles(operatorId);
+      if (!res.error) {
+        setVehicles(res.data || []);
+      }
+    }
+    loadVehicles();
+  }, [operatorId]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -2592,26 +2687,32 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
         {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
         
         <div className="!space-y-4">
-          <div className="!space-y-1">
-            <label className={premiumFormStyles.label}>FEE NAME</label>
-            <input 
-              name="name" 
-              defaultValue={editingItem?.name} 
-              className={premiumFormStyles.input} 
-              placeholder="e.g. Ferry Fare" 
-              required 
-            />
-          </div>
-          <div className="!space-y-1">
-            <label className={premiumFormStyles.label}>DEFAULT AMOUNT (₱)</label>
-            <input 
-              name="default_amount" 
-              type="number" 
-              defaultValue={editingItem?.default_amount} 
-              className={premiumFormStyles.input} 
-              placeholder="0" 
-              required 
-            />
+          <div className="!flex !gap-4">
+            <div className="!flex-1 !space-y-1">
+              <label className={premiumFormStyles.label}>FEE NAME</label>
+              <input 
+                name="name" 
+                defaultValue={editingItem?.name} 
+                className="!w-full !h-9 !px-3 !bg-emerald-50/20 !border-2 !border-slate-200 !rounded-xl !text-[12px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-2 focus:!ring-emerald-500/5 !transition-all !outline-none" 
+                placeholder="e.g. Ferry Fare" 
+                required 
+              />
+            </div>
+            <div className="!w-40 shrink-0 !space-y-1">
+              <label className={premiumFormStyles.label}>DEFAULT AMOUNT</label>
+              <div className="relative !flex !items-center">
+                <span className="absolute !left-3 !text-[12px] !font-bold !text-slate-400">₱</span>
+                <input 
+                  name="default_amount" 
+                  type="number" 
+                  defaultValue={editingItem?.default_amount} 
+                  onChange={(e) => setDefaultAmount(parseFloat(e.target.value) || 0)}
+                  className="!w-full !h-9 !px-3 !bg-emerald-50/20 !border-2 !border-slate-200 !rounded-xl !text-[12px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-2 focus:!ring-emerald-500/5 !transition-all !outline-none !pl-7" 
+                  placeholder="0" 
+                  required 
+                />
+              </div>
+            </div>
           </div>
           
           <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
@@ -2621,7 +2722,8 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
                   type="checkbox" 
                   name="multiply_by_vehicle" 
                   value="true" 
-                  defaultChecked={editingItem?.multiply_by_vehicle} 
+                  checked={multiplyByVehicle} 
+                  onChange={(e) => setMultiplyByVehicle(e.target.checked)}
                   className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
                 />
                 <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
@@ -2629,6 +2731,77 @@ function AddMiscModal({ onClose, editingItem, operatorId, onSuccess }: any) {
               <div className="!flex !flex-col">
                 <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Scale by Vehicle Count</span>
                 <span className="!text-[10px] !text-slate-500 !font-medium">Multiply this fee by the number of vehicles assigned</span>
+              </div>
+            </label>
+          </div>
+
+          {multiplyByVehicle && vehicles.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="!bg-slate-50/50 !p-5 !rounded-2xl !border !border-slate-100 !space-y-4 !my-2"
+            >
+              <div className="!flex !flex-col">
+                <span className="!text-[11px] !font-bold !text-slate-800 !uppercase !tracking-wider">Vehicle Rate Overrides (Optional)</span>
+                <span className="!text-[10px] !text-slate-500 !mt-0.5">Specify a custom rate for specific vehicles. Leave blank to use the standard default amount.</span>
+              </div>
+              <div className="!flex !flex-col !gap-1.5">
+                {vehicles.map((v) => (
+                  <div key={v.id} className="!flex !items-center !justify-between !gap-3 !bg-white !py-1.5 !px-3 !rounded-lg !border !border-slate-200/60 shadow-sm transition-all hover:border-slate-300">
+                    <div className="!flex !flex-col !min-w-0 !flex-1">
+                      <span className="!text-[10px] !font-bold !text-slate-800 !truncate">{v.model}</span>
+                      <span className="!text-[8px] !text-slate-400 !font-bold !uppercase !tracking-wider">{v.category}</span>
+                    </div>
+                    <div className="relative !flex !items-center !w-28 shrink-0">
+                      <span className="absolute !left-2 !text-[10px] !font-bold !text-slate-400">₱</span>
+                      <input 
+                        name={`vehicle_override_${v.id}`}
+                        type="number"
+                        defaultValue={editingItem?.vehicle_overrides?.[v.id]}
+                        className="!w-full !h-7 !px-2.5 !bg-slate-50/50 !border !border-slate-200 !rounded-md !text-[10px] !font-semibold !text-slate-800 !placeholder:text-slate-300 focus:!bg-white focus:!border-emerald-500/40 focus:!ring-1 focus:!ring-emerald-500/5 !transition-all !outline-none !pl-5.5"
+                        placeholder={`${defaultAmount}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+            <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">
+              <div className="relative !flex !items-center !justify-center">
+                <input 
+                  type="checkbox" 
+                  name="multiply_by_guest" 
+                  value="true" 
+                  defaultChecked={editingItem?.multiply_by_guest} 
+                  className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
+                />
+                <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
+              </div>
+              <div className="!flex !flex-col">
+                <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Scale by Guest Count</span>
+                <span className="!text-[10px] !text-slate-500 !font-medium">Multiply this fee by the total number of guests (pax count)</span>
+              </div>
+            </label>
+          </div>
+
+          <div className="!bg-emerald-50/30 !p-4 !rounded-2xl !border !border-emerald-100/50">
+            <label className="!flex !items-center !gap-3 !cursor-pointer !select-none group">
+              <div className="relative !flex !items-center !justify-center">
+                <input 
+                  type="checkbox" 
+                  name="hide_in_quote" 
+                  value="true" 
+                  defaultChecked={editingItem?.hide_in_quote} 
+                  className="!peer !appearance-none !w-5 !h-5 !border-2 !border-emerald-200 !rounded-md checked:!bg-emerald-600 checked:!border-emerald-600 !transition-all"
+                />
+                <Check className="absolute !text-white !opacity-0 peer-checked:!opacity-100 !transition-opacity" size={14} strokeWidth={4} />
+              </div>
+              <div className="!flex !flex-col">
+                <span className="!text-[12px] !font-bold !text-slate-800 group-hover:!text-emerald-700 !transition-colors">Do not show in quote</span>
+                <span className="!text-[10px] !text-slate-500 !font-medium">Hide this miscellaneous fee item from the compiled quotation inclusions/exclusions text</span>
               </div>
             </label>
           </div>

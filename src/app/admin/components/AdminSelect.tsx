@@ -109,7 +109,7 @@ export function AdminSelect({
         disabled={disabled}
         onClick={toggleDropdown}
         className={cn(
-          "!flex !w-full !items-center !justify-between !gap-2 !h-11 !px-4 !bg-emerald-50/20 !border-2 !border-slate-100/80 !rounded-xl !text-[13px] !font-semibold !text-slate-800 !transition-all !outline-none !select-none",
+          "!flex !w-full !items-center !justify-between !gap-2 !h-11 !px-4 !bg-emerald-50/20 !border-2 !border-slate-200 !rounded-xl !text-[13px] !font-semibold !text-slate-800 !transition-all !outline-none !select-none",
           "focus:!bg-white focus:!border-emerald-500/40 focus:!ring-4 focus:!ring-emerald-500/5",
           isOpen && "!border-emerald-500/40 !ring-4 !ring-emerald-500/5 !bg-white",
           disabled && "!opacity-50 !cursor-not-allowed",

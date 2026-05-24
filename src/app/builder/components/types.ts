@@ -61,4 +61,5 @@ export interface QuoteData {
   fleet?: QuoteVehicle[];
   fleet_json?: QuoteVehicle[];
   quotation_description?: string;
+  grand_total?: number;
 }

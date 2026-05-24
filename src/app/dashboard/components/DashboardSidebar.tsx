@@ -10,6 +10,7 @@ import {
   Car, 
   BedDouble, 
   Banknote, 
+  CreditCard,
   Map, 
   Package,
   Settings,
@@ -49,6 +50,7 @@ export default function DashboardSidebar({
     switch (tab) {
       case 'analytics': return <BarChart3 size={18} />;
       case 'quotes': return <FileText size={18} />;
+      case 'payments': return <CreditCard size={18} />;
       case 'calendar': return <Calendar size={18} />;
       case 'vehicles': return <Car size={18} />;
       case 'accommodation': return <BedDouble size={18} />;
@@ -63,6 +65,7 @@ export default function DashboardSidebar({
     switch (tab) {
       case 'accommodation': return 'Guest Accom';
       case 'miscellaneous': return 'Misc. Fees';
+      case 'payments': return 'Payment Tracker';
       default: return tab.charAt(0).toUpperCase() + tab.slice(1);
     }
   };
@@ -264,7 +267,7 @@ export default function DashboardSidebar({
           <div>
             <h2 className="text-sm font-black text-slate-900 leading-none tracking-tight">TravelQuote</h2>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-[9px] font-black text-[#F05E33] uppercase tracking-[0.2em]">Premium ERP</p>
+              <p className="text-[9px] font-black text-[#F05E33] uppercase tracking-[0.2em]">by JWRM</p>
               <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-emerald-50 rounded-md border border-emerald-100/50">
                 <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Live</span>
@@ -275,7 +278,7 @@ export default function DashboardSidebar({
 
         <nav className="sidebar-nav">
           {/* Top Level Items (Primary) */}
-          {['analytics', 'quotes'].map(tab => {
+          {['analytics', 'quotes', 'payments'].map(tab => {
             if (!validTabs.includes(tab)) return null;
             const isActive = activeTab === tab;
             return (

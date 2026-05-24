@@ -70,6 +70,15 @@ function QuoteBuilder() {
   const [dbAccommodations, setDbAccommodations] = useState<any[]>([]);
   const [livePackages, setLivePackages] = useState<any[]>([]);
 
+  // Helper to resolve vehicle overrides by matching quote fleet dynamic IDs with database vehicle models
+  const getOverrideRate = (vid: string, p: any, fleet: any[] = []) => {
+    const fleetVehicle = (fleet || []).find(v => v.id === vid);
+    if (!fleetVehicle) return p.default_amount;
+    const dbV = dbVehicles.find(dv => dv.model === fleetVehicle.model);
+    const lookupId = dbV ? dbV.id : vid;
+    return p.vehicle_overrides?.[lookupId] !== undefined ? p.vehicle_overrides[lookupId] : p.default_amount;
+  };
+
   // Dialog State
   const [dialogConfig, setDialogConfig] = useState<{
     isOpen: boolean; title: string; message: string; type: 'confirm' | 'alert' | 'success' | 'warning';
@@ -99,17 +108,87 @@ function QuoteBuilder() {
     confirmed_at: null, items: [], fleet: [], quotation_description: ""
   });
 
+  const [profilesCache, setProfilesCache] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadProfilesCache = async () => {
+      const { data } = await supabase.from('profiles').select('id, full_name');
+      if (data) {
+        const cache: Record<string, string> = {};
+        data.forEach(p => {
+          if (p.id && p.full_name) cache[p.id] = p.full_name;
+        });
+        setProfilesCache(cache);
+      }
+    };
+    loadProfilesCache();
+  }, []);
+
   const [payments, setPayments] = useState<any[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaymentSaving, setIsPaymentSaving] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any | null>(null);
 
   const fetchPayments = async () => {
     if (!quoteId) return;
-    const { data } = await supabase.from('payments').select('*').eq('quote_id', quoteId).order('created_at', { ascending: false });
-    if (data) setPayments(data);
+    const { data, error } = await supabase.from('payments')
+      .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.warn("Payments join fetch failed, trying fallback select...", error);
+      const { data: fallbackData } = await supabase.from('payments')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .order('created_at', { ascending: false });
+      if (fallbackData) {
+        const hydrated = fallbackData.map(p => ({
+          ...p,
+          creator: p.created_by ? { full_name: profilesCache[p.created_by] || (p.created_by === profile?.id ? profile?.full_name : 'System') } : null,
+          modifier: p.updated_by ? { full_name: profilesCache[p.updated_by] || (p.updated_by === profile?.id ? profile?.full_name : 'System') } : null
+        }));
+        setPayments(hydrated);
+      }
+    } else if (data) {
+      setPayments(data);
+    }
   };
 
-  useEffect(() => { if (quoteId) fetchPayments(); }, [quoteId]);
+  useEffect(() => { if (quoteId) fetchPayments(); }, [quoteId, profilesCache]);
+
+  const [disbursements, setDisbursements] = useState<any[]>([]);
+  const [isDisbursementModalOpen, setIsDisbursementModalOpen] = useState(false);
+  const [isDisbursementSaving, setIsDisbursementSaving] = useState(false);
+  const [editingDisbursement, setEditingDisbursement] = useState<any | null>(null);
+
+  const fetchDisbursements = async () => {
+    if (!quoteId) return;
+    const { data, error } = await supabase.from('disbursements')
+      .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.warn("Disbursements join fetch failed, trying fallback select...", error);
+      const { data: fallbackData } = await supabase.from('disbursements')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .order('created_at', { ascending: false });
+      if (fallbackData) {
+        const hydrated = fallbackData.map(d => ({
+          ...d,
+          creator: d.created_by ? { full_name: profilesCache[d.created_by] || (d.created_by === profile?.id ? profile?.full_name : 'System') } : null,
+          modifier: d.updated_by ? { full_name: profilesCache[d.updated_by] || (d.updated_by === profile?.id ? profile?.full_name : 'System') } : null
+        }));
+        setDisbursements(hydrated);
+      }
+    } else if (data) {
+      setDisbursements(data);
+    }
+  };
+
+  useEffect(() => { if (quoteId) fetchDisbursements(); }, [quoteId, profilesCache]);
 
   // Data Loading
   useEffect(() => {
@@ -132,10 +211,10 @@ function QuoteBuilder() {
   }, [selectedOperatorId, authLoading, profile]);
 
   useEffect(() => {
-    if (dbPackagePresets.length > 0 && livePackages.length === 0 && !quoteId) {
+    if (dbPackagePresets.length > 0 && livePackages.length === 0 && !quoteId && !copyFromId) {
       setLivePackages(dbPackagePresets);
     }
-  }, [dbPackagePresets, quoteId, livePackages.length]);
+  }, [dbPackagePresets, quoteId, copyFromId, livePackages.length]);
 
   // Auto-select first vehicle and apply defaults for NEW quotes
   useEffect(() => {
@@ -270,8 +349,14 @@ function QuoteBuilder() {
     }
     setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
     
-    // Also refresh payments
+    // Also refresh payments & disbursements
     fetchPayments();
+    fetchDisbursements();
+
+    const isEditMode = searchParams.get('edit') === 'true';
+    if (isEditMode) {
+      setIsReconfiguring(true);
+    }
 
     hasHydrated.current = true;
     setIsLoaded(true);
@@ -322,7 +407,7 @@ function QuoteBuilder() {
 
   // Date/Timeline Synchronization
   useEffect(() => {
-    if (!hasHydrated.current || (quoteId && !isLoaded)) return;
+    if (!hasHydrated.current || ((quoteId || copyFromId) && !isLoaded)) return;
     if (quote.eta && quote.etd) {
       const start = new Date(quote.eta);
       const end = new Date(quote.etd);
@@ -357,7 +442,60 @@ function QuoteBuilder() {
         if (JSON.stringify(quote.items) !== JSON.stringify(newItems)) setQuote(prev => ({ ...prev, items: newItems }));
       }
     }
-  }, [quote.eta, quote.etd, quote.items.length, quoteId, isLoaded, quote.default_fuel_price, quote.vehicle_model, dbVehicles]);
+  }, [quote.eta, quote.etd, quote.items.length, quoteId, copyFromId, isLoaded, quote.default_fuel_price, quote.vehicle_model, dbVehicles]);
+
+  // Automatically recalculate guest-scaled miscellaneous costs whenever pax_count changes
+  useEffect(() => {
+    if (!isLoaded || dbMiscPresets.length === 0) return;
+    
+    setQuote(prev => {
+      let changed = false;
+      const updatedItems = prev.items.map(item => {
+        const dCosts = { ...item.dynamic_costs };
+        let itemChanged = false;
+        
+        dbMiscPresets.forEach(p => {
+          if (item.tags.includes(p.name) && p.multiply_by_guest) {
+            // Recalculate guest-scaled fee
+            const paxCount = Number(prev.pax_count) || 1;
+            let baseCost = 0;
+            if (p.multiply_by_vehicle) {
+              const activeIds = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0
+                ? item.selected_vehicle_ids
+                : (prev.fleet?.map(v => v.id) || []);
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, prev.fleet || []);
+                baseCost += rate;
+              });
+            } else {
+              baseCost = p.default_amount;
+            }
+            
+            const newCost = baseCost * paxCount;
+            if (dCosts[p.id] !== newCost) {
+              dCosts[p.id] = newCost;
+              itemChanged = true;
+            }
+          }
+        });
+        
+        if (itemChanged) {
+          changed = true;
+          const updatedItem = { ...item, dynamic_costs: dCosts };
+          return {
+            ...updatedItem,
+            row_total: calculateRowTotal(updatedItem, prev.admin_commission || 0, prev.fleet)
+          };
+        }
+        return item;
+      });
+      
+      if (changed) {
+        return { ...prev, items: updatedItems };
+      }
+      return prev;
+    });
+  }, [quote.pax_count, dbMiscPresets, dbVehicles, isLoaded]);
 
   // Calculations Memo
   const totals = useMemo(() => {
@@ -443,16 +581,44 @@ function QuoteBuilder() {
           
           if (updates.tags) {
             if (isCurrentlyActive && !wasPreviouslyActive) {
-              // This is a NEWLY added tag: Apply default
-              dCosts[p.id] = p.multiply_by_vehicle ? (p.default_amount * vehicleCount) : p.default_amount;
+              // This is a NEWLY added tag: Apply default or override
+              let cost = 0;
+              if (p.multiply_by_vehicle) {
+                activeIds.forEach(vid => {
+                  const rate = getOverrideRate(vid, p, prev.fleet || []);
+                  cost += rate;
+                });
+              } else {
+                cost = p.default_amount;
+              }
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+              }
+
+              dCosts[p.id] = cost;
             } else if (!isCurrentlyActive && wasPreviouslyActive) {
               // Tag was EXPLICITLY REMOVED: Set to 0
               dCosts[p.id] = 0;
             }
             // If it's an existing manual entry with no tag, OR an existing tag, we leave it alone!
-          } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive && p.multiply_by_vehicle) {
+          } else if (updates.selected_vehicle_ids !== undefined && isCurrentlyActive) {
             // Vehicle changed: Only update fees that are explicitly marked to scale
-            dCosts[p.id] = p.default_amount * vehicleCount;
+            if (p.multiply_by_vehicle) {
+              let cost = 0;
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, prev.fleet || []);
+                cost += rate;
+              });
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+              }
+
+              dCosts[p.id] = cost;
+            }
           }
         });
         updated.dynamic_costs = dCosts;
@@ -728,6 +894,7 @@ function QuoteBuilder() {
       let driverExcluded = false;
 
       dbMiscPresets.forEach(m => {
+        if (m.hide_in_quote) return;
         const name = m.name.toLowerCase();
         if (name.includes('car wash') || name.includes('parking') || name.includes('overtime') || name === 'ot' || name.split(' ').includes('ot')) return;
 
@@ -751,6 +918,7 @@ function QuoteBuilder() {
       excs.push("Guest meals");
       excs.push("Entrance fees");
       excs.push("Activity fees");
+      excs.push("Any other items not included in the inclusions");
 
       text += `✔ INCLUSIONS:\n`;
       incs.forEach(inc => text += `• ${inc}\n`);
@@ -767,10 +935,6 @@ function QuoteBuilder() {
       currentFees.forEach(f => text += `• ${f.name}: + ₱${f.amount.toLocaleString()}\n`);
       if (currentDiscount > 0) text += `• DISCOUNT: - ₱${currentDiscount.toLocaleString()}\n`;
       text += `\n`;
-    }
-
-    if (currentQuote.notes) {
-      text += `--- NOTES ---\n\n${currentQuote.notes}\n\n`;
     }
 
     const agencyNotes = profile?.operators?.quotation_agency_notes;
@@ -824,11 +988,31 @@ function QuoteBuilder() {
         const activeIds = validSelectedIds.length > 0 
           ? validSelectedIds 
           : newFleet.map(v => v.id);
-        const vehicleCount = activeIds.length || 1;
 
         dbMiscPresets.forEach(p => {
-          if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
-            dCosts[p.id] = p.default_amount * vehicleCount;
+          if (item.tags.includes(p.name)) {
+            let cost = 0;
+            let shouldUpdate = false;
+            
+            if (p.multiply_by_vehicle) {
+              activeIds.forEach(vid => {
+                const rate = getOverrideRate(vid, p, newFleet);
+                cost += rate;
+              });
+              shouldUpdate = true;
+            } else {
+              cost = p.default_amount;
+            }
+
+            if (p.multiply_by_guest) {
+              const paxCount = Number(prev.pax_count) || 1;
+              cost = cost * paxCount;
+              shouldUpdate = true;
+            }
+
+            if (shouldUpdate || p.multiply_by_vehicle) {
+              dCosts[p.id] = cost;
+            }
           }
         });
         updated.dynamic_costs = dCosts;
@@ -843,10 +1027,30 @@ function QuoteBuilder() {
           
           // Re-update dCosts for added vehicles
           const newActiveIds = updated.selected_vehicle_ids;
-          const newVehicleCount = newActiveIds.length;
           dbMiscPresets.forEach(p => {
-            if (item.tags.includes(p.name) && p.multiply_by_vehicle) {
-              dCosts[p.id] = p.default_amount * newVehicleCount;
+            if (item.tags.includes(p.name)) {
+              let cost = 0;
+              let shouldUpdate = false;
+              
+              if (p.multiply_by_vehicle) {
+                newActiveIds.forEach(vid => {
+                  const rate = getOverrideRate(vid, p, newFleet);
+                  cost += rate;
+                });
+                shouldUpdate = true;
+              } else {
+                cost = p.default_amount;
+              }
+
+              if (p.multiply_by_guest) {
+                const paxCount = Number(prev.pax_count) || 1;
+                cost = cost * paxCount;
+                shouldUpdate = true;
+              }
+
+              if (shouldUpdate || p.multiply_by_vehicle) {
+                dCosts[p.id] = cost;
+              }
             }
           });
         }
@@ -1090,32 +1294,63 @@ function QuoteBuilder() {
 
     setIsPaymentSaving(true);
     try {
-      const { error } = await supabase.from('payments').insert([{ 
-        quote_id: quote.id, 
-        amount: parseFloat(data.amount), 
-        payment_method: data.method, 
-        reference_number: data.reference, 
-        notes: data.notes 
-      }]);
+      if (editingPayment) {
+        const { error } = await supabase.from('payments').update({
+          amount: parseFloat(data.amount),
+          payment_method: data.method || 'Cash',
+          reference_number: data.reference,
+          notes: data.notes,
+          actual_date: data.actual_date,
+          updated_by: profile?.id,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingPayment.id);
 
-      if (error) {
-        throw new Error(`Failed to record payment: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to update payment: ${error.message}`);
+        }
+
+        const { data: remainingPayments } = await supabase.from('payments').select('amount').eq('quote_id', quote.id);
+        const totalPaid = (remainingPayments || []).reduce((s, p) => s + p.amount, 0);
+        const totalAgreed = quote.selected_package_details?.total_amount || 0;
+        const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
+
+        await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+        setQuote(prev => ({ ...prev, status: nextStatus }));
+
+        setEditingPayment(null);
+        setIsPaymentModalOpen(false);
+        await fetchPayments();
+        openDialog({ title: "Success", message: "Payment successfully updated.", type: "success" });
+      } else {
+        const { error } = await supabase.from('payments').insert([{ 
+          quote_id: quote.id, 
+          amount: parseFloat(data.amount), 
+          payment_method: data.method || 'Cash', 
+          reference_number: data.reference, 
+          notes: data.notes,
+          actual_date: data.actual_date,
+          created_by: profile?.id
+        }]);
+
+        if (error) {
+          throw new Error(`Failed to record payment: ${error.message}`);
+        }
+
+        const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
+        const totalAgreed = quote.selected_package_details?.total_amount || 0;
+        const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
+
+        const { error: updateError } = await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
+        
+        if (updateError) {
+          throw new Error(`Payment recorded but failed to update quote status: ${updateError.message}`);
+        }
+
+        setIsPaymentModalOpen(false); 
+        await fetchPayments(); 
+        setQuote(prev => ({ ...prev, status: nextStatus }));
+        openDialog({ title: "Success", message: "Payment successfully recorded.", type: "success" });
       }
-
-      const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + parseFloat(data.amount);
-      const totalAgreed = quote.selected_package_details?.total_amount || 0;
-      const nextStatus = totalPaid >= totalAgreed ? 'Payment Complete' : 'Payment Started';
-
-      const { error: updateError } = await supabase.from('quotes').update({ status: nextStatus }).eq('id', quote.id);
-      
-      if (updateError) {
-        throw new Error(`Payment recorded but failed to update quote status: ${updateError.message}`);
-      }
-
-      setIsPaymentModalOpen(false); 
-      await fetchPayments(); 
-      setQuote(prev => ({ ...prev, status: nextStatus }));
-      openDialog({ title: "Success", message: "Payment successfully recorded.", type: "success" });
     } catch (e: any) {
       openDialog({ title: "Payment Error", message: e.message, type: "warning" });
     } finally {
@@ -1156,6 +1391,76 @@ function QuoteBuilder() {
     });
   };
 
+  const handleAddDisbursementLocal = async (data: any) => {
+    if (!quote.id) {
+      openDialog({ title: "System Error", message: "Quote ID missing. Please refresh and try again.", type: "warning" });
+      return;
+    }
+
+    setIsDisbursementSaving(true);
+    try {
+      if (editingDisbursement) {
+        const { error } = await supabase.from('disbursements').update({
+          amount: parseFloat(data.amount),
+          reference_number: data.reference,
+          notes: data.notes,
+          actual_date: data.actual_date,
+          updated_by: profile?.id,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingDisbursement.id);
+
+        if (error) {
+          throw new Error(`Failed to update disbursement: ${error.message}`);
+        }
+
+        setEditingDisbursement(null);
+        setIsDisbursementModalOpen(false);
+        await fetchDisbursements();
+        openDialog({ title: "Success", message: "Disbursement successfully updated.", type: "success" });
+      } else {
+        const { error } = await supabase.from('disbursements').insert([{ 
+          quote_id: quote.id, 
+          amount: parseFloat(data.amount), 
+          reference_number: data.reference, 
+          notes: data.notes,
+          actual_date: data.actual_date,
+          created_by: profile?.id
+        }]);
+
+        if (error) {
+          throw new Error(`Failed to record disbursement: ${error.message}`);
+        }
+
+        setIsDisbursementModalOpen(false); 
+        await fetchDisbursements(); 
+        openDialog({ title: "Success", message: "Disbursement successfully recorded.", type: "success" });
+      }
+    } catch (e: any) {
+      openDialog({ title: "Disbursement Error", message: e.message, type: "warning" });
+    } finally {
+      setIsDisbursementSaving(true);
+      setTimeout(() => setIsDisbursementSaving(false), 500);
+    }
+  };
+
+  const handleVoidDisbursementLocal = async (id: string) => {
+    openDialog({
+      title: "Void Disbursement",
+      message: "Are you sure you want to permanently void this disbursement record? This action cannot be undone.",
+      type: "warning",
+      confirmText: "Void Disbursement",
+      onConfirm: async () => {
+        const { error } = await supabase.from('disbursements').delete().eq('id', id);
+        if (error) {
+          openDialog({ title: "Error", message: error.message, type: "warning" });
+        } else {
+          await fetchDisbursements();
+          openDialog({ title: "Disbursement Voided", message: "The disbursement ledger has been updated.", type: "success" });
+        }
+      }
+    });
+  };
+
   const handleDuplicate = () => {
     if (!quoteId) return;
     openDialog({
@@ -1182,6 +1487,16 @@ function QuoteBuilder() {
           isSaving={isPaymentSaving}
           dbMiscPresets={dbMiscPresets}
           onRefresh={handleRefreshData}
+          disbursements={disbursements}
+          isDisbursementModalOpen={isDisbursementModalOpen}
+          setIsDisbursementModalOpen={setIsDisbursementModalOpen}
+          handleAddDisbursement={handleAddDisbursementLocal}
+          handleVoidDisbursement={handleVoidDisbursementLocal}
+          isDisbursementSaving={isDisbursementSaving}
+          editingPayment={editingPayment}
+          setEditingPayment={setEditingPayment}
+          editingDisbursement={editingDisbursement}
+          setEditingDisbursement={setEditingDisbursement}
         />
         <InfoDialog config={dialogConfig} onClose={() => setDialogConfig(prev => ({ ...prev, isOpen: false }))} />
       </>
