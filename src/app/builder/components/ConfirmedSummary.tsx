@@ -231,11 +231,21 @@ export default function ConfirmedSummary({
 
   const commissionPercentage = quote.admin_commission || 0;
 
-  const commissionBase = quote.selected_package_total || details.total_amount || 0;
+  // Extract adjustments from either quote (live/updated) or details (snapshot)
+  const discountAmount = quote.discount_total || details.adjustments?.discount || 0;
+  const extraFees = quote.extra_fees_json || details.adjustments?.extra_fees || [];
+  const extraFeesTotal = extraFees.reduce((sum: number, f: any) => sum + (f.amount || 0), 0);
 
+  const finalAmount = details.total_amount || quote.grand_total || 0;
+
+  // The package price with commission is the final amount minus extra fees plus discount
+  const commissionBase = quote.selected_package_total || (finalAmount - extraFeesTotal + discountAmount);
+
+  // Commission is calculated on the package price with commission
   const commissionAmount = Math.round((commissionBase * commissionPercentage) / (100 + commissionPercentage));
 
-  const baseRate = (details.total_amount || 0) - commissionAmount;
+  // The raw package rate (before commission)
+  const baseRate = commissionBase - commissionAmount;
 
   return (
 
@@ -459,43 +469,39 @@ export default function ConfirmedSummary({
 
                               <span className="text-right opacity-60 text-xs font-bold text-text-tertiary !m-0 !p-0">Base Package Rate:</span>
 
-                              <span className="font-mono text-xs font-bold text-text-tertiary text-right !m-0 !p-0">₱{Math.round(baseRate).toLocaleString()}</span>
+                              <span className="font-mono text-xs font-bold text-text-tertiary text-right !m-0 !p-0">₱{Math.round(baseRate || 0).toLocaleString()}</span>
 
-                              {details.adjustments?.extra_fees?.map((f: any, i: number) => (
+                              <span className="text-right opacity-60 text-xs font-bold text-indigo-600 !m-0 !p-0">Admin Commission ({commissionPercentage || 0}%):</span>
+
+                              <span className="font-mono text-xs font-bold text-indigo-600 text-right !m-0 !p-0">₱{(commissionAmount || 0).toLocaleString()}</span>
+
+                              {(extraFees || []).map((f: any, i: number) => (
 
                                 <React.Fragment key={i}>
 
                                    <span className="text-right opacity-60 text-xs font-bold text-indigo-600 !m-0 !p-0">{f.name}:</span>
 
-                                   <span className="font-mono text-xs font-bold text-indigo-600 text-right !m-0 !p-0">+ ₱{f.amount?.toLocaleString()}</span>
+                                   <span className="font-mono text-xs font-bold text-indigo-600 text-right !m-0 !p-0">+ ₱{(f.amount || 0).toLocaleString()}</span>
 
                                 </React.Fragment>
 
                               ))}
 
-                              {details.adjustments?.discount > 0 && (
+                              {(discountAmount || 0) > 0 && (
 
                                 <React.Fragment>
 
-                                   <span className="text-right opacity-60 text-xs font-black text-primary/60 pt-2 border-t border-dashed border-[#f0f2f5] !m-0 !p-0 !pt-2">Subtotal before discount:</span>
-
-                                   <span className="font-mono text-xs font-black text-primary/60 pt-2 border-t border-dashed border-[#f0f2f5] text-right !m-0 !p-0 !pt-2">₱{(details.total_amount + details.adjustments.discount).toLocaleString()}</span>
-
                                    <span className="text-right opacity-60 text-xs font-bold text-emerald-600 !m-0 !p-0">Client Discount:</span>
 
-                                   <span className="font-mono text-xs font-bold text-emerald-600 text-right !m-0 !p-0">- ₱{details.adjustments.discount.toLocaleString()}</span>
+                                   <span className="font-mono text-xs font-bold text-emerald-600 text-right !m-0 !p-0">- ₱{(discountAmount || 0).toLocaleString()}</span>
 
                                 </React.Fragment>
 
                               )}
 
-                              <span className="text-right opacity-60 text-xs font-bold text-indigo-600 pt-1 border-t border-dashed border-[#f0f2f5] !m-0 !p-0 !pt-1">Admin Commission ({commissionPercentage}%):</span>
-
-                              <span className="font-mono text-xs font-bold text-indigo-600 pt-1 border-t border-dashed border-[#f0f2f5] text-right !m-0 !p-0 !pt-1">₱{commissionAmount.toLocaleString()}</span>
-
                               <span className="text-right text-sm font-black text-primary uppercase tracking-tight pt-2 border-t-2 border-primary/10 !m-0 !p-0 !pt-2">Final Agreed Amount:</span>
 
-                              <span className="font-mono text-sm font-black text-primary pt-2 border-t-2 border-primary/10 text-right !m-0 !p-0 !pt-2">₱{Math.round(details.total_amount || 0).toLocaleString()}</span>
+                              <span className="font-mono text-sm font-black text-primary pt-2 border-t-2 border-primary/10 text-right !m-0 !p-0 !pt-2">₱{Math.round(finalAmount || details.total_amount || 0).toLocaleString()}</span>
 
                            </div>
 

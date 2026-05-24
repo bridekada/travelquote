@@ -138,14 +138,15 @@ export default function PaymentTrackerView({
             const quotePayments = payments.filter(p => p.quote_id === quote.id);
             const quoteDisbursements = disbursements.filter(d => d.quote_id === quote.id);
             
-            const totalAgreed = quote.selected_package_total || quote.grand_total || 0;
+            const totalAgreed = quote.grand_total || quote.selected_package_total || 0;
             const totalPaid = quotePayments.reduce((acc, p) => acc + (p.amount || 0), 0);
             const totalDisbursed = quoteDisbursements.reduce((acc, d) => acc + (d.amount || 0), 0);
             const isFullyPaid = totalPaid >= totalAgreed && totalAgreed > 0;
             const paymentProgress = totalAgreed > 0 ? Math.min((totalPaid / totalAgreed) * 100, 100) : 0;
             const balanceRemaining = Math.max(Math.round((totalAgreed - totalPaid) * 100) / 100, 0);
             const commissionPct = quote.admin_commission || 0;
-            const commissionAmount = Math.round((totalAgreed * commissionPct) / (100 + commissionPct));
+            const commissionBase = quote.selected_package_total || totalAgreed || 0;
+            const commissionAmount = Math.round((commissionBase * commissionPct) / (100 + commissionPct));
 
             const isExpanded = expandedQuoteId === quote.id;
 
