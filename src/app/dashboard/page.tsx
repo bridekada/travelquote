@@ -7,7 +7,7 @@ import DashboardSidebar from "./components/DashboardSidebar";
 import PaymentTrackerView from "./components/PaymentTrackerView";
 import { CreditCard, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3, Bell } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3, Bell, Trophy } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -919,6 +919,301 @@ function DashboardContent() {
                 font-weight: 700 !important;
                 font-size: 11px !important;
               }
+
+              /* Premium Analytics Styles */
+              .analytics-range-label {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                color: #64748b !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.08em !important;
+              }
+              .analytics-range-container {
+                display: flex !important;
+                align-items: center !important;
+                background: rgba(0, 56, 41, 0.02) !important;
+                border: 1px solid rgba(0, 56, 41, 0.06) !important;
+                border-radius: 9999px !important;
+                padding: 2px !important;
+                gap: 4px !important;
+                height: 28px !important;
+              }
+              .analytics-range-btn {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                height: 22px !important;
+                min-width: 56px !important;
+                padding: 0 16px !important;
+                border-radius: 9999px !important;
+                font-size: 9px !important;
+                font-weight: 800 !important;
+                color: #64748b !important;
+                transition: all 0.25s ease !important;
+                border: none !important;
+                background: transparent !important;
+                cursor: pointer !important;
+                outline: none !important;
+                letter-spacing: 0.02em !important;
+              }
+              .analytics-range-btn:hover {
+                color: #003829 !important;
+              }
+              .analytics-range-btn.active {
+                background: #003829 !important;
+                color: #ffffff !important;
+                box-shadow: 0 3px 8px rgba(0, 56, 41, 0.12) !important;
+              }
+              .analytics-card {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 56, 41, 0.06) !important;
+                border-radius: 20px !important;
+                padding: 24px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 56, 41, 0.02), 0 8px 16px -6px rgba(0, 0, 0, 0.01) !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+              }
+              .analytics-card:hover {
+                transform: translateY(-2px) !important;
+                box-shadow: 0 20px 35px -10px rgba(0, 56, 41, 0.05), 0 10px 20px -8px rgba(0, 0, 0, 0.02) !important;
+                border-color: rgba(0, 56, 41, 0.12) !important;
+              }
+              .analytics-card-left {
+                display: flex !important;
+                align-items: center !important;
+                gap: 16px !important;
+              }
+              .analytics-icon-wrapper {
+                width: 48px !important;
+                height: 48px !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+              }
+              .analytics-icon-wrapper.confirmed {
+                background: #E8F5E9 !important;
+                color: #2E7D32 !important;
+              }
+              .analytics-icon-wrapper.collection {
+                background: #E0F7FA !important;
+                color: #00838F !important;
+              }
+              .analytics-icon-wrapper.commission {
+                background: #F1F8E9 !important;
+                color: #558B2F !important;
+              }
+              .analytics-card-info {
+                display: flex !important;
+                flex-direction: column !important;
+              }
+              .analytics-card-tag {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 8.5px !important;
+                font-weight: 800 !important;
+                color: #2E7D32 !important;
+                letter-spacing: 0.08em !important;
+                text-transform: uppercase !important;
+                margin-bottom: 4px !important;
+                line-height: 1 !important;
+              }
+              .analytics-card-value {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 24px !important;
+                font-weight: 800 !important;
+                color: #0F172A !important;
+                line-height: 1.1 !important;
+                margin: 0 !important;
+                letter-spacing: -0.02em !important;
+              }
+              .analytics-card-sub {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 10px !important;
+                font-weight: 500 !important;
+                color: #94a3b8 !important;
+                margin-top: 4px !important;
+                line-height: 1 !important;
+              }
+              .analytics-sparkline-svg {
+                width: 90px !important;
+                height: 36px !important;
+                color: #2E7D32 !important;
+                opacity: 0.85 !important;
+                transition: opacity 0.2s !important;
+              }
+              .analytics-card:hover .analytics-sparkline-svg {
+                opacity: 1 !important;
+              }
+              .leaderboard-panel {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 56, 41, 0.05) !important;
+                border-radius: 24px !important;
+                padding: 28px !important;
+                box-shadow: 0 10px 30px -10px rgba(0, 56, 41, 0.01), 0 4px 12px rgba(0, 0, 0, 0.005) !important;
+                transition: all 0.3s ease !important;
+              }
+              .leaderboard-panel:hover {
+                box-shadow: 0 20px 40px -15px rgba(0, 56, 41, 0.03), 0 10px 20px -8px rgba(0, 0, 0, 0.01) !important;
+                border-color: rgba(0, 56, 41, 0.1) !important;
+              }
+              .leaderboard-header {
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                margin-bottom: 24px !important;
+              }
+              .leaderboard-header-icon-circle {
+                width: 38px !important;
+                height: 38px !important;
+                border-radius: 50% !important;
+                background: #E8F5E9 !important;
+                color: #2E7D32 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+              }
+              .leaderboard-title-text {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 15px !important;
+                font-weight: 800 !important;
+                color: #0F172A !important;
+                line-height: 1.1 !important;
+                margin: 0 !important;
+              }
+              .leaderboard-subtitle-text {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 10px !important;
+                font-weight: 500 !important;
+                color: #94a3b8 !important;
+                margin-top: 4px !important;
+                line-height: 1.2 !important;
+              }
+              .leaderboard-item-row {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 10px 12px !important;
+                margin: 0 -12px 6px -12px !important;
+                border-radius: 14px !important;
+                transition: background 0.15s ease !important;
+              }
+              .leaderboard-item-row:hover {
+                background: rgba(0, 56, 41, 0.015) !important;
+              }
+              .leaderboard-item-left {
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+              }
+              .leaderboard-rank {
+                width: 16px !important;
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                color: #94a3b8 !important;
+              }
+              .leaderboard-avatar {
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+              }
+              .leaderboard-avatar.issuer {
+                background: #FEF3C7 !important;
+                color: #D97706 !important;
+              }
+              .leaderboard-avatar.closer {
+                background: #D1FAE5 !important;
+                color: #059669 !important;
+              }
+              .leaderboard-item-info {
+                display: flex !important;
+                flex-direction: column !important;
+              }
+              .leaderboard-item-name {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 12.5px !important;
+                font-weight: 700 !important;
+                color: #1E293B !important;
+                line-height: 1.2 !important;
+              }
+              .leaderboard-item-sub {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 9px !important;
+                font-weight: 600 !important;
+                color: #94a3b8 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.03em !important;
+                margin-top: 2px !important;
+              }
+              .leaderboard-value-text {
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 13px !important;
+                font-weight: 800 !important;
+              }
+              .leaderboard-value-text.issuer {
+                color: #F05E33 !important;
+              }
+              .leaderboard-value-text.closer {
+                color: #00674F !important;
+              }
+              .leaderboard-footer-link {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+                padding-top: 16px !important;
+                margin-top: 12px !important;
+                border-top: 1px solid #f1f5f9 !important;
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                color: #003829 !important;
+                text-decoration: none !important;
+                transition: color 0.15s !important;
+                cursor: pointer !important;
+              }
+              .leaderboard-footer-link:hover {
+                color: #00674F !important;
+              }
+              .leaderboard-footer-link svg {
+                color: #003829 !important;
+                transition: transform 0.2s ease !important;
+              }
+              .leaderboard-footer-link:hover svg {
+                transform: translateX(3px) !important;
+              }
+              .chart-interval-dropdown {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 10px !important;
+                height: 32px !important;
+                padding: 0 12px !important;
+                font-family: 'Inter', system-ui, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                color: #475569 !important;
+                cursor: pointer !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+                transition: all 0.15s ease !important;
+              }
+              .chart-interval-dropdown:hover {
+                border-color: #cbd5e1 !important;
+                color: #1e293b !important;
+              }
             `}} />
             <main id="dashboard-main-content" className="flex-1 flex flex-col overflow-hidden bg-[#f8f9fb]">
               {/* Fixed Header Section */}
@@ -1075,92 +1370,78 @@ function DashboardContent() {
           <>
           {activeTab === 'analytics' && (
             <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-emerald-600" />
-                  <span className="text-xs font-black tracking-widest text-slate-400 uppercase">Range</span>
-                </div>
-                <div className="relative flex items-center bg-white/60 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border-default)] w-fit overflow-hidden shadow-sm gap-1.5">
+              {/* Range Selector Pill */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className="analytics-range-label">Range</span>
+                <div className="analytics-range-container">
                   {[7, 30, 90].map((days) => (
                     <button
                       key={days}
                       onClick={() => setAnalyticsDays(days as 7 | 30 | 90)}
-                      className={`relative z-10 px-5 py-2.5 min-w-[72px] rounded-xl text-xs font-black uppercase tracking-widest transition-colors duration-300 ${
-                        analyticsDays === days ? "text-white" : "text-text-tertiary hover:text-text-primary"
-                      }`}
+                      className={`analytics-range-btn ${analyticsDays === days ? "active" : ""}`}
                     >
-                      <span>{days}D</span>
-                      {analyticsDays === days && (
-                        <motion.div
-                          layoutId="activeRange"
-                          className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-lg shadow-primary/20"
-                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                        />
-                      )}
+                      {days}D
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Three Metrics Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Confirmed Quotes Card */}
+                <div className="analytics-card">
+                  <div className="analytics-card-left">
+                    <div className="analytics-icon-wrapper confirmed">
+                      <FileText size={20} />
+                    </div>
+                    <div className="analytics-card-info">
+                      <span className="analytics-card-tag">Confirmed Quotes</span>
+                      <h3 className="analytics-card-value">₱{Math.round(analytics.confirmed.amount).toLocaleString('en-US')}</h3>
+                      <span className="analytics-card-sub">{analytics.confirmed.count} Record{analytics.confirmed.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                  <svg viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="analytics-sparkline-svg text-emerald-500">
+                    <path d="M5,22 Q18,25 32,20 T58,15 T82,24 T95,10" />
+                  </svg>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <motion.div 
-                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
-                  style={cardStyle} 
-                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
-                >
-                  <div>
-                    <p style={sectionLabel} className="mb-0.5">Confirmed Quotes</p>
-                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(analytics.confirmed.amount).toLocaleString('en-US')}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">{analytics.confirmed.count} Record{analytics.confirmed.count !== 1 ? 's' : ''}</p>
+                {/* Total Collection Card */}
+                <div className="analytics-card">
+                  <div className="analytics-card-left">
+                    <div className="analytics-icon-wrapper collection">
+                      <CreditCard size={20} />
+                    </div>
+                    <div className="analytics-card-info">
+                      <span className="analytics-card-tag">Total Collection</span>
+                      <h3 className="analytics-card-value">₱{Math.round(
+                        analytics.confirmed.list.reduce((sum, q) => sum + (paymentTotals[q.id] || 0), 0)
+                      ).toLocaleString('en-US')}</h3>
+                      <span className="analytics-card-sub">From {
+                        analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length
+                      } quote{analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length !== 1 ? 's' : ''}</span>
+                    </div>
                   </div>
-                  <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                    style={{ background: '#EFF6FF', color: '#2563EB' }}
-                  >
-                    <CheckCircle size={22} />
-                  </div>
-                </motion.div>
+                  <svg viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="analytics-sparkline-svg text-cyan-500">
+                    <path d="M5,26 Q18,26 32,22 T58,16 T82,21 T95,8" />
+                  </svg>
+                </div>
 
-                <motion.div 
-                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
-                  style={cardStyle} 
-                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
-                >
-                  <div>
-                    <p style={sectionLabel} className="mb-0.5">Total Collection</p>
-                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(
-                      analytics.confirmed.list.reduce((sum, q) => sum + (paymentTotals[q.id] || 0), 0)
-                    ).toLocaleString('en-US')}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">From {
-                      analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length
-                    } quote{analytics.confirmed.list.filter(q => (paymentTotals[q.id] || 0) > 0).length !== 1 ? 's' : ''}</p>
+                {/* Total Commission Card */}
+                <div className="analytics-card">
+                  <div className="analytics-card-left">
+                    <div className="analytics-icon-wrapper commission">
+                      <TrendingUp size={20} />
+                    </div>
+                    <div className="analytics-card-info">
+                      <span className="analytics-card-tag">Total Commission</span>
+                      <h3 className="analytics-card-value">₱{Math.round(analytics.confirmed.commission).toLocaleString('en-US')}</h3>
+                      <span className="analytics-card-sub">Earned from confirmed deals</span>
+                    </div>
                   </div>
-                  <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                    style={{ background: '#EFF6FF', color: '#2563EB' }}
-                  >
-                    <Banknote size={22} />
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.1)", borderColor: "rgba(37, 99, 235, 0.3)" }}
-                  style={cardStyle} 
-                  className="!p-5 flex items-center justify-between !bg-blue-50/20 border-blue-500/10 transition-all group cursor-default"
-                >
-                  <div>
-                    <p style={sectionLabel} className="mb-0.5">Total Commission</p>
-                    <h3 style={headingMd} className="text-2xl tracking-tight !text-blue-600">₱{Math.round(analytics.confirmed.commission).toLocaleString('en-US')}</h3>
-                    <p className="text-[10px] font-semibold text-text-muted mt-0.5">Earned from confirmed deals</p>
-                  </div>
-                  <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                    style={{ background: '#EFF6FF', color: '#2563EB' }}
-                  >
-                    <TrendingUp size={22} />
-                  </div>
-                </motion.div>
+                  <svg viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="analytics-sparkline-svg text-lime-500">
+                    <path d="M5,24 Q18,22 32,26 T58,18 T82,14 T95,9" />
+                  </svg>
+                </div>
               </div>
 
               <AgentPerformanceLeaderboard 
@@ -1168,24 +1449,20 @@ function DashboardContent() {
                   closers={analytics.leaderboard.closers} 
                 />
 
-                <motion.div 
-                  whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.15), 0 0 20px -5px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}
-                  style={cardStyle} 
-                  className="!p-8 transition-all duration-300"
-                >
+                <div className="leaderboard-panel !p-8 transition-all duration-300">
                   <div className="flex items-center justify-between mb-8">
                     <div>
-                      <h4 style={headingMd} className="flex items-center gap-2">
-                        <TrendingUp size={20} style={{ color: 'var(--color-brand)' }} />
+                      <h4 className="leaderboard-title-text flex items-center gap-2">
+                        <TrendingUp size={20} className="text-[#003829]" />
                         Quotation Trend Velocity
                       </h4>
-                      <p style={pageSubtitle} className="!mb-0">Daily record volume for the last {analyticsDays} days.</p>
+                      <p className="leaderboard-subtitle-text !mt-1">Daily record volume for the last {analyticsDays} days.</p>
                     </div>
                   </div>
                   <div className="h-[180px] w-full">
                     <OperationalTrendGraph data={analytics.trend} />
                   </div>
-                </motion.div>
+                </div>
               </div>
             )}
 
@@ -1842,8 +2119,8 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
       <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--color-brand)" stopOpacity={0.1}/>
-            <stop offset="95%" stopColor="var(--color-brand)" stopOpacity={0}/>
+            <stop offset="5%" stopColor="#003829" stopOpacity={0.15}/>
+            <stop offset="95%" stopColor="#003829" stopOpacity={0}/>
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-default)" />
@@ -1862,13 +2139,13 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
         />
         <Tooltip 
           content={<CustomTooltip />} 
-          cursor={{ stroke: 'var(--color-brand)', strokeWidth: 2, strokeDasharray: '5 5' }}
+          cursor={{ stroke: '#003829', strokeWidth: 1.5, strokeDasharray: '4 4' }}
           wrapperStyle={{ outline: 'none' }}
         />
         <Area 
           type="monotone" 
           dataKey="quotes" 
-          stroke="var(--color-brand)" 
+          stroke="#003829" 
           strokeWidth={3} 
           fillOpacity={1} 
           fill="url(#colorValue)" 
@@ -1882,59 +2159,55 @@ function OperationalTrendGraph({ data }: { data: any[] }) {
 function AgentPerformanceLeaderboard({ issuers, closers }: { issuers: any[], closers: any[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <motion.div 
-        whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(234, 179, 8, 0.15), 0 0 20px -5px rgba(234, 179, 8, 0.1)", borderColor: "rgba(234, 179, 8, 0.3)" }}
-        className="bg-white border border-amber-500/10 !bg-amber-50/10 rounded-3xl !p-7 shadow-sm transition-all duration-300"
-      >
-        <div className="flex items-center justify-between mb-6">
+      {/* Top Issuers Panel */}
+      <div className="leaderboard-panel">
+        <div className="leaderboard-header">
+          <div className="leaderboard-header-icon-circle" style={{ background: '#FDF2F0', color: '#F05E33' }}>
+            <Users size={18} />
+          </div>
           <div>
-            <h4 className="text-lg font-bold text-primary flex items-center gap-2">
-              <Sparkles size={18} className="text-amber-500" />
-              Top Issuers
-            </h4>
-            <p className="text-xs text-text-secondary">Agents with highest number of quotations created</p>
+            <h4 className="leaderboard-title-text">Top Issuers</h4>
+            <p className="leaderboard-subtitle-text">Agents with highest number of quotations created</p>
           </div>
         </div>
-        <div className="space-y-4">
+        <div className="flex flex-col">
           {issuers.length > 0 ? issuers.slice(0, 3).map((agent, i) => (
             <LeaderboardItem 
               key={agent.name} 
               rank={i + 1} 
               name={agent.name} 
-              value={`P${Math.round(agent.issuedAmount).toLocaleString()}`}
+              value={`₱${Math.round(agent.issuedAmount).toLocaleString()}`}
               subValue={`${agent.issuedCount} Quote${agent.issuedCount !== 1 ? 's' : ''}`} 
-              colorClass="text-amber-600"
+              type="issuer"
             />
           )) : <p className="text-xs text-text-tertiary italic text-center py-4">No issuing activity records yet.</p>}
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div 
-        whileHover={{ y: -4, boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.15), 0 0 20px -5px rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}
-        className="bg-white border border-emerald-500/10 !bg-emerald-50/10 rounded-3xl !p-7 shadow-sm transition-all duration-300"
-      >
-        <div className="flex items-center justify-between mb-6">
+      {/* Top Closers Panel */}
+      <div className="leaderboard-panel">
+        <div className="leaderboard-header">
+          <div className="leaderboard-header-icon-circle">
+            <Trophy size={18} />
+          </div>
           <div>
-            <h4 className="text-lg font-bold text-primary flex items-center gap-2">
-              <Briefcase size={18} className="text-emerald-500" />
-              Top Closers
-            </h4>
-            <p className="text-xs text-text-secondary">Agents with highest number of confirmed quotations</p>
+            <h4 className="leaderboard-title-text">Top Closers</h4>
+            <p className="leaderboard-subtitle-text">Agents with highest number of confirmed quotations</p>
           </div>
         </div>
-        <div className="space-y-4">
+        <div className="flex flex-col">
           {closers.length > 0 ? closers.filter(a => a.confirmedCount > 0).slice(0, 3).map((agent, i) => (
             <LeaderboardItem 
               key={agent.name} 
               rank={i + 1} 
               name={agent.name} 
-              value={`P${Math.round(agent.confirmedAmount).toLocaleString()}`} 
+              value={`₱${Math.round(agent.confirmedAmount).toLocaleString()}`} 
               subValue={`${agent.confirmedCount} Confirmation${agent.confirmedCount !== 1 ? 's' : ''}`}
-              colorClass="text-emerald-600"
+              type="closer"
             />
           )) : <p className="text-xs text-text-tertiary italic text-center py-4">No confirmed revenue records yet.</p>}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -1955,32 +2228,25 @@ export default function Dashboard() {
   );
 }
 
-
-function LeaderboardItem({ rank, name, value, subValue, colorClass }: any) {
+function LeaderboardItem({ rank, name, value, subValue, type }: { rank: number, name: string, value: string, subValue: string, type: 'issuer' | 'closer' }) {
   const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
   
   return (
-    <div className="flex items-center justify-between group hover:bg-black/5 !-mx-2 !px-2 !py-2 rounded-xl transition-all">
-      <div className="flex items-center gap-4">
-        <div className="w-6 text-[10px] font-bold text-text-faint opacity-50 group-hover:opacity-100 transition-opacity">
+    <div className="leaderboard-item-row">
+      <div className="leaderboard-item-left">
+        <div className="leaderboard-rank">
           #{rank}
         </div>
-        <div 
-          className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-bold`}
-          style={{ 
-            background: colorClass === 'text-blue-600' ? '#EFF6FF' : colorClass === 'text-amber-600' ? '#FEF3C7' : 'var(--color-brand-soft)', 
-            color: colorClass === 'text-blue-600' ? '#2563EB' : colorClass === 'text-amber-600' ? '#D97706' : 'var(--color-brand)' 
-          }}
-        >
+        <div className={`leaderboard-avatar ${type}`}>
           {initials}
         </div>
-        <div>
-          <p style={labelStyle} className="!mb-0">{name}</p>
-          <p style={sectionLabel} className="!text-[9px]">{subValue}</p>
+        <div className="leaderboard-item-info">
+          <span className="leaderboard-item-name">{name}</span>
+          <span className="leaderboard-item-sub">{subValue}</span>
         </div>
       </div>
       <div className="text-right">
-        <p className={cn("text-sm font-bold", colorClass)}>{value}</p>
+        <span className={`leaderboard-value-text ${type}`}>{value}</span>
       </div>
     </div>
   );
