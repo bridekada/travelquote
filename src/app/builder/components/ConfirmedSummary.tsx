@@ -1697,6 +1697,13 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
 
   };
 
+  // Helper to check if a preset is in the selected package inclusions
+  const isPresetInSelectedPackage = (presetName: string) => {
+    return (details.inclusions?.misc_details || []).some(
+      (md: any) => md.name.toLowerCase().trim() === presetName.toLowerCase().trim()
+    );
+  };
+
   // Helper to get misc value by ID
 
   const getMiscTotal = (id: string) => {
@@ -1771,13 +1778,13 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
 
   const fuelCost = quote.items?.reduce((sum, item) => sum + calculateDailyFuel(item), 0) || 0;
 
-  expenses.push({ label: "Fuel", amount: fuelCost, included: isIncluded("Fuel") });
+  expenses.push({ label: "Fuel", amount: fuelCost, included: !!details.inclusions?.fuel });
 
   // 3. Guest Accom
 
   const guestAccom = quote.items?.reduce((sum, item) => sum + (item.guest_accommodation_amount || 0), 0) || 0;
 
-  expenses.push({ label: "Guest Accom", amount: guestAccom, included: isIncluded("Accommodation") });
+  expenses.push({ label: "Guest Accom", amount: guestAccom, included: !!details.inclusions?.accommodation });
 
   // 4. Matrix Miscellaneous
 
@@ -1795,7 +1802,7 @@ function AdminReportModal({ isOpen, onClose, quote, details, incs, totalPaid, db
 
     if (amount > 0) {
 
-      expenses.push({ label: preset.name, amount: amount, included: isIncluded(preset.name) });
+      expenses.push({ label: preset.name, amount: amount, included: isPresetInSelectedPackage(preset.name) });
 
     }
 
@@ -1829,7 +1836,7 @@ __________
 
 Expenses
 
-${expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
+${expenses.filter(e => e.included && e.amount > 0).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
 
 LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}
 
@@ -1997,7 +2004,7 @@ ${quote.items?.map(item => {
 
                 {"\n"}<span className="font-black text-primary">Expenses</span>
 
-                {"\n"}{expenses.filter(e => e.included).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
+                {"\n"}{expenses.filter(e => e.included && e.amount > 0).map(e => `${e.label}: ₱${Math.round(e.amount).toLocaleString()}`).join('\n')}
 
                 {"\n"}<span className="font-black text-rose-600">LESS RESERVATION: ₱{Math.round(totalPaid).toLocaleString()}</span>
 
