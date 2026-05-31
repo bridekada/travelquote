@@ -731,7 +731,6 @@ function DashboardContent() {
                 <span className="text-[11px] font-bold text-slate-600 mt-0.5">
                   {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
-                <ChevronDown size={12} className="text-slate-400 ml-1" />
               </div>
 
               {/* Bell Notification Badge */}
@@ -743,7 +742,7 @@ function DashboardContent() {
               {/* Operator Profile Capsule */}
               <div onClick={() => setIsAgencySettingsOpen(true)} className="header-profile-capsule" title="Agency settings">
                 <span className="text-[9px] font-extrabold text-slate-600 uppercase tracking-widest pl-2">
-                  {profile?.role?.replace('_', ' ').toUpperCase()} • {profile?.operators?.name?.toUpperCase() || 'LOADING'}
+                  {profile?.operators?.name?.toUpperCase() || 'LOADING'}
                 </span>
                 <ChevronDown size={12} className="text-slate-400" />
                 <div className="header-profile-avatar">
@@ -851,24 +850,18 @@ function DashboardContent() {
                 transform: translateY(0px) scale(0.98) !important;
               }
               .header-control-pill {
-                background: #ffffff !important;
-                border: 1px solid rgba(0, 56, 41, 0.08) !important;
-                border-radius: 12px !important;
+                background: transparent !important;
+                border: none !important;
                 height: 38px !important;
-                padding: 0 16px !important;
+                padding: 0 !important;
                 display: flex !important;
                 align-items: center !important;
                 gap: 8px !important;
                 font-size: 12px !important;
                 font-weight: 600 !important;
                 color: #334155 !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
-              }
-              .header-control-pill:hover {
-                border-color: rgba(0, 56, 41, 0.2) !important;
-                background: #fafafa !important;
+                cursor: default !important;
+                box-shadow: none !important;
               }
               .header-bell-btn {
                 width: 38px !important;
