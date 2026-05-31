@@ -7,7 +7,7 @@ import DashboardSidebar from "./components/DashboardSidebar";
 import PaymentTrackerView from "./components/PaymentTrackerView";
 import { CreditCard, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3 } from "lucide-react";
+import { ArrowLeft, LogOut, Plus, Search, Clock, CheckCircle, AlertCircle, FileText, Map as MapIcon, Loader2, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, X, CarFront, Trash2, Users, User, Banknote, Fuel, Minus, Settings, Sparkles, Briefcase, Zap, TrendingUp, BedDouble, Check, Calendar as CalendarIcon, ArrowUpDown, Globe, Share2, Info, Mail, Building2, MapPin, Phone, Key, AlertTriangle, ImagePlus, Save, Tag, BarChart3, Bell } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -656,19 +656,8 @@ function DashboardContent() {
           <header id="dashboard-top-header" className="sticky top-0 z-30 w-full shrink-0 h-20 px-8 border-b border-slate-200/60 bg-white flex items-center">
             <div className="flex-1 min-w-0 pr-4">
               <div className="flex items-center gap-4">
-                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 shadow-sm">
-                  {activeTab === 'quotes' && <FileText className="text-emerald-600" size={24} />}
-                  {activeTab === 'payments' && <CreditCard className="text-emerald-600" size={24} />}
-                  {activeTab === 'calendar' && <CalendarIcon className="text-emerald-600" size={24} />}
-                  {activeTab === 'analytics' && <BarChart3 className="text-emerald-600" size={24} />}
-                  {activeTab === 'vehicles' && <CarFront className="text-emerald-600" size={24} />}
-                  {activeTab === 'accommodation' && <BedDouble className="text-emerald-600" size={24} />}
-                  {activeTab === 'miscellaneous' && <Settings className="text-emerald-600" size={24} />}
-                  {activeTab === 'itinerary' && <MapIcon className="text-emerald-600" size={24} />}
-                  {activeTab === 'packages' && <LayoutGrid className="text-emerald-600" size={24} />}
-                </div>
                 <div>
-                  <h1 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1.5 flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none mb-1.5 flex items-center gap-2">
                     {activeTab === 'quotes' && "Quotation List"}
                     {activeTab === 'payments' && "Payment & Cashflow Tracker"}
                     {activeTab === 'calendar' && "Deployment Schedule"}
@@ -679,7 +668,7 @@ function DashboardContent() {
                     {activeTab === 'itinerary' && "Trip Configurations"}
                     {activeTab === 'packages' && "Product Packages"}
                   </h1>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">
+                  <p className="text-[11px] font-medium text-slate-500 tracking-wide leading-none opacity-90">
                     {activeTab === 'quotes' && "Manage and track your issued quotation records and transaction history."}
                     {activeTab === 'payments' && "Track payments and disbursements across all confirmed quotations."}
                     {activeTab === 'calendar' && "This calendar shows all quotes that has been confirmed."}
@@ -694,8 +683,9 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* ── Header Actions (Dynamic) ────────────── */}
-            <div className="flex items-center gap-6">
+            {/* ── Header Actions & Dynamic Control Center ────── */}
+            <div className="flex items-center gap-4">
+              {/* Active Tab Action Button */}
               <div className="flex items-center gap-3">
                 {activeTab === 'quotes' && (
                   <button onClick={() => router.push('/builder')} className="btn-header-action">
@@ -735,26 +725,29 @@ function DashboardContent() {
                 )}
               </div>
 
-              {/* ── Station Info (Fixed Far Right) ─────── */}
-              <div className="flex items-center gap-4 ml-6">
-                <div className="h-8 w-[1px] bg-slate-200" />
-                <div className="station-header-pill group/station">
-                  {(profile?.role === 'super_admin' || profile?.role === 'operator_admin') && (
-                    <button 
-                      onClick={() => setIsAgencySettingsOpen(true)}
-                      className="mr-1 p-1.5 hover:bg-slate-100 rounded-lg text-slate-300 hover:text-emerald-600 transition-all group/btn"
-                      title="Agency Settings"
-                    >
-                      <Settings size={14} className="group-hover/btn:rotate-90 transition-transform duration-500" />
-                    </button>
-                  )}
-                  <div className="flex flex-col justify-center text-right">
-                    <span className="station-header-label">Station</span>
-                    <span className="station-header-name">{profile?.operators?.name || 'Loading...'}</span>
-                  </div>
-                  <div className="station-header-icon">
-                    {profile?.operators?.name?.substring(0, 1).toUpperCase() || 'A'}
-                  </div>
+              {/* Local Time Date Picker Pill */}
+              <div className="header-control-pill">
+                <CalendarIcon size={14} className="text-slate-400" />
+                <span className="text-[11px] font-bold text-slate-600 mt-0.5">
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                <ChevronDown size={12} className="text-slate-400 ml-1" />
+              </div>
+
+              {/* Bell Notification Badge */}
+              <button className="header-bell-btn" type="button" title="Notifications">
+                <Bell size={18} />
+                <div className="header-bell-dot" />
+              </button>
+
+              {/* Operator Profile Capsule */}
+              <div onClick={() => setIsAgencySettingsOpen(true)} className="header-profile-capsule" title="Agency settings">
+                <span className="text-[9px] font-extrabold text-slate-600 uppercase tracking-widest pl-2">
+                  {profile?.role?.replace('_', ' ').toUpperCase()} • {profile?.operators?.name?.toUpperCase() || 'LOADING'}
+                </span>
+                <ChevronDown size={12} className="text-slate-400" />
+                <div className="header-profile-avatar">
+                  {profile?.full_name?.substring(0, 1).toUpperCase() || 'A'}
                 </div>
               </div>
             </div>
@@ -857,52 +850,81 @@ function DashboardContent() {
               .btn-load-more:active {
                 transform: translateY(0px) scale(0.98) !important;
               }
-              .station-header-pill {
+              .header-control-pill {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 56, 41, 0.08) !important;
+                border-radius: 12px !important;
+                height: 38px !important;
+                padding: 0 16px !important;
                 display: flex !important;
                 align-items: center !important;
-                gap: 12px !important;
-                padding: 6px 6px 6px 16px !important;
-                background: transparent !important;
-                border: 1px solid transparent !important;
-                border-radius: 12px !important;
-                margin-right: 8px !important;
+                gap: 8px !important;
+                font-size: 12px !important;
+                font-weight: 600 !important;
+                color: #334155 !important;
+                cursor: pointer !important;
                 transition: all 0.2s ease !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
               }
-              .station-header-pill:hover {
-                background: #ffffff !important;
-                border-color: #cbd5e1 !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+              .header-control-pill:hover {
+                border-color: rgba(0, 56, 41, 0.2) !important;
+                background: #fafafa !important;
               }
-              .station-header-icon {
-                width: 32px !important;
-                height: 32px !important;
-                border-radius: 8px !important;
-                background: #00674f !important;
-                color: white !important;
+              .header-bell-btn {
+                width: 38px !important;
+                height: 38px !important;
+                border-radius: 12px !important;
+                background: transparent !important;
+                border: none !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                font-size: 10px !important;
-                font-weight: 900 !important;
-                flex-shrink: 0 !important;
+                color: #475569 !important;
+                position: relative !important;
+                cursor: pointer !important;
+                transition: background 0.2s !important;
               }
-              .station-header-label {
-                text-transform: uppercase !important;
-                letter-spacing: 0.1em !important;
-                font-size: 7px !important;
-                font-weight: 900 !important;
-                color: #10b981 !important;
-                display: block !important;
-                line-height: 1 !important;
-                margin-bottom: 2px !important;
+              .header-bell-btn:hover {
+                background: rgba(0, 56, 41, 0.03) !important;
+                color: #0F172A !important;
               }
-              .station-header-name {
-                font-size: 10px !important;
-                font-weight: 800 !important;
-                color: #334155 !important;
-                display: block !important;
-                line-height: 1 !important;
-                letter-spacing: -0.01em !important;
+              .header-bell-dot {
+                position: absolute !important;
+                top: 9px !important;
+                right: 9px !important;
+                width: 7px !important;
+                height: 7px !important;
+                border-radius: 50% !important;
+                background: #F05E33 !important;
+                border: 1px solid #FAF8F5 !important;
+              }
+              .header-profile-capsule {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 56, 41, 0.08) !important;
+                border-radius: 12px !important;
+                height: 38px !important;
+                padding: 2px 2px 2px 14px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 10px !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+              }
+              .header-profile-capsule:hover {
+                border-color: rgba(0, 56, 41, 0.2) !important;
+              }
+              .header-profile-avatar {
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 50% !important;
+                background: #003829 !important;
+                color: #ffffff !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-weight: 700 !important;
+                font-size: 11px !important;
               }
             `}} />
             <main id="dashboard-main-content" className="flex-1 flex flex-col overflow-hidden bg-[#f8f9fb]">
