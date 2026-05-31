@@ -766,15 +766,15 @@ function DashboardContent() {
                 padding-left: 32px !important;
                 padding-right: 32px !important;
                 height: 64px !important;
-                background: #ffffff !important;
-                border-bottom: 1px solid #f1f5f9 !important;
+                background: #FAF8F5 !important;
+                border-bottom: none !important;
               }
               #dashboard-main-content {
                 padding-left: 64px !important;
                 padding-right: 64px !important;
                 padding-top: ${activeTab === 'analytics' || activeTab === 'calendar' ? '16px' : '32px'} !important;
                 padding-bottom: 32px !important;
-                background: #f8f9fb !important;
+                background: #FAF8F5 !important;
               }
               .custom-scrollbar::-webkit-scrollbar {
                 width: 10px !important;
@@ -1540,7 +1540,7 @@ function DashboardContent() {
         </main>
 
         {/* ── Right Feature Container ──────────────── */}
-        <aside className="hidden xl:flex flex-col w-80 bg-white border-l border-slate-200/60 items-center justify-center pb-32">
+        <aside className="hidden xl:flex flex-col w-80 items-center justify-center pb-32" style={{ background: '#FAF8F5', borderLeft: 'none' }}>
           <div className="p-10 w-full flex flex-col items-center text-center gap-10">
             <div className="w-24 h-24 rounded-[32px] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-center text-slate-300 border border-slate-50 transition-transform hover:scale-105 duration-500">
               <Sparkles size={40} strokeWidth={1.2} />
