@@ -1,22 +1,217 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
-import { FileText, TrendingUp, CheckCircle, Clock, Plus } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, X, Loader2, ArrowDownUp, SortDesc } from "lucide-react";
+import MobileStatsRow from "./components/MobileStatsRow";
+import MobileFilterChips from "./components/MobileFilterChips";
+import MobileQuoteCard from "./components/MobileQuoteCard";
+
+const ALL_STATUSES = [
+  "Draft", "Quotation Sent", "Follow-up Needed",
+  "Confirmed", "Payment Started", "Payment Complete",
+  "Lost", "Cancelled",
+];
+
+const CONFIRMED_STATUSES = ["Confirmed", "Payment Started", "Payment Complete"];
+const PENDING_STATUSES = ["Draft", "Quotation Sent", "Follow-up Needed"];
 
 export default function MobileDashboardPage() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, selectedOperatorId } = useAuth();
+
+  // Data
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [paymentTotals, setPaymentTotals] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
+  const [sortMethod, setSortMethod] = useState<"priority" | "updated">("priority");
+
+  // Visible count for lazy loading
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  // ── Data Fetching ──
+  const fetchData = useCallback(async () => {
+    if (!profile || !selectedOperatorId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("quotes")
+        .select("*, creator:created_by(full_name), modifier:updated_by(full_name)")
+        .eq("operator_id", selectedOperatorId)
+        .order("eta", { ascending: true, nullsFirst: false });
+
+      if (error) {
+        console.error("Error fetching quotes:", error);
+        return;
+      }
+
+      setQuotes(data || []);
+
+      // Fetch payment totals
+      const quoteIds = (data || []).map((q: any) => q.id);
+      if (quoteIds.length > 0) {
+        const { data: paymentsRes } = await supabase
+          .from("payments")
+          .select("quote_id, amount")
+          .in("quote_id", quoteIds);
+
+        const totals: Record<string, number> = {};
+        (paymentsRes || []).forEach((p: any) => {
+          totals[p.quote_id] = (totals[p.quote_id] || 0) + (p.amount || 0);
+        });
+        setPaymentTotals(totals);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [profile, selectedOperatorId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData, refreshTrigger]);
+
+  // Reset visible count on filter change
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchQuery, quoteStatusFilter]);
+
+  // ── Filtering & Sorting ──
+  const { filteredQuotes, statusCounts } = useMemo(() => {
+    // Base filter: search
+    const baseFiltered = quotes.filter((q) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+
+      // Duration string
+      let durationStr = "";
+      if (q.eta && q.etd) {
+        const d1 = new Date(q.eta);
+        const d2 = new Date(q.etd);
+        d1.setHours(0, 0, 0, 0);
+        d2.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const nights = diffDays - 1;
+        durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
+      }
+
+      const paxStr = q.pax_count ? `${q.pax_count}pax` : "";
+      const fleetText = (q.fleet_json || q.fleet || []).map((v: any) => v.model).join(" ").toLowerCase();
+
+      return (
+        q.customer_name?.toLowerCase().includes(query) ||
+        q.vehicle_model?.toLowerCase().includes(query) ||
+        fleetText.includes(query) ||
+        durationStr.toLowerCase().includes(query) ||
+        paxStr.toLowerCase().includes(query) ||
+        q.quotation_description?.toLowerCase().includes(query)
+      );
+    });
+
+    // Status counts
+    const counts: Record<string, number> = { All: baseFiltered.length };
+    ALL_STATUSES.forEach((s) => {
+      counts[s] = baseFiltered.filter((q) => q.status === s).length;
+    });
+
+    // Status filter
+    let filtered = quoteStatusFilter === "All"
+      ? baseFiltered
+      : baseFiltered.filter((q) => q.status === quoteStatusFilter);
+
+    // Sort
+    if (sortMethod === "updated") {
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at).getTime();
+        const dateB = new Date(b.updated_at || b.created_at).getTime();
+        return dateB - dateA;
+      });
+    } else {
+      // Priority sort
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const getStatusPriority = (status: string, eta: string) => {
+        if (!eta) return 2;
+        const tripDate = new Date(eta);
+        tripDate.setHours(0, 0, 0, 0);
+        const isPast = tripDate < now;
+
+        if (["Lost", "Cancelled"].includes(status) || (isPast && !["Draft", "Quotation Sent", "Follow-up Needed"].includes(status))) return 2;
+        if (["Draft", "Quotation Sent", "Follow-up Needed"].includes(status)) return 0;
+        if (["Confirmed", "Payment Started", "Payment Complete"].includes(status)) return 1;
+        return 2;
+      };
+
+      filtered = [...filtered].sort((a, b) => {
+        const pA = getStatusPriority(a.status, a.eta);
+        const pB = getStatusPriority(b.status, b.eta);
+        if (pA !== pB) return pA - pB;
+        if (!a.eta && !b.eta) return 0;
+        if (!a.eta) return 1;
+        if (!b.eta) return -1;
+        const dateA = new Date(a.eta).getTime();
+        const dateB = new Date(b.eta).getTime();
+        if (pA === 2) return dateB - dateA;
+        return dateA - dateB;
+      });
+    }
+
+    return { filteredQuotes: filtered, statusCounts: counts };
+  }, [quotes, searchQuery, quoteStatusFilter, sortMethod]);
+
+  // ── Stats ──
+  const stats = useMemo(() => {
+    const confirmed = quotes.filter((q) => CONFIRMED_STATUSES.includes(q.status || ""));
+    return {
+      total: quotes.length,
+      confirmed: confirmed.length,
+      revenue: confirmed.reduce((sum, q) => sum + (q.grand_total || 0), 0),
+      pending: quotes.filter((q) => PENDING_STATUSES.includes(q.status || "")).length,
+    };
+  }, [quotes]);
+
+  // ── Actions ──
+  const handleDuplicate = async (id: string) => {
+    router.push(`/m/builder?copyFrom=${id}`);
+  };
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Delete quote for "${title}"?`)) return;
+    try {
+      // Cascade delete
+      await supabase.from("payments").delete().eq("quote_id", id);
+      await supabase.from("quote_items").delete().eq("quote_id", id);
+      await supabase.from("quotes").delete().eq("id", id);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
+
+  const visibleQuotes = filteredQuotes.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredQuotes.length;
 
   return (
     <div>
-      {/* ── Welcome Section ── */}
+      {/* Welcome */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{ marginBottom: 20 }}
+        transition={{ duration: 0.25 }}
+        style={{ marginBottom: 16 }}
       >
         <h2
           style={{
@@ -33,150 +228,198 @@ export default function MobileDashboardPage() {
         <p
           style={{
             fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 500,
-            color: "#64748B",
+            color: "#94A3B8",
             margin: 0,
-            marginTop: 4,
+            marginTop: 2,
           }}
         >
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
         </p>
       </motion.div>
 
-      {/* ── Quick Stats (Placeholder) ── */}
-      <div className="mobile-h-scroll" style={{ marginBottom: 24, paddingBottom: 4 }}>
-        {[
-          { label: "Total Quotes", value: "—", icon: <FileText size={18} />, color: "#003829", bg: "#F0FDF4" },
-          { label: "Confirmed", value: "—", icon: <CheckCircle size={18} />, color: "#059669", bg: "#ECFDF5" },
-          { label: "Revenue", value: "—", icon: <TrendingUp size={18} />, color: "#0369A1", bg: "#E0F2FE" },
-          { label: "Pending", value: "—", icon: <Clock size={18} />, color: "#D97706", bg: "#FEF3C7" },
-        ].map((stat) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              minWidth: 140,
-              padding: "16px 18px",
-              borderRadius: 16,
-              background: "#ffffff",
-              border: "1px solid rgba(0, 0, 0, 0.05)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: stat.bg,
-                color: stat.color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 10,
-              }}
-            >
-              {stat.icon}
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', system-ui, sans-serif",
-                fontSize: 22,
-                fontWeight: 800,
-                color: "#0F172A",
-                lineHeight: 1,
-                marginBottom: 4,
-              }}
-            >
-              {stat.value}
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', system-ui, sans-serif",
-                fontSize: 10,
-                fontWeight: 600,
-                color: "#94A3B8",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {stat.label}
-            </div>
-          </motion.div>
-        ))}
+      {/* Stats Row */}
+      <div style={{ marginBottom: 18 }}>
+        <MobileStatsRow
+          totalQuotes={stats.total}
+          confirmedCount={stats.confirmed}
+          revenue={stats.revenue}
+          pendingCount={stats.pending}
+        />
       </div>
 
-      {/* ── Coming Soon Notice ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="m-card"
-        style={{
-          textAlign: "center",
-          padding: "40px 24px",
-        }}
-      >
-        <div
+      {/* Search Bar */}
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <Search
+          size={16}
+          color="#94A3B8"
+          style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }}
+        />
+        <input
+          type="text"
+          placeholder="Search quotes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: "linear-gradient(145deg, #00674F 0%, #004F3D 100%)",
-            display: "inline-flex",
+            width: "100%",
+            height: 44,
+            paddingLeft: 40,
+            paddingRight: searchQuery ? 40 : 16,
+            borderRadius: 14,
+            fontSize: 14,
+            fontFamily: "'Inter', system-ui, sans-serif",
+            fontWeight: 500,
+            border: "1.5px solid rgba(0,0,0,0.08)",
+            background: "#ffffff",
+            color: "#0F172A",
+            outline: "none",
+            WebkitAppearance: "none",
+            transition: "border-color 0.2s",
+          }}
+          onFocus={(e) => (e.target.style.borderColor = "#00674F")}
+          onBlur={(e) => (e.target.style.borderColor = "rgba(0,0,0,0.08)")}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            style={{
+              position: "absolute",
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "#F1F5F9",
+              border: "none",
+              borderRadius: "50%",
+              width: 28,
+              height: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <X size={14} color="#64748B" />
+          </button>
+        )}
+      </div>
+
+      {/* Filter Chips + Sort Toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <MobileFilterChips
+            statuses={ALL_STATUSES}
+            counts={statusCounts}
+            activeFilter={quoteStatusFilter}
+            onFilterChange={setQuoteStatusFilter}
+          />
+        </div>
+        <button
+          onClick={() => setSortMethod((s) => (s === "priority" ? "updated" : "priority"))}
+          style={{
+            flexShrink: 0,
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            border: "1.5px solid rgba(0,0,0,0.08)",
+            background: "#ffffff",
+            display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 16,
-            boxShadow: "0 4px 16px -2px rgba(0, 103, 79, 0.3)",
+            cursor: "pointer",
+            color: sortMethod === "updated" ? "#00674F" : "#94A3B8",
+            WebkitTapHighlightColor: "transparent",
           }}
+          title={sortMethod === "priority" ? "Sort by priority" : "Sort by updated"}
         >
-          <FileText size={24} color="#ffffff" />
-        </div>
-        <h3
-          style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#0F172A",
-            margin: 0,
-            marginBottom: 8,
-          }}
-        >
-          Dashboard Ready
-        </h3>
-        <p
-          style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#64748B",
-            margin: 0,
-            lineHeight: 1.5,
-            maxWidth: 280,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          Your mobile dashboard shell is live! Quote list, analytics, and search are coming in Phase 2.
-        </p>
-
-        <button
-          className="m-btn-emerald"
-          onClick={() => router.push("/m/builder")}
-          style={{ marginTop: 24, maxWidth: 220, marginLeft: "auto", marginRight: "auto" }}
-        >
-          <Plus size={18} />
-          New Quote
+          {sortMethod === "priority" ? <ArrowDownUp size={16} /> : <SortDesc size={16} />}
         </button>
-      </motion.div>
+      </div>
+
+      {/* Quote List */}
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+          <Loader2 className="animate-spin" size={24} color="#00674F" />
+        </div>
+      ) : filteredQuotes.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            textAlign: "center",
+            padding: "48px 24px",
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#64748B", margin: 0 }}>
+            {searchQuery ? "No quotes found" : "No quotes yet"}
+          </p>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "#94A3B8", margin: 0, marginTop: 4 }}>
+            {searchQuery ? "Try a different search" : "Tap + to create your first quote"}
+          </p>
+        </motion.div>
+      ) : (
+        <>
+          <AnimatePresence mode="popLayout">
+            {visibleQuotes.map((quote, i) => (
+              <motion.div
+                key={quote.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.2, delay: Math.min(i * 0.03, 0.3) }}
+              >
+                <MobileQuoteCard
+                  quote={quote}
+                  paymentTotal={paymentTotals[quote.id] || 0}
+                  onTap={(id) => router.push(`/m/builder?id=${id}`)}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDelete}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Load More */}
+          {hasMore && (
+            <button
+              onClick={() => setVisibleCount((c) => c + 20)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 14,
+                border: "1.5px solid rgba(0,103,79,0.15)",
+                background: "#F0FDF4",
+                color: "#00674F",
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                marginTop: 4,
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              Load More ({filteredQuotes.length - visibleCount} remaining)
+            </button>
+          )}
+
+          {/* Count label */}
+          <p
+            style={{
+              textAlign: "center",
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 10,
+              fontWeight: 600,
+              color: "#CBD5E1",
+              marginTop: 16,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+            }}
+          >
+            {filteredQuotes.length} quote{filteredQuotes.length !== 1 ? "s" : ""}
+          </p>
+        </>
+      )}
     </div>
   );
 }
