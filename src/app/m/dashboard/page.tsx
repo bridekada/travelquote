@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2, ArrowDownUp, SortDesc } from "lucide-react";
+import { Search, X, Loader2, ArrowDownUp, SortDesc, Calendar, Users, Check } from "lucide-react";
+import { Drawer } from "vaul";
 import MobileStatsRow from "./components/MobileStatsRow";
 import MobileFilterChips from "./components/MobileFilterChips";
 import MobileQuoteCard from "./components/MobileQuoteCard";
@@ -32,7 +33,13 @@ export default function MobileDashboardPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("All Time");
+  const [agentFilter, setAgentFilter] = useState("All");
   const [sortMethod, setSortMethod] = useState<"priority" | "updated">("priority");
+
+  // Bottom sheet states
+  const [isDateOpen, setIsDateOpen] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
 
   // Visible count for lazy loading
   const [visibleCount, setVisibleCount] = useState(20);
@@ -86,38 +93,59 @@ export default function MobileDashboardPage() {
   // Reset visible count on filter change
   useEffect(() => {
     setVisibleCount(20);
-  }, [searchQuery, quoteStatusFilter]);
+  }, [searchQuery, quoteStatusFilter, dateFilter, agentFilter]);
 
   // ── Filtering & Sorting ──
   const { filteredQuotes, statusCounts } = useMemo(() => {
-    // Base filter: search
+    // Base filter: search + agent + date
     const baseFiltered = quotes.filter((q) => {
-      if (!searchQuery) return true;
-      const query = searchQuery.toLowerCase();
-
-      // Duration string
-      let durationStr = "";
-      if (q.eta && q.etd) {
-        const d1 = new Date(q.eta);
-        const d2 = new Date(q.etd);
-        d1.setHours(0, 0, 0, 0);
-        d2.setHours(0, 0, 0, 0);
-        const diffDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        const nights = diffDays - 1;
-        durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
+      // Search
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        let durationStr = "";
+        if (q.eta && q.etd) {
+          const d1 = new Date(q.eta);
+          const d2 = new Date(q.etd);
+          d1.setHours(0, 0, 0, 0);
+          d2.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          const nights = diffDays - 1;
+          durationStr = `${diffDays}D${nights > 0 ? `${nights}N` : ""}`;
+        }
+        const paxStr = q.pax_count ? `${q.pax_count}pax` : "";
+        const fleetText = (q.fleet_json || q.fleet || []).map((v: any) => v.model).join(" ").toLowerCase();
+        const matchesSearch = (
+          q.customer_name?.toLowerCase().includes(query) ||
+          q.vehicle_model?.toLowerCase().includes(query) ||
+          fleetText.includes(query) ||
+          durationStr.toLowerCase().includes(query) ||
+          paxStr.toLowerCase().includes(query) ||
+          q.quotation_description?.toLowerCase().includes(query)
+        );
+        if (!matchesSearch) return false;
       }
 
-      const paxStr = q.pax_count ? `${q.pax_count}pax` : "";
-      const fleetText = (q.fleet_json || q.fleet || []).map((v: any) => v.model).join(" ").toLowerCase();
+      // Agent filter
+      if (agentFilter !== "All" && q.creator?.full_name !== agentFilter) return false;
 
-      return (
-        q.customer_name?.toLowerCase().includes(query) ||
-        q.vehicle_model?.toLowerCase().includes(query) ||
-        fleetText.includes(query) ||
-        durationStr.toLowerCase().includes(query) ||
-        paxStr.toLowerCase().includes(query) ||
-        q.quotation_description?.toLowerCase().includes(query)
-      );
+      // Date filter
+      if (dateFilter !== "All Time" && q.created_at) {
+        const createdDate = new Date(q.created_at);
+        const now = new Date();
+        if (dateFilter === "Created Today") {
+          if (createdDate.toDateString() !== now.toDateString()) return false;
+        } else if (dateFilter === "Last 7 Days") {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(now.getDate() - 7);
+          if (createdDate < sevenDaysAgo) return false;
+        } else if (dateFilter === "This Month") {
+          if (createdDate.getMonth() !== now.getMonth() || createdDate.getFullYear() !== now.getFullYear()) return false;
+        } else if (dateFilter === "This Year") {
+          if (createdDate.getFullYear() !== now.getFullYear()) return false;
+        }
+      }
+
+      return true;
     });
 
     // Status counts
@@ -170,7 +198,16 @@ export default function MobileDashboardPage() {
     }
 
     return { filteredQuotes: filtered, statusCounts: counts };
-  }, [quotes, searchQuery, quoteStatusFilter, sortMethod]);
+  }, [quotes, searchQuery, quoteStatusFilter, sortMethod, dateFilter, agentFilter]);
+
+  // ── Agent list (derived from quotes) ──
+  const agentList = useMemo(() => {
+    const names = new Set<string>();
+    quotes.forEach((q) => {
+      if (q.creator?.full_name) names.add(q.creator.full_name);
+    });
+    return Array.from(names).sort();
+  }, [quotes]);
 
   // ── Stats ──
   const stats = useMemo(() => {
@@ -304,14 +341,64 @@ export default function MobileDashboardPage() {
         )}
       </div>
 
-      {/* Filter + Sort Toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+      {/* Filter Row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <MobileFilterChips
           statuses={ALL_STATUSES}
           counts={statusCounts}
           activeFilter={quoteStatusFilter}
           onFilterChange={setQuoteStatusFilter}
         />
+
+        {/* Date Filter Button */}
+        <button
+          onClick={() => setIsDateOpen(true)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 12px",
+            borderRadius: 12,
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "'Inter', system-ui, sans-serif",
+            whiteSpace: "nowrap",
+            border: dateFilter !== "All Time" ? "1.5px solid #003829" : "1.5px solid rgba(0,0,0,0.08)",
+            background: dateFilter !== "All Time" ? "#003829" : "#ffffff",
+            color: dateFilter !== "All Time" ? "#ffffff" : "#475569",
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <Calendar size={13} />
+          {dateFilter}
+        </button>
+
+        {/* Agent Filter Button */}
+        <button
+          onClick={() => setIsAgentOpen(true)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 12px",
+            borderRadius: 12,
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "'Inter', system-ui, sans-serif",
+            whiteSpace: "nowrap",
+            border: agentFilter !== "All" ? "1.5px solid #003829" : "1.5px solid rgba(0,0,0,0.08)",
+            background: agentFilter !== "All" ? "#003829" : "#ffffff",
+            color: agentFilter !== "All" ? "#ffffff" : "#475569",
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <Users size={13} />
+          {agentFilter === "All" ? "All Agents" : agentFilter}
+        </button>
+
+        {/* Sort Toggle */}
         <button
           onClick={() => setSortMethod((s) => (s === "priority" ? "updated" : "priority"))}
           style={{
@@ -327,12 +414,73 @@ export default function MobileDashboardPage() {
             cursor: "pointer",
             color: sortMethod === "updated" ? "#00674F" : "#94A3B8",
             WebkitTapHighlightColor: "transparent",
+            marginLeft: "auto",
           }}
           title={sortMethod === "priority" ? "Sort by priority" : "Sort by updated"}
         >
           {sortMethod === "priority" ? <ArrowDownUp size={16} /> : <SortDesc size={16} />}
         </button>
       </div>
+
+      {/* Date Filter Bottom Sheet */}
+      <Drawer.Root open={isDateOpen} onOpenChange={setIsDateOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999 }} />
+          <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1000, outline: "none" }}>
+            <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+            </div>
+            <div style={{ padding: "12px 20px 28px" }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: "'Inter', system-ui, sans-serif" }}>Filter by Date</h3>
+              {["All Time", "Created Today", "Last 7 Days", "This Month", "This Year"].map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => { setDateFilter(opt); setIsDateOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderRadius: 12, border: "none",
+                    background: dateFilter === opt ? "#F0FDF4" : "transparent", cursor: "pointer", width: "100%", textAlign: "left",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <Calendar size={16} color={dateFilter === opt ? "#00674F" : "#94A3B8"} />
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: dateFilter === opt ? 700 : 500, color: dateFilter === opt ? "#003829" : "#334155", fontFamily: "'Inter', system-ui, sans-serif" }}>{opt}</span>
+                  {dateFilter === opt && <Check size={16} color="#00674F" strokeWidth={2.5} />}
+                </button>
+              ))}
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+
+      {/* Agent Filter Bottom Sheet */}
+      <Drawer.Root open={isAgentOpen} onOpenChange={setIsAgentOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999 }} />
+          <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1000, outline: "none", maxHeight: "70dvh" }}>
+            <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+            </div>
+            <div style={{ padding: "12px 20px 28px", overflowY: "auto" }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: "'Inter', system-ui, sans-serif" }}>Filter by Agent</h3>
+              {["All", ...agentList].map((name) => (
+                <button
+                  key={name}
+                  onClick={() => { setAgentFilter(name); setIsAgentOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderRadius: 12, border: "none",
+                    background: agentFilter === name ? "#F0FDF4" : "transparent", cursor: "pointer", width: "100%", textAlign: "left",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <Users size={16} color={agentFilter === name ? "#00674F" : "#94A3B8"} />
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: agentFilter === name ? 700 : 500, color: agentFilter === name ? "#003829" : "#334155", fontFamily: "'Inter', system-ui, sans-serif" }}>{name === "All" ? "All Agents" : name}</span>
+                  {agentFilter === name && <Check size={16} color="#00674F" strokeWidth={2.5} />}
+                </button>
+              ))}
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       {/* Quote List */}
       {loading ? (
