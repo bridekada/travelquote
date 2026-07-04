@@ -36,8 +36,7 @@ export default function MobileLoginPage() {
           .eq("id", session.user.id)
           .maybeSingle();
 
-        if (profile?.role === "super_admin") router.push("/m/admin");
-        else router.push("/m/dashboard");
+        window.location.href = "/m/dashboard";
       } catch {
         setLoading(false);
       }
@@ -59,8 +58,7 @@ export default function MobileLoginPage() {
         .eq("id", authData.user.id)
         .maybeSingle();
 
-      if (profile?.role === "super_admin") router.push("/m/admin");
-      else router.push("/m/dashboard");
+      window.location.href = "/m/dashboard";
     } catch (err: any) {
       setAuthError(
         err.message === "Invalid login credentials"
