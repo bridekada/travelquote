@@ -304,16 +304,14 @@ export default function MobileDashboardPage() {
         )}
       </div>
 
-      {/* Filter Chips + Sort Toggle */}
+      {/* Filter + Sort Toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <MobileFilterChips
-            statuses={ALL_STATUSES}
-            counts={statusCounts}
-            activeFilter={quoteStatusFilter}
-            onFilterChange={setQuoteStatusFilter}
-          />
-        </div>
+        <MobileFilterChips
+          statuses={ALL_STATUSES}
+          counts={statusCounts}
+          activeFilter={quoteStatusFilter}
+          onFilterChange={setQuoteStatusFilter}
+        />
         <button
           onClick={() => setSortMethod((s) => (s === "priority" ? "updated" : "priority"))}
           style={{
