@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Loader2, ChevronDown, ChevronRight, Pencil, Trash2, Plus, X, Minus,
   Building2, CarFront, Map as MapIcon, Coins, Package, BedDouble,
-  CreditCard, ShieldCheck, LogOut,
+  Calendar as CalendarIcon, ShieldCheck, LogOut,
 } from "lucide-react";
 import { updateProfile, updateOperator } from "@/app/actions/user-management";
 import {
@@ -199,14 +199,6 @@ export default function MobileSettingsPage() {
         </button>
       </div>
 
-      {/* ── Quick Links ── */}
-      <div style={{ ...cardStyle, padding: "6px 6px" }}>
-        <LinkRow icon={<CreditCard size={16} color="#00674F" />} label="Payments Tracker" onClick={() => router.push("/m/payments")} />
-        {profile.role === "super_admin" && (
-          <LinkRow icon={<ShieldCheck size={16} color="#00674F" />} label="Admin Portal" onClick={() => router.push("/m/admin")} />
-        )}
-      </div>
-
       {/* ── Agency Settings ── */}
       {canEditAgency && profile.operators && (
         <div style={cardStyle}>
@@ -228,6 +220,14 @@ export default function MobileSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Quick Links (Calendar lives here now — Payments took its nav slot) ── */}
+      <div style={{ ...cardStyle, padding: "6px 6px" }}>
+        <LinkRow icon={<CalendarIcon size={16} color="#00674F" />} label="Calendar" onClick={() => router.push("/m/calendar")} />
+        {profile.role === "super_admin" && (
+          <LinkRow icon={<ShieldCheck size={16} color="#00674F" />} label="Admin Portal" onClick={() => router.push("/m/admin")} />
+        )}
+      </div>
 
       {/* ── Master Setup ── */}
       <div style={{ fontFamily: font, fontSize: 11, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", margin: "20px 0 8px 4px" }}>

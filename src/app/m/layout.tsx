@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { Loader2, LayoutGrid, FileText, Plus, Calendar, Menu } from "lucide-react";
+import { Loader2, LayoutGrid, FileText, Plus, Wallet, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 import "./mobile.css";
 
@@ -16,15 +16,15 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     label: "Home",
-    href: "/m/dashboard",
+    href: "/m/home",
     icon: <LayoutGrid size={22} />,
-    matchPaths: ["/m/dashboard"],
+    matchPaths: ["/m/home"],
   },
   {
     label: "Quotes",
-    href: "/m/dashboard?tab=quotes",
+    href: "/m/dashboard",
     icon: <FileText size={22} />,
-    matchPaths: [],  // placeholder — will be handled differently
+    matchPaths: ["/m/dashboard"],
   },
   {
     label: "New",
@@ -33,21 +33,22 @@ const NAV_ITEMS: NavItem[] = [
     matchPaths: ["/m/builder"],
   },
   {
-    label: "Calendar",
-    href: "/m/calendar",
-    icon: <Calendar size={22} />,
-    matchPaths: ["/m/calendar"],
+    label: "Payments",
+    href: "/m/payments",
+    icon: <Wallet size={22} />,
+    matchPaths: ["/m/payments"],
   },
   {
     label: "More",
     href: "/m/settings",
     icon: <Menu size={22} />,
-    matchPaths: ["/m/settings", "/m/admin", "/m/payments"],
+    matchPaths: ["/m/settings", "/m/admin", "/m/calendar"],
   },
 ];
 
 function getPageTitle(pathname: string): { title: string; subtitle?: string } {
-  if (pathname.startsWith("/m/dashboard")) return { title: "Dashboard" };
+  if (pathname.startsWith("/m/home")) return { title: "Home" };
+  if (pathname.startsWith("/m/dashboard")) return { title: "Quotes" };
   if (pathname.startsWith("/m/builder")) return { title: "Quote Builder" };
   if (pathname.startsWith("/m/calendar")) return { title: "Calendar" };
   if (pathname.startsWith("/m/payments")) return { title: "Payments" };

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -36,7 +36,8 @@ export default function MobileLoginPage() {
           .eq("id", session.user.id)
           .maybeSingle();
 
-        window.location.href = "/m/dashboard";
+        // Mirror desktop: super admins land on the Admin Portal to pick an agency
+        window.location.href = profile?.role === "super_admin" ? "/m/admin" : "/m/home";
       } catch {
         setLoading(false);
       }
@@ -58,7 +59,8 @@ export default function MobileLoginPage() {
         .eq("id", authData.user.id)
         .maybeSingle();
 
-      window.location.href = "/m/dashboard";
+      // Mirror desktop: super admins land on the Admin Portal to pick an agency
+      window.location.href = profile?.role === "super_admin" ? "/m/admin" : "/m/home";
     } catch (err: any) {
       setAuthError(
         err.message === "Invalid login credentials"
@@ -123,7 +125,7 @@ export default function MobileLoginPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         style={{ width: "100%", maxWidth: "380px" }}
       >
-        {/* ── Logo ── */}
+        {/* â”€â”€ Logo â”€â”€ */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div
             style={{
@@ -169,7 +171,7 @@ export default function MobileLoginPage() {
           </p>
         </div>
 
-        {/* ── Login Form ── */}
+        {/* â”€â”€ Login Form â”€â”€ */}
         <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Email */}
           <div style={{ position: "relative" }}>
@@ -243,7 +245,7 @@ export default function MobileLoginPage() {
           </button>
         </form>
 
-        {/* ── Forgot Password Link ── */}
+        {/* â”€â”€ Forgot Password Link â”€â”€ */}
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <button
             onClick={() => {
@@ -267,7 +269,7 @@ export default function MobileLoginPage() {
           </button>
         </div>
 
-        {/* ── Copyright ── */}
+        {/* â”€â”€ Copyright â”€â”€ */}
         <div
           style={{
             textAlign: "center",
@@ -277,7 +279,7 @@ export default function MobileLoginPage() {
           }}
         >
           <p style={{ fontSize: 9, fontWeight: 500, color: "#fff", margin: 0 }}>
-            © 2026 NorthMind Ecosystem
+            Â© 2026 NorthMind Ecosystem
           </p>
           <p style={{ fontSize: 9, fontWeight: 500, color: "#fff", margin: 0 }}>
             All rights reserved.
@@ -285,7 +287,7 @@ export default function MobileLoginPage() {
         </div>
       </motion.div>
 
-      {/* ── Forgot Password Bottom Sheet ── */}
+      {/* â”€â”€ Forgot Password Bottom Sheet â”€â”€ */}
       <Drawer.Root open={isResetOpen} onOpenChange={setIsResetOpen}>
         <Drawer.Portal>
           <Drawer.Overlay

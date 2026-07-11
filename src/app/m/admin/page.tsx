@@ -83,7 +83,7 @@ export default function MobileAdminPage() {
   useEffect(() => {
     if (authLoading) return;
     if (profile?.role !== "super_admin") {
-      router.push("/m/dashboard");
+      router.push("/m/home");
       return;
     }
     fetchData();
@@ -91,7 +91,7 @@ export default function MobileAdminPage() {
 
   const handleViewDashboard = (operatorId: string) => {
     localStorage.setItem("selected_operator_id", operatorId);
-    window.location.href = "/m/dashboard";
+    window.location.href = "/m/home";
   };
 
   const executeDeleteUser = async () => {
