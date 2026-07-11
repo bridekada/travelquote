@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Trash2, ChevronDown } from "lucide-react";
 
 interface MobileQuoteCardProps {
   quote: any;
@@ -10,6 +10,7 @@ interface MobileQuoteCardProps {
   onTap: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string, title: string) => void;
+  onStatusTap?: (quote: any) => void;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -61,7 +62,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicate, onDelete }: MobileQuoteCardProps) {
+export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicate, onDelete, onStatusTap }: MobileQuoteCardProps) {
   const x = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,8 +70,13 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
   const statusColor = STATUS_COLORS[quote.status] || STATUS_COLORS["Draft"];
   const duration = getDurationString(quote.eta, quote.etd);
   const dateRange = formatDateRange(quote.eta, quote.etd);
-  const fleetStr = (quote.fleet_json || quote.fleet || []).map((v: any) => v.model).join(", ");
-  const description = quote.quotation_description || fleetStr || "";
+  const fleetStr = (quote.fleet_json || quote.fleet || []).map((v: any) => v.model).join(", ") || quote.vehicle_model || "";
+  const description = quote.quotation_description || "";
+
+  // Commission (same formula as desktop: extracted from a commission-inclusive total)
+  const commissionPct = quote.admin_commission || 0;
+  const commissionBase = quote.selected_package_total || quote.grand_total || 0;
+  const commissionAmount = Math.round((commissionBase * commissionPct) / (100 + commissionPct));
 
   // Swipe action backgrounds
   const leftBg = useTransform(x, [-200, 0], [1, 0]);
@@ -181,21 +187,32 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
           >
             {quote.customer_name || "Untitled"}
           </div>
-          <span
+          <button
             className="m-chip"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isDragging) onStatusTap?.(quote);
+            }}
             style={{
               background: statusColor.bg,
               color: statusColor.text,
               fontSize: 10,
               fontWeight: 700,
-              padding: "3px 10px",
+              padding: "3px 8px 3px 10px",
+              border: "none",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              WebkitTapHighlightColor: "transparent",
             }}
           >
             {quote.status || "Draft"}
-          </span>
+            {onStatusTap && <ChevronDown size={11} strokeWidth={2.5} />}
+          </button>
         </div>
 
-        {/* Row 2: Duration + Description */}
+        {/* Row 2: Duration + Fleet (always visible) */}
         <div
           style={{
             fontFamily: "'Inter', system-ui, sans-serif",
@@ -203,16 +220,35 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
             fontWeight: 500,
             color: "#64748B",
             lineHeight: 1.3,
-            marginBottom: 4,
+            marginBottom: description ? 2 : 4,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
           }}
         >
           {duration && <span style={{ fontWeight: 700, color: "#475569" }}>{duration}</span>}
-          {duration && description && " | "}
-          {description}
+          {duration && fleetStr && " | "}
+          {fleetStr}
         </div>
+
+        {/* Row 2b: Quote Description (own line, like desktop's chip) */}
+        {description && (
+          <div
+            style={{
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: "#7C3AED",
+              lineHeight: 1.3,
+              marginBottom: 4,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {description}
+          </div>
+        )}
 
         {/* Row 3: Date + Pax */}
         <div
@@ -233,16 +269,33 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
 
         {/* Row 4: Total + Meta */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div
-            style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
-              fontSize: 18,
-              fontWeight: 800,
-              color: "#0F172A",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {quote.grand_total ? `P${Math.round(quote.grand_total).toLocaleString()}` : "—"}
+          <div>
+            <div
+              style={{
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 18,
+                fontWeight: 800,
+                color: "#0F172A",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {quote.grand_total ? `P${Math.round(quote.grand_total).toLocaleString()}` : "—"}
+            </div>
+            {commissionPct > 0 && (
+              <div
+                style={{
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#6366F1",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  marginTop: 1,
+                }}
+              >
+                Comm: {commissionPct}% (P{commissionAmount.toLocaleString()})
+              </div>
+            )}
           </div>
           <div style={{ textAlign: "right" }}>
             <div

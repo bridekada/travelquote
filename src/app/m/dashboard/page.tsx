@@ -50,6 +50,10 @@ export default function MobileDashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Status change sheet
+  const [statusTarget, setStatusTarget] = useState<any | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+
   // ── Data Fetching ──
   const fetchData = useCallback(async () => {
     if (!profile || !selectedOperatorId) {
@@ -262,44 +266,35 @@ export default function MobileDashboardPage() {
     }
   };
 
+  const handleStatusSelect = async (newStatus: string) => {
+    if (!statusTarget || newStatus === statusTarget.status) {
+      setStatusTarget(null);
+      return;
+    }
+    setStatusSaving(true);
+    const { error } = await supabase
+      .from("quotes")
+      .update({
+        status: newStatus,
+        updated_by: profile?.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", statusTarget.id);
+    setStatusSaving(false);
+    if (error) {
+      console.error("Status update failed:", error);
+      alert(`Status update failed: ${error.message}`);
+    } else {
+      setQuotes((prev) => prev.map((q) => (q.id === statusTarget.id ? { ...q, status: newStatus } : q)));
+      setStatusTarget(null);
+    }
+  };
+
   const visibleQuotes = filteredQuotes.slice(0, visibleCount);
   const hasMore = visibleCount < filteredQuotes.length;
 
   return (
     <PullToRefresh onRefresh={fetchData}>
-      {/* Welcome */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        style={{ marginBottom: 16 }}
-      >
-        <h2
-          style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 22,
-            fontWeight: 800,
-            color: "#0F172A",
-            margin: 0,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Welcome, {profile?.full_name?.split(" ")[0] || "there"} 👋
-        </h2>
-        <p
-          style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "#94A3B8",
-            margin: 0,
-            marginTop: 2,
-          }}
-        >
-          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-        </p>
-      </motion.div>
-
       {/* Stats Row */}
       <div style={{ marginBottom: 18 }}>
         <MobileStatsRow
@@ -545,6 +540,7 @@ export default function MobileDashboardPage() {
                   onTap={(id) => router.push(`/m/builder?id=${id}`)}
                   onDuplicate={handleDuplicate}
                   onDelete={handleDelete}
+                  onStatusTap={(q) => setStatusTarget(q)}
                 />
               </motion.div>
             ))}
@@ -590,6 +586,76 @@ export default function MobileDashboardPage() {
           </p>
         </>
       )}
+
+      {/* Status Change Bottom Sheet */}
+      <Drawer.Root open={!!statusTarget} onOpenChange={(o) => !o && !statusSaving && setStatusTarget(null)}>
+        <Drawer.Portal>
+          <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999 }} />
+          <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1000, outline: "none", maxHeight: "80dvh" }}>
+            <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+            </div>
+            <div style={{ padding: "12px 20px 28px", overflowY: "auto" }}>
+              <h3 style={{ margin: "0 0 2px", fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: "'Inter', system-ui, sans-serif" }}>
+                Change Status
+              </h3>
+              <p style={{ margin: "0 0 14px", fontSize: 12, fontWeight: 500, color: "#94A3B8", fontFamily: "'Inter', system-ui, sans-serif" }}>
+                {statusTarget?.customer_name || "Quote"}
+              </p>
+              {statusTarget && (() => {
+                const current = statusTarget.status || "Draft";
+                const isConfirmedFlow = CONFIRMED_STATUSES.includes(current);
+                const isDeadFlow = ["Lost", "Cancelled"].includes(current);
+                const showPlanning = !isConfirmedFlow && !isDeadFlow;
+                const showPayment = !isDeadFlow;
+
+                const StatusOption = ({ s, danger = false }: { s: string; danger?: boolean }) => (
+                  <button
+                    onClick={() => handleStatusSelect(s)}
+                    disabled={statusSaving}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderRadius: 12, border: "none",
+                      background: current === s ? (danger ? "#FFF1F2" : "#F0FDF4") : "transparent",
+                      cursor: "pointer", width: "100%", textAlign: "left",
+                      opacity: statusSaving ? 0.6 : 1,
+                      WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                        background: danger ? "#F43F5E" : current === s ? "#00674F" : "#CBD5E1",
+                      }}
+                    />
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: current === s ? 700 : 500, color: danger ? "#E11D48" : current === s ? "#003829" : "#334155", fontFamily: "'Inter', system-ui, sans-serif" }}>
+                      {s}
+                    </span>
+                    {current === s && <Check size={16} color={danger ? "#E11D48" : "#00674F"} strokeWidth={2.5} />}
+                  </button>
+                );
+
+                return (
+                  <>
+                    {showPlanning && (
+                      <>
+                        {["Draft", "Quotation Sent", "Follow-up Needed"].map((s) => <StatusOption key={s} s={s} />)}
+                        <div style={{ height: 1, background: "rgba(0,0,0,0.05)", margin: "6px 14px" }} />
+                      </>
+                    )}
+                    {showPayment && (
+                      <>
+                        {CONFIRMED_STATUSES.map((s) => <StatusOption key={s} s={s} />)}
+                        <div style={{ height: 1, background: "rgba(0,0,0,0.05)", margin: "6px 14px" }} />
+                      </>
+                    )}
+                    {["Lost", "Cancelled"].map((s) => <StatusOption key={s} s={s} danger />)}
+                  </>
+                );
+              })()}
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       {/* Delete Confirmation */}
       <ConfirmSheet

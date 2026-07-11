@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, X, Loader2, ChevronDown, ChevronUp,
   CreditCard, Receipt, AlertCircle, FileText,
+  Calendar, Users, Check,
 } from "lucide-react";
+import { Drawer } from "vaul";
 import PullToRefresh from "../components/PullToRefresh";
 
 const font = "'Inter', system-ui, sans-serif";
@@ -28,6 +30,12 @@ export default function MobilePaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Filters (mirror desktop PaymentTrackerView + mobile dashboard pattern)
+  const [dateFilter, setDateFilter] = useState("All Time");
+  const [agentFilter, setAgentFilter] = useState("All");
+  const [isDateOpen, setIsDateOpen] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!profile || !selectedOperatorId) {
@@ -92,13 +100,34 @@ export default function MobilePaymentsPage() {
     fetchData();
   }, [fetchData]);
 
-  // Quotes with at least one transaction, filtered by search, sorted by recency
+  // Quotes with at least one transaction, filtered by agent/date/search, sorted by recency
   const transactionQuotes = useMemo(() => {
-    let result = quotes.filter(
-      (q) =>
+    let result = quotes.filter((q) => {
+      // Agent filter
+      if (agentFilter !== "All" && q.creator?.full_name !== agentFilter) return false;
+
+      // Date filter (on created_at, mirrors desktop PaymentTrackerView)
+      if (dateFilter !== "All Time" && q.created_at) {
+        const createdDate = new Date(q.created_at);
+        const now = new Date();
+        if (dateFilter === "Created Today") {
+          if (createdDate.toDateString() !== now.toDateString()) return false;
+        } else if (dateFilter === "Last 7 Days") {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(now.getDate() - 7);
+          if (createdDate < sevenDaysAgo) return false;
+        } else if (dateFilter === "This Month") {
+          if (createdDate.getMonth() !== now.getMonth() || createdDate.getFullYear() !== now.getFullYear()) return false;
+        } else if (dateFilter === "This Year") {
+          if (createdDate.getFullYear() !== now.getFullYear()) return false;
+        }
+      }
+
+      return (
         payments.some((p) => p.quote_id === q.id) ||
         disbursements.some((d) => d.quote_id === q.id)
-    );
+      );
+    });
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -130,12 +159,26 @@ export default function MobilePaymentsPage() {
       const dateB = new Date(b.updated_at || b.created_at).getTime();
       return dateB - dateA;
     });
-  }, [quotes, payments, disbursements, searchQuery]);
+  }, [quotes, payments, disbursements, searchQuery, agentFilter, dateFilter]);
 
-  // Overall stats
+  // Agent list (derived from quotes with transactions)
+  const agentList = useMemo(() => {
+    const names = new Set<string>();
+    quotes.forEach((q) => {
+      if (q.creator?.full_name) names.add(q.creator.full_name);
+    });
+    return Array.from(names).sort();
+  }, [quotes]);
+
+  // Stats — scoped to the currently filtered list so the cards match what's shown
   const stats = useMemo(() => {
-    const collected = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const disbursed = disbursements.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const visibleIds = new Set(transactionQuotes.map((q) => q.id));
+    const collected = payments
+      .filter((p) => visibleIds.has(p.quote_id))
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+    const disbursed = disbursements
+      .filter((d) => visibleIds.has(d.quote_id))
+      .reduce((sum, d) => sum + (d.amount || 0), 0);
     const pending = transactionQuotes.reduce((sum, q) => {
       const agreed = q.grand_total || q.selected_package_total || 0;
       const paid = payments
@@ -178,7 +221,7 @@ export default function MobilePaymentsPage() {
       </div>
 
       {/* Search Bar */}
-      <div style={{ position: "relative", marginBottom: 16 }}>
+      <div style={{ position: "relative", marginBottom: 12 }}>
         <Search size={16} color="#94A3B8" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
         <input
           type="text"
@@ -217,6 +260,70 @@ export default function MobilePaymentsPage() {
         )}
       </div>
 
+      {/* Filter Row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        <button onClick={() => setIsDateOpen(true)} style={filterBtnStyle(dateFilter !== "All Time")}>
+          <Calendar size={13} />
+          {dateFilter}
+        </button>
+        <button onClick={() => setIsAgentOpen(true)} style={filterBtnStyle(agentFilter !== "All")}>
+          <Users size={13} />
+          {agentFilter === "All" ? "All Agents" : agentFilter}
+        </button>
+      </div>
+
+      {/* Date Filter Bottom Sheet */}
+      <Drawer.Root open={isDateOpen} onOpenChange={setIsDateOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999 }} />
+          <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1000, outline: "none" }}>
+            <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+            </div>
+            <div style={{ padding: "12px 20px 28px" }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: font }}>Filter by Date</h3>
+              {["All Time", "Created Today", "Last 7 Days", "This Month", "This Year"].map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => { setDateFilter(opt); setIsDateOpen(false); }}
+                  style={sheetOptionStyle(dateFilter === opt)}
+                >
+                  <Calendar size={16} color={dateFilter === opt ? "#00674F" : "#94A3B8"} />
+                  <span style={sheetOptionLabelStyle(dateFilter === opt)}>{opt}</span>
+                  {dateFilter === opt && <Check size={16} color="#00674F" strokeWidth={2.5} />}
+                </button>
+              ))}
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+
+      {/* Agent Filter Bottom Sheet */}
+      <Drawer.Root open={isAgentOpen} onOpenChange={setIsAgentOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999 }} />
+          <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1000, outline: "none", maxHeight: "70dvh" }}>
+            <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+            </div>
+            <div style={{ padding: "12px 20px 28px", overflowY: "auto" }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: font }}>Filter by Agent</h3>
+              {["All", ...agentList].map((name) => (
+                <button
+                  key={name}
+                  onClick={() => { setAgentFilter(name); setIsAgentOpen(false); }}
+                  style={sheetOptionStyle(agentFilter === name)}
+                >
+                  <Users size={16} color={agentFilter === name ? "#00674F" : "#94A3B8"} />
+                  <span style={sheetOptionLabelStyle(agentFilter === name)}>{name === "All" ? "All Agents" : name}</span>
+                  {agentFilter === name && <Check size={16} color="#00674F" strokeWidth={2.5} />}
+                </button>
+              ))}
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+
       {/* Payment Group Cards */}
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
@@ -225,10 +332,14 @@ export default function MobilePaymentsPage() {
       ) : transactionQuotes.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 24px", fontFamily: font }}>
           <p style={{ fontSize: 14, fontWeight: 600, color: "#64748B", margin: 0 }}>
-            {searchQuery ? "No matching transactions" : "No transactions yet"}
+            {searchQuery || dateFilter !== "All Time" || agentFilter !== "All"
+              ? "No matching transactions"
+              : "No transactions yet"}
           </p>
           <p style={{ fontSize: 12, fontWeight: 500, color: "#94A3B8", margin: "4px 0 0" }}>
-            {searchQuery ? "Try a different search" : "Payments will appear once recorded on quotes"}
+            {searchQuery || dateFilter !== "All Time" || agentFilter !== "All"
+              ? "Try different search or filters"
+              : "Payments will appear once recorded on quotes"}
           </p>
         </div>
       ) : (
@@ -371,6 +482,45 @@ export default function MobilePaymentsPage() {
     </PullToRefresh>
   );
 }
+
+const filterBtnStyle = (active: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "8px 12px",
+  borderRadius: 12,
+  fontSize: 12,
+  fontWeight: 600,
+  fontFamily: font,
+  whiteSpace: "nowrap",
+  border: active ? "1.5px solid #003829" : "1.5px solid rgba(0,0,0,0.08)",
+  background: active ? "#003829" : "#ffffff",
+  color: active ? "#ffffff" : "#475569",
+  cursor: "pointer",
+  WebkitTapHighlightColor: "transparent",
+});
+
+const sheetOptionStyle = (active: boolean): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "13px 14px",
+  borderRadius: 12,
+  border: "none",
+  background: active ? "#F0FDF4" : "transparent",
+  cursor: "pointer",
+  width: "100%",
+  textAlign: "left",
+  WebkitTapHighlightColor: "transparent",
+});
+
+const sheetOptionLabelStyle = (active: boolean): React.CSSProperties => ({
+  flex: 1,
+  fontSize: 14,
+  fontWeight: active ? 700 : 500,
+  color: active ? "#003829" : "#334155",
+  fontFamily: font,
+});
 
 function SectionHeader({ icon, iconBg, title, count }: { icon: React.ReactNode; iconBg: string; title: string; count: number }) {
   return (
