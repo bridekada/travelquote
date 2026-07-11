@@ -1,0 +1,329 @@
+/* ═══════════════════════════════════════════════════
+   MOBILE PWA — Design Tokens & Utilities
+   Only imported by src/app/m/layout.tsx
+   Desktop globals.css is completely untouched.
+   ═══════════════════════════════════════════════════ */
+
+/* ── Layout Variables ─────────────────────────────── */
+:root {
+  --mobile-nav-height: 68px;
+  --mobile-header-height: 56px;
+  --mobile-fab-size: 54px;
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Scroll & Touch ───────────────────────────────── */
+.mobile-scroll-container {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Suppress the browser's native pull-to-refresh on /m pages only
+   (the app has its own PullToRefresh component) */
+html:has(.mobile-page),
+body:has(.mobile-page) {
+  overscroll-behavior-y: contain;
+}
+
+.mobile-h-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 10px;
+}
+.mobile-h-scroll::-webkit-scrollbar { display: none; }
+.mobile-h-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
+
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── Bottom Nav ───────────────────────────────────── */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom));
+  padding-bottom: var(--mobile-safe-bottom);
+  background: #003829;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 200;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 0;
+  min-width: 56px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-nav-item.active {
+  color: #4ADE80;
+}
+.mobile-nav-item:active {
+  transform: scale(0.92);
+}
+
+.mobile-nav-label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* ── FAB (Floating Action Button) ─────────────────── */
+.mobile-fab {
+  position: fixed;
+  bottom: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom) - 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--mobile-fab-size);
+  height: var(--mobile-fab-size);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #00674F 0%, #004F3D 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 16px -2px rgba(0, 103, 79, 0.5),
+    0 0 0 4px #003829;
+  border: none;
+  cursor: pointer;
+  z-index: 210;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-fab:active {
+  transform: translateX(-50%) scale(0.9);
+  box-shadow:
+    0 2px 8px -1px rgba(0, 103, 79, 0.4),
+    0 0 0 4px #003829;
+}
+
+/* ── Mobile Header ────────────────────────────────── */
+.mobile-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--mobile-header-height);
+  padding: 0 16px;
+  padding-top: var(--mobile-safe-top);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 150;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mobile-header-title {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.01em;
+}
+
+.mobile-header-subtitle {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mobile-header-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #003829;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Page Container ───────────────────────────────── */
+.mobile-page {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom) + 24px);
+  background: #F8FAFC;
+}
+
+.mobile-page-content {
+  padding: 16px;
+}
+
+/* ── Cards ────────────────────────────────────────── */
+.m-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Chips ────────────────────────────────────────── */
+.m-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Mobile Inputs ────────────────────────────────── */
+.m-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+}
+.m-input:focus {
+  border-color: #00674F;
+  box-shadow: 0 0 0 3px rgba(0, 103, 79, 0.1);
+}
+.m-input::placeholder {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+/* ── Mobile Buttons ───────────────────────────────── */
+.m-btn-primary {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #003829;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.m-btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.m-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.m-btn-emerald {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #00674F 0%, #004F3D 100%);
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px -2px rgba(0, 103, 79, 0.3);
+  -webkit-tap-highlight-color: transparent;
+}
+.m-btn-emerald:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 6px -1px rgba(0, 103, 79, 0.2);
+}
+.m-btn-emerald:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Login-specific ───────────────────────────────── */
+.login-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px 0 48px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  -webkit-appearance: none;
+}
+.login-input:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+}
+.login-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+/* ── Loading Skeleton ─────────────────────────────── */
+@keyframes m-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.m-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: m-shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ── Pull to Refresh Indicator ────────────────────── */
+.m-refresh-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+  color: #00674F;
+}
