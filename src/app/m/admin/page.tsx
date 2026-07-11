@@ -86,6 +86,8 @@ export default function MobileAdminPage() {
       router.push("/m/home");
       return;
     }
+    // Entering the portal always resets agency context — a fresh pick is required
+    localStorage.removeItem("selected_operator_id");
     fetchData();
   }, [profile, authLoading, router, fetchData]);
 

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Loader2, LayoutGrid, FileText, Plus, Wallet, Menu } from "lucide-react";
 import { motion } from "framer-motion";
+import ProfileEditSheet from "./components/ProfileEditSheet";
 import "./mobile.css";
 
 interface NavItem {
@@ -61,9 +63,13 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const { profile, loading: authLoading } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Don't show shell on login page
   const isLoginPage = pathname === "/m" || pathname === "/m/";
+
+  // Admin Portal has no agency context yet — hide agency-scoped chrome (nav + FAB)
+  const isAdminPortal = pathname.startsWith("/m/admin");
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -118,12 +124,16 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       <header className="mobile-header">
         <div>
           <div className="mobile-header-title">{title}</div>
-          {profile.operators?.name && (
-            <div className="mobile-header-subtitle">{profile.operators.name}</div>
+          {isAdminPortal ? (
+            <div className="mobile-header-subtitle">Select an agency to manage</div>
+          ) : (
+            profile.operators?.name && (
+              <div className="mobile-header-subtitle">{profile.operators.name}</div>
+            )
           )}
         </div>
         <button
-          onClick={() => router.push("/m/settings")}
+          onClick={() => (isAdminPortal ? setIsProfileOpen(true) : router.push("/m/settings"))}
           className="mobile-header-avatar no-select"
           style={{ border: "none", cursor: "pointer" }}
         >
@@ -136,16 +146,19 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
 
-      {/* ── FAB (New Quote) ── */}
-      <button
-        className="mobile-fab no-select"
-        onClick={() => router.push("/m/builder")}
-        aria-label="New Quote"
-      >
-        <Plus size={26} strokeWidth={2.5} />
-      </button>
+      {/* ── FAB (New Quote) — hidden in Admin Portal (no agency selected) ── */}
+      {!isAdminPortal && (
+        <button
+          className="mobile-fab no-select"
+          onClick={() => router.push("/m/builder")}
+          aria-label="New Quote"
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
+      )}
 
-      {/* ── Bottom Navigation ── */}
+      {/* ── Bottom Navigation — hidden in Admin Portal (no agency selected) ── */}
+      {!isAdminPortal && (
       <nav className="mobile-bottom-nav no-select">
         {NAV_ITEMS.map((item) => {
           // FAB center slot — render empty spacer
@@ -182,6 +195,17 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
           );
         })}
       </nav>
+      )}
+
+      {/* ── Profile sheet (Admin Portal only — profile + sign out, nothing agency-scoped) ── */}
+      {isAdminPortal && (
+        <ProfileEditSheet
+          open={isProfileOpen}
+          profile={profile}
+          onClose={() => setIsProfileOpen(false)}
+          showSignOut
+        />
+      )}
     </div>
   );
 }

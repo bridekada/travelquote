@@ -11,7 +11,8 @@ import {
   Building2, CarFront, Map as MapIcon, Coins, Package, BedDouble,
   Calendar as CalendarIcon, ShieldCheck, LogOut,
 } from "lucide-react";
-import { updateProfile, updateOperator } from "@/app/actions/user-management";
+import { updateOperator } from "@/app/actions/user-management";
+import ProfileEditSheet from "../components/ProfileEditSheet";
 import {
   getVehicles, saveVehicle, deleteVehicle,
   getItineraryPresets, saveItineraryPreset, deleteItineraryPreset,
@@ -416,61 +417,7 @@ function SetupItemRow({ section, item, onEdit, onDelete }: {
   );
 }
 
-/* ────────────────────────── Profile / Agency Sheets ────────────────────────── */
-
-function ProfileEditSheet({ open, profile, onClose }: { open: boolean; profile: any; onClose: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open) setStatus(null);
-  }, [open]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSaving(true);
-    setStatus(null);
-    const formData = new FormData(e.currentTarget);
-    const fullName = (formData.get("fullName") as string).trim();
-    const newPassword = formData.get("newPassword") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
-
-    try {
-      if (!fullName) throw new Error("Name is required");
-      const res = await updateProfile(profile.id, { fullName });
-      if (res.error) throw new Error(res.error);
-
-      if (newPassword) {
-        if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
-        if (newPassword.length < 6) throw new Error("Password must be at least 6 characters");
-        const { error: pwdError } = await supabase.auth.updateUser({ password: newPassword });
-        if (pwdError) throw pwdError;
-      }
-      window.location.reload();
-    } catch (err: any) {
-      setStatus(err.message);
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Sheet open={open} onClose={onClose} title="Edit Profile">
-      <form onSubmit={handleSubmit}>
-        <Field label="Full Name">
-          <input name="fullName" defaultValue={profile.full_name || ""} required style={inputStyle} />
-        </Field>
-        <Field label="New Password (optional)">
-          <input name="newPassword" type="password" style={inputStyle} placeholder="Leave blank to keep current" />
-        </Field>
-        <Field label="Confirm New Password">
-          <input name="confirmPassword" type="password" style={inputStyle} />
-        </Field>
-        {status && <ErrorNote message={status} />}
-        <SubmitButton saving={saving} label="Save Changes" />
-      </form>
-    </Sheet>
-  );
-}
+/* ────────────────────────── Agency Sheet ────────────────────────── */
 
 function AgencyEditSheet({ open, operator, onClose }: { open: boolean; operator: any; onClose: () => void }) {
   const [socialLinks, setSocialLinks] = useState<string[]>([""]);
