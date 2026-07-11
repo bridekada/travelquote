@@ -143,6 +143,7 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
         drag="x"
         dragConstraints={{ left: -120, right: 120 }}
         dragElastic={0.1}
+        dragSnapToOrigin
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         style={{

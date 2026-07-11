@@ -10,6 +10,8 @@ import { Drawer } from "vaul";
 import MobileStatsRow from "./components/MobileStatsRow";
 import MobileFilterChips from "./components/MobileFilterChips";
 import MobileQuoteCard from "./components/MobileQuoteCard";
+import ConfirmSheet from "../components/ConfirmSheet";
+import PullToRefresh from "../components/PullToRefresh";
 
 const ALL_STATUSES = [
   "Draft", "Quotation Sent", "Follow-up Needed",
@@ -43,6 +45,10 @@ export default function MobileDashboardPage() {
 
   // Visible count for lazy loading
   const [visibleCount, setVisibleCount] = useState(20);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // ── Data Fetching ──
   const fetchData = useCallback(async () => {
@@ -225,16 +231,34 @@ export default function MobileDashboardPage() {
     router.push(`/m/builder?copyFrom=${id}`);
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete quote for "${title}"?`)) return;
+  const handleDelete = (id: string, title: string) => {
+    setDeleteTarget({ id, title });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      // Cascade delete
-      await supabase.from("payments").delete().eq("quote_id", id);
-      await supabase.from("quote_items").delete().eq("quote_id", id);
-      await supabase.from("quotes").delete().eq("id", id);
+      // Cascade delete: payments → disbursements → quote_items → quote
+      const { error: paymentsErr } = await supabase.from("payments").delete().eq("quote_id", deleteTarget.id);
+      if (paymentsErr) throw new Error(`Failed to delete payments: ${paymentsErr.message}`);
+
+      const { error: disbursementsErr } = await supabase.from("disbursements").delete().eq("quote_id", deleteTarget.id);
+      if (disbursementsErr) throw new Error(`Failed to delete disbursements: ${disbursementsErr.message}`);
+
+      const { error: itemsErr } = await supabase.from("quote_items").delete().eq("quote_id", deleteTarget.id);
+      if (itemsErr) throw new Error(`Failed to delete quote items: ${itemsErr.message}`);
+
+      const { error: quoteErr } = await supabase.from("quotes").delete().eq("id", deleteTarget.id);
+      if (quoteErr) throw new Error(`Failed to delete quote: ${quoteErr.message}`);
+
+      setDeleteTarget(null);
       setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       console.error("Delete error:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -242,7 +266,7 @@ export default function MobileDashboardPage() {
   const hasMore = visibleCount < filteredQuotes.length;
 
   return (
-    <div>
+    <PullToRefresh onRefresh={fetchData}>
       {/* Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -566,6 +590,18 @@ export default function MobileDashboardPage() {
           </p>
         </>
       )}
-    </div>
+
+      {/* Delete Confirmation */}
+      <ConfirmSheet
+        open={!!deleteTarget}
+        title={`Delete quote for "${deleteTarget?.title}"?`}
+        message="This also removes its payments, disbursements and line items. This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={executeDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+    </PullToRefresh>
   );
 }

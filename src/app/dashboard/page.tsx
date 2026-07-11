@@ -351,9 +351,12 @@ function DashboardContent() {
       else if (type === 'package') res = await deletePackagePreset(id);
       else if (type === 'accommodation') res = await deleteGuestAccommodation(id);
       else if (type === 'quote') {
-        // Cascade delete: payments → quote_items → quote
+        // Cascade delete: payments → disbursements → quote_items → quote
         const { error: paymentsErr } = await supabase.from('payments').delete().eq('quote_id', id);
         if (paymentsErr) throw new Error(`Failed to delete payments: ${paymentsErr.message}`);
+
+        const { error: disbursementsErr } = await supabase.from('disbursements').delete().eq('quote_id', id);
+        if (disbursementsErr) throw new Error(`Failed to delete disbursements: ${disbursementsErr.message}`);
 
         const { error: itemsErr } = await supabase.from('quote_items').delete().eq('quote_id', id);
         if (itemsErr) throw new Error(`Failed to delete quote items: ${itemsErr.message}`);
@@ -371,12 +374,13 @@ function DashboardContent() {
       }
     } catch (err) {
       console.error('Delete error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const allStatuses = ['Draft', 'Quotation Sent', 'Follow-up Needed', 'Confirmed', 'Payment Started', 'Payment Complete', 'Lost', 'Cancelled'];
+  const allStatuses =['Draft', 'Quotation Sent', 'Follow-up Needed', 'Confirmed', 'Payment Started', 'Payment Complete', 'Lost', 'Cancelled'];
 
   const calculateAnalytics = (days: number) => {
     const now = new Date();

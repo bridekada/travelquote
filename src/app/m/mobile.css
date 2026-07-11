@@ -19,6 +19,13 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Suppress the browser's native pull-to-refresh on /m pages only
+   (the app has its own PullToRefresh component) */
+html:has(.mobile-page),
+body:has(.mobile-page) {
+  overscroll-behavior-y: contain;
+}
+
 .mobile-h-scroll {
   display: flex;
   overflow-x: auto;
