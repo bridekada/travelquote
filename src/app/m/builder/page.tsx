@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 
@@ -966,9 +966,13 @@ function MobileBuilder() {
             P{Math.round(totals.grandTotal).toLocaleString()}
           </div>
         </div>
-        {step < 4 && (
+        {step < 4 ? (
           <button onClick={next} style={navBtnPrimary} aria-label="Next">
             Next <ArrowRight size={16} />
+          </button>
+        ) : (
+          <button onClick={() => router.push("/m/dashboard")} style={navBtnPrimary} aria-label="Exit builder">
+            <Check size={16} /> Done
           </button>
         )}
       </div>

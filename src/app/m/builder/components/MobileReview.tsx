@@ -181,6 +181,38 @@ function CommandCenter({
     try { await navigator.clipboard.writeText(r); setReportCopied(true); setTimeout(() => setReportCopied(false), 2000); } catch { alert("Copy failed"); }
   };
 
+  // ── Financial breakdown (base rate / commission / fees / discount / final) ──
+  const commissionPct = quote.admin_commission || 0;
+  const discountAmount = quote.discount_total || details.adjustments?.discount || 0;
+  const feeList: any[] = quote.extra_fees_json || details.adjustments?.extra_fees || [];
+  const extraFeesTotal = feeList.reduce((s, f) => s + (f.amount || 0), 0);
+  const commissionBase = quote.selected_package_total || (totalAgreed - extraFeesTotal + discountAmount);
+  const commissionAmount = Math.round((commissionBase * commissionPct) / (100 + commissionPct));
+  const baseRate = commissionBase - commissionAmount;
+
+  // ── Verified inclusions / exclusions ──
+  const inc: any = details.inclusions || {};
+  const fleetNames = (quote.fleet || []).map((v: any) => v.model).filter(Boolean);
+  const accomNames = Array.from(new Set((quote.items || []).map((i) => i.guest_accommodation_name).filter(Boolean)));
+  const incs: string[] = [];
+  const excs: string[] = [];
+  if (inc.vehicle) incs.push(fleetNames.length ? `Vehicle: ${fleetNames.join(", ")}` : `Vehicle: ${quote.vehicle_model || "Standard Unit"}`);
+  else excs.push("Vehicle Rental");
+  if (inc.fuel && totals.colTotals.fuel > 0) incs.push("Fuel Consumption"); else excs.push("Fuel Consumption");
+  if (inc.accommodation && totals.colTotals.accom > 0) incs.push(accomNames.length ? `Guest Accommodation (${accomNames.join(", ")})` : "Guest Accommodation");
+  else excs.push("Guest Accommodation");
+  (inc.misc_details || []).forEach((m: any) => { if (m?.name) incs.push(m.name); });
+  excs.push("Guest meals", "Entrance fees", "Activity fees");
+
+  // ── Snapshotted itinerary (frozen at confirmation, falls back to live items) ──
+  const snapshot: any[] = (details.itinerary_snapshot && details.itinerary_snapshot.length)
+    ? details.itinerary_snapshot
+    : (quote.items || []).map((i) => {
+        const ids = i.selected_vehicle_ids && i.selected_vehicle_ids.length > 0 ? i.selected_vehicle_ids : (quote.fleet || []).map((v) => v.id);
+        const vehicles = (quote.fleet || []).filter((v) => ids.includes(v.id)).map((v) => v.model).join(", ");
+        return { day: i.day_number, date: i.date, destination: i.destination, details: i.itinerary_details, vehicles, guest_accommodation_name: i.guest_accommodation_name, tags: i.tags };
+      });
+
   return (
     <div>
       {/* Status */}
@@ -210,6 +242,56 @@ function CommandCenter({
       <div style={{ height: 6, borderRadius: 9999, background: "#F1F5F9", overflow: "hidden", marginBottom: 16 }}>
         <div style={{ height: "100%", width: `${progress}%`, borderRadius: 9999, background: "linear-gradient(90deg, #059669, #10B981)", transition: "width 0.4s" }} />
       </div>
+
+      {/* ── Financial breakdown ── */}
+      <RecordSection title="Price Breakdown">
+        <BreakdownRow label="Base Package Rate" value={`₱${Math.round(baseRate).toLocaleString()}`} />
+        {commissionPct > 0 && <BreakdownRow label={`Admin Commission (${commissionPct}%)`} value={`₱${Math.round(commissionAmount).toLocaleString()}`} color="#6366F1" />}
+        {feeList.map((f, i) => (
+          <BreakdownRow key={i} label={f.name || "Fee"} value={`${f.amount < 0 ? "−" : "+"}₱${Math.abs(f.amount || 0).toLocaleString()}`} color={f.amount < 0 ? "#E11D48" : "#334155"} />
+        ))}
+        {discountAmount > 0 && <BreakdownRow label="Client Discount" value={`−₱${Math.round(discountAmount).toLocaleString()}`} color="#E11D48" />}
+        <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
+        <BreakdownRow label="Final Agreed Amount" value={`₱${Math.round(totalAgreed).toLocaleString()}`} bold />
+      </RecordSection>
+
+      {/* ── Inclusions / Exclusions ── */}
+      <RecordSection title="Inclusions & Exclusions">
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ChipHead color="#059669">Included</ChipHead>
+            {incs.map((t, i) => <IncExcRow key={i} text={t} included />)}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ChipHead color="#E11D48">Excluded</ChipHead>
+            {excs.map((t, i) => <IncExcRow key={i} text={t} />)}
+          </div>
+        </div>
+      </RecordSection>
+
+      {/* ── Itinerary snapshot ── */}
+      {snapshot.length > 0 && (
+        <RecordSection title="Itinerary (as confirmed)">
+          {snapshot.map((s, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, paddingBottom: i < snapshot.length - 1 ? 12 : 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: "#F0FDF4", color: "#00674F", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, fontSize: 11, fontWeight: 800 }}>{s.day}</div>
+                {i < snapshot.length - 1 && <div style={{ width: 1.5, flex: 1, background: "rgba(0,0,0,0.08)", marginTop: 4 }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                <div style={{ fontFamily: font, fontSize: 10, fontWeight: 600, color: "#94A3B8" }}>{s.date ? new Date(s.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : ""}</div>
+                <div style={{ fontFamily: font, fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{s.destination || "TBA"}</div>
+                {s.details && <div style={{ fontFamily: font, fontSize: 11, fontWeight: 500, color: "#64748B", marginTop: 1, whiteSpace: "pre-wrap" }}>{s.details}</div>}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                  {s.vehicles && <MetaChip>{s.vehicles}</MetaChip>}
+                  {s.guest_accommodation_name && <MetaChip>{s.guest_accommodation_name}</MetaChip>}
+                  {(s.tags || []).map((t: string, ti: number) => <MetaChip key={ti}>{t}</MetaChip>)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </RecordSection>
+      )}
 
       {/* Payments ledger */}
       <LedgerSection
@@ -264,6 +346,41 @@ function CommandCenter({
       />
     </div>
   );
+}
+
+function RecordSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)", borderRadius: 14, padding: "13px 14px", marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+      <div style={{ fontFamily: font, fontSize: 11, fontWeight: 800, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function BreakdownRow({ label, value, color = "#334155", bold }: { label: string; value: string; color?: string; bold?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: bold ? 0 : 6 }}>
+      <span style={{ fontFamily: font, fontSize: bold ? 13 : 12, fontWeight: bold ? 800 : 600, color: bold ? "#0F172A" : "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ fontFamily: font, fontSize: bold ? 15 : 12.5, fontWeight: bold ? 800 : 700, color: bold ? "#0F172A" : color, flexShrink: 0 }}>{value}</span>
+    </div>
+  );
+}
+
+function ChipHead({ color, children }: { color: string; children: React.ReactNode }) {
+  return <div style={{ fontFamily: font, fontSize: 9.5, fontWeight: 800, color, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{children}</div>;
+}
+
+function IncExcRow({ text, included }: { text: string; included?: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 5, marginBottom: 4 }}>
+      <span style={{ color: included ? "#059669" : "#CBD5E1", fontSize: 11, fontWeight: 900, lineHeight: 1.4, flexShrink: 0 }}>{included ? "✓" : "✕"}</span>
+      <span style={{ fontFamily: font, fontSize: 11, fontWeight: 500, color: included ? "#334155" : "#94A3B8", lineHeight: 1.4 }}>{text}</span>
+    </div>
+  );
+}
+
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return <span style={{ fontFamily: font, fontSize: 9.5, fontWeight: 600, color: "#475569", background: "#F1F5F9", padding: "2px 7px", borderRadius: 9999, whiteSpace: "nowrap" }}>{children}</span>;
 }
 
 function KPI({ label, value, color, bg, settled }: { label: string; value: number; color: string; bg: string; settled?: boolean }) {
