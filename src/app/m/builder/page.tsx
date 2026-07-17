@@ -62,6 +62,7 @@ function MobileBuilder() {
   const [initialQuotationText, setInitialQuotationText] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const hasHydrated = useRef(false);
+  const loadedTarget = useRef<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isReconfiguring, setIsReconfiguring] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
@@ -136,13 +137,41 @@ function MobileBuilder() {
 
   // ── Load existing quote (edit / duplicate) ──
   useEffect(() => {
+    if (authLoading || !profile || !selectedOperatorId) return;
+
+    // Only (re)load or reset when the target actually changes. Prevents wiping an
+    // in-progress edit when unrelated deps (profile/operator) update.
+    const target = quoteId || copyFromId || "__new__";
+    if (loadedTarget.current === target) return;
+    loadedTarget.current = target;
+
+    // Fresh "New Quote" — reset ALL builder state so nothing leaks from a
+    // previously-opened quote (fixes the stale "Reconfigure"/read-only carry-over).
+    if (target === "__new__") {
+      setQuote({
+        customer_name: "", fb_name: "", contact_number: "", pax_count: 1,
+        eta: "", etd: "", vehicle_model: "", pickup_location: "", dropoff_location: "",
+        notes: "", default_fuel_price: 60, admin_commission: 0, status: "Draft",
+        selected_package: null, selected_package_total: null, selected_package_details: null,
+        confirmed_at: null, items: [], fleet: [], quotation_description: "",
+      });
+      setExtraFees([]);
+      setDiscount(0);
+      setLivePackages([]);
+      setSelectedPackageId(null);
+      setSelectedPackageName(null);
+      setIsReconfiguring(false);
+      setInitialQuotationText("");
+      setPayments([]);
+      setDisbursements([]);
+      setStep(1);
+      setMaxReached(1);
+      hasHydrated.current = true;
+      setIsLoaded(true);
+      return;
+    }
+
     const load = async () => {
-      if (!selectedOperatorId) return;
-      if (!quoteId && !copyFromId) {
-        hasHydrated.current = true;
-        setIsLoaded(true);
-        return;
-      }
       const targetId = quoteId || copyFromId;
       const { data: qData } = await supabase.from("quotes").select("*").eq("id", targetId).single();
       if (!qData) { hasHydrated.current = true; setIsLoaded(true); return; }
@@ -230,7 +259,7 @@ function MobileBuilder() {
       hasHydrated.current = true;
       setIsLoaded(true);
     };
-    if (!authLoading && profile) load();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteId, copyFromId, selectedOperatorId, authLoading, profile]);
 
