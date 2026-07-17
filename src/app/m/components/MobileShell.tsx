@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Loader2, LayoutGrid, FileText, Plus, Wallet, Menu } from "lucide-react";
@@ -68,8 +68,16 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   // Don't show shell on login page
   const isLoginPage = pathname === "/m" || pathname === "/m/";
 
-  // Admin Portal has no agency context yet â€” hide agency-scoped chrome (nav + FAB)
+  // Admin Portal has no agency context yet — hide agency-scoped chrome (nav + FAB)
   const isAdminPortal = pathname.startsWith("/m/admin");
+  // Builder is a focused full-screen wizard with its own footer nav
+  const isBuilder = pathname.startsWith("/m/builder");
+  const hideChrome = isAdminPortal || isBuilder;
+
+  // Redirect to login if no session (side effect, not during render)
+  useEffect(() => {
+    if (!isLoginPage && !authLoading && !profile) router.push("/m");
+  }, [isLoginPage, authLoading, profile, router]);
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -106,11 +114,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
     );
   }
 
-  // Redirect to login if no session
-  if (!profile) {
-    router.push("/m");
-    return null;
-  }
+  if (!profile) return null;
 
   const { title } = getPageTitle(pathname);
   const isActive = (item: NavItem) => {
@@ -120,7 +124,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="mobile-page">
-      {/* â”€â”€ Mobile Header â”€â”€ */}
+      {/* ── Mobile Header ── */}
       <header className="mobile-header">
         <div>
           <div className="mobile-header-title">{title}</div>
@@ -141,13 +145,13 @@ export default function MobileShell({ children }: { children: React.ReactNode })
         </button>
       </header>
 
-      {/* â”€â”€ Page Content â”€â”€ */}
+      {/* ── Page Content ── */}
       <main className="mobile-page-content mobile-scroll-container">
         {children}
       </main>
 
-      {/* â”€â”€ FAB (New Quote) â€” hidden in Admin Portal (no agency selected) â”€â”€ */}
-      {!isAdminPortal && (
+      {/* FAB (New Quote) — hidden in Admin Portal and builder wizard */}
+      {!hideChrome && (
         <button
           className="mobile-fab no-select"
           onClick={() => router.push("/m/builder")}
@@ -157,11 +161,11 @@ export default function MobileShell({ children }: { children: React.ReactNode })
         </button>
       )}
 
-      {/* â”€â”€ Bottom Navigation â€” hidden in Admin Portal (no agency selected) â”€â”€ */}
-      {!isAdminPortal && (
+      {/* Bottom Navigation — hidden in Admin Portal and builder wizard */}
+      {!hideChrome && (
       <nav className="mobile-bottom-nav no-select">
         {NAV_ITEMS.map((item) => {
-          // FAB center slot â€” render empty spacer
+          // FAB center slot — render empty spacer
           if (item.href === "/m/builder") {
             return <div key="fab-spacer" style={{ width: 54 }} />;
           }
@@ -197,7 +201,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
       </nav>
       )}
 
-      {/* â”€â”€ Profile sheet (Admin Portal only â€” profile + sign out, nothing agency-scoped) â”€â”€ */}
+      {/* ── Profile sheet (Admin Portal only — profile + sign out, nothing agency-scoped) ── */}
       {isAdminPortal && (
         <ProfileEditSheet
           open={isProfileOpen}

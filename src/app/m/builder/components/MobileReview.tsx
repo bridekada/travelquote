@@ -1,0 +1,403 @@
+"use client";
+
+import { useState } from "react";
+import { Drawer } from "vaul";
+import {
+  Copy, Check, Sparkles, RotateCcw, Loader2, FileText, Save, ShieldCheck,
+  Plus, Trash2, CreditCard, Receipt, Settings, X, Clock, CheckCircle2,
+} from "lucide-react";
+import { QuoteData } from "@/app/builder/components/types";
+import ConfirmSheet from "../../components/ConfirmSheet";
+
+const font = "'Inter', system-ui, sans-serif";
+const CONFIRMED = ["Confirmed", "Payment Started", "Payment Complete"];
+
+interface MobileReviewProps {
+  quote: QuoteData;
+  role?: string;
+  totals: any;
+  payments: any[];
+  disbursements: any[];
+  extraFees: any[];
+  discount: number;
+  selectedPackageId: string | null;
+  includeItinerary: boolean;
+  setIncludeItinerary: (v: boolean) => void;
+  isSaving: boolean;
+  isReconfiguring: boolean;
+  readOnly?: boolean;
+  compileText: () => string;
+  onPolish: (text: string) => Promise<string>;
+  onSaveDraft: (text: string) => void;
+  onConfirm: (text: string) => void;
+  onReconfigure: () => void;
+  onAddPayment: (data: any, editing: any | null) => Promise<void>;
+  onVoidPayment: (id: string) => void;
+  onAddDisbursement: (data: any, editing: any | null) => Promise<void>;
+  onVoidDisbursement: (id: string) => void;
+}
+
+export default function MobileReview(props: MobileReviewProps) {
+  const { quote, isReconfiguring } = props;
+  const isConfirmed = CONFIRMED.includes(quote.status || "") && !!quote.id;
+  if (isConfirmed && !isReconfiguring) return <CommandCenter {...props} />;
+  return <ReviewEditor {...props} />;
+}
+
+/* ────────────────────────── Review Editor ────────────────────────── */
+
+function ReviewEditor({
+  quote, role, totals, includeItinerary, setIncludeItinerary, selectedPackageId,
+  isSaving, readOnly, compileText, onPolish, onSaveDraft, onConfirm,
+}: MobileReviewProps) {
+  const [text, setText] = useState(() => compileText());
+  const [original] = useState(text);
+  const [copied, setCopied] = useState(false);
+  const [polishing, setPolishing] = useState(false);
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { alert("Copy failed"); }
+  };
+  const polish = async () => {
+    setPolishing(true);
+    try { const res = await onPolish(text); if (res) setText(res); }
+    catch { alert("AI service busy — please try again."); }
+    finally { setPolishing(false); }
+  };
+  const confirmDisabled = !selectedPackageId || !quote.customer_name?.trim();
+
+  return (
+    <div>
+      {/* Include itinerary toggle */}
+      <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#F8FAFC", borderRadius: 12, marginBottom: 12, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+        <input type="checkbox" checked={includeItinerary} onChange={(e) => setIncludeItinerary(e.target.checked)} style={{ width: 17, height: 17, accentColor: "#00674F" }} />
+        <span style={{ fontFamily: font, fontSize: 12.5, fontWeight: 600, color: "#334155" }}>Include itinerary in quotation text</span>
+      </label>
+
+      <button onClick={() => setText(compileText())} style={{ ...ghostBtn, marginBottom: 8 }}>
+        <RotateCcw size={13} /> Regenerate from current data
+      </button>
+
+      {/* Editor */}
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        readOnly={readOnly}
+        rows={16}
+        style={{
+          width: "100%", padding: 12, borderRadius: 14, fontSize: 12.5, lineHeight: 1.5,
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontWeight: 500,
+          border: "1.5px solid rgba(0,0,0,0.08)", background: "#ffffff", color: "#0F172A",
+          outline: "none", resize: "vertical", WebkitAppearance: "none",
+        }}
+      />
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        <button onClick={copy} style={actionBtn}>
+          {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+        </button>
+        {role === "super_admin" && (
+          <button onClick={polish} disabled={polishing} style={{ ...actionBtn, opacity: polishing ? 0.7 : 1 }}>
+            {polishing ? <><Loader2 className="animate-spin" size={14} /> Polishing</> : <><Sparkles size={14} /> AI Polish</>}
+          </button>
+        )}
+        {role === "super_admin" && text !== original && (
+          <button onClick={() => setText(original)} style={actionBtn}>
+            <RotateCcw size={14} /> Revert
+          </button>
+        )}
+      </div>
+
+      {/* Grand total */}
+      <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FDF4", borderRadius: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</span>
+        <span style={{ fontFamily: font, fontSize: 20, fontWeight: 800, color: "#003829" }}>₱{Math.round(totals.grandTotal).toLocaleString()}</span>
+      </div>
+
+      {/* Save / Confirm — hidden for view-only (dead) quotes */}
+      {!readOnly && (
+        <>
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <button onClick={() => onSaveDraft(text)} disabled={isSaving} style={{ ...saveBtn, background: "#ffffff", color: "#003829", border: "1.5px solid rgba(0,56,41,0.2)" }}>
+              {isSaving ? <Loader2 className="animate-spin" size={15} /> : <><Save size={15} /> Save Draft</>}
+            </button>
+            <button
+              onClick={() => onConfirm(text)}
+              disabled={isSaving || confirmDisabled}
+              title={confirmDisabled ? "Select a package first" : undefined}
+              style={{ ...saveBtn, opacity: isSaving || confirmDisabled ? 0.5 : 1 }}
+            >
+              <ShieldCheck size={15} /> Confirm
+            </button>
+          </div>
+          {confirmDisabled && (
+            <p style={{ fontFamily: font, fontSize: 11, fontWeight: 500, color: "#94A3B8", textAlign: "center", margin: "8px 0 0" }}>
+              {!quote.customer_name?.trim() ? "Add a customer name (Step 1) to confirm." : "Select a package in Step 3 to confirm."}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────── Command Center ────────────────────────── */
+
+function CommandCenter({
+  quote, totals, payments, disbursements, onReconfigure,
+  onAddPayment, onVoidPayment, onAddDisbursement, onVoidDisbursement,
+}: MobileReviewProps) {
+  const [payOpen, setPayOpen] = useState(false);
+  const [disbOpen, setDisbOpen] = useState(false);
+  const [editingPay, setEditingPay] = useState<any | null>(null);
+  const [editingDisb, setEditingDisb] = useState<any | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
+  const [voidTarget, setVoidTarget] = useState<{ kind: "payment" | "disbursement"; id: string } | null>(null);
+  const [voiding, setVoiding] = useState(false);
+
+  const details = quote.selected_package_details || {};
+  const totalAgreed = details.total_amount || quote.grand_total || 0;
+  const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const totalDisbursed = disbursements.reduce((s, d) => s + (d.amount || 0), 0);
+  const balance = Math.max(Math.round((totalAgreed - totalPaid) * 100) / 100, 0);
+  const progress = totalAgreed > 0 ? Math.min((totalPaid / totalAgreed) * 100, 100) : 0;
+  const fullyPaid = balance <= 0.01 && totalAgreed > 0;
+
+  const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "");
+
+  const copyReport = async () => {
+    const c = totals.colTotals;
+    let r = `TRIP REPORT — ${quote.customer_name || "Guest"}\n`;
+    r += `Tour: ${fmtDate(quote.eta)} – ${fmtDate(quote.etd)}\n`;
+    r += `Pickup: ${quote.pickup_location || "—"} → ${quote.dropoff_location || "—"}\n`;
+    r += `Contact: ${quote.contact_number || "—"}\n\n--- EXPENSES ---\n`;
+    if (c.rate > 0) r += `Fleet Rate: ₱${Math.round(c.rate).toLocaleString()}\n`;
+    if (c.fuel > 0) r += `Fuel: ₱${Math.round(c.fuel).toLocaleString()}\n`;
+    if (c.accom > 0) r += `Guest Accom: ₱${Math.round(c.accom).toLocaleString()}\n`;
+    r += `\nAGREED TOTAL: ₱${Math.round(totalAgreed).toLocaleString()}\n`;
+    r += `LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}\n`;
+    r += `BALANCE: ₱${Math.round(balance).toLocaleString()}\n`;
+    try { await navigator.clipboard.writeText(r); setReportCopied(true); setTimeout(() => setReportCopied(false), 2000); } catch { alert("Copy failed"); }
+  };
+
+  return (
+    <div>
+      {/* Status */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 9999, background: fullyPaid ? "#DCFCE7" : "#FEF3C7", color: fullyPaid ? "#166534" : "#D97706", fontFamily: font, fontSize: 11, fontWeight: 700 }}>
+          {fullyPaid ? <ShieldCheck size={13} /> : <Clock size={13} />} {fullyPaid ? "Fully Paid" : "Payment Collection"}
+        </span>
+        <span style={{ fontFamily: font, fontSize: 11, fontWeight: 500, color: "#94A3B8" }}>
+          Confirmed {quote.confirmed_at ? fmtDate(quote.confirmed_at) : ""}
+        </span>
+      </div>
+
+      {/* Agreement summary */}
+      <div style={{ background: "#003829", borderRadius: 16, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontFamily: font, fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{details.package_name || "Package"}</div>
+        <div style={{ fontFamily: font, fontSize: 15, fontWeight: 700, color: "#fff", marginTop: 2 }}>{quote.customer_name}</div>
+        <div style={{ fontFamily: font, fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", marginTop: 8 }}>₱{Math.round(totalAgreed).toLocaleString()}</div>
+        <div style={{ fontFamily: font, fontSize: 11, fontWeight: 500, color: "#4ADE80" }}>₱{Math.round(totalAgreed / (quote.pax_count || 1)).toLocaleString()}/pax · {quote.pax_count} pax</div>
+      </div>
+
+      {/* Financial KPIs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <KPI label="Collected" value={totalPaid} color="#059669" bg="#ECFDF5" />
+        <KPI label="Outstanding" value={balance} color="#E11D48" bg="#FFF1F2" settled={fullyPaid} />
+        <KPI label="Disbursed" value={totalDisbursed} color="#D97706" bg="#FFFBEB" />
+      </div>
+      <div style={{ height: 6, borderRadius: 9999, background: "#F1F5F9", overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ height: "100%", width: `${progress}%`, borderRadius: 9999, background: "linear-gradient(90deg, #059669, #10B981)", transition: "width 0.4s" }} />
+      </div>
+
+      {/* Payments ledger */}
+      <LedgerSection
+        title="Payments" icon={<CreditCard size={13} color="#059669" />} iconBg="#ECFDF5"
+        rows={payments} color="#065F46"
+        onAdd={fullyPaid ? undefined : () => { setEditingPay(null); setPayOpen(true); }}
+        onEdit={(p) => { setEditingPay(p); setPayOpen(true); }}
+        onVoid={(id) => setVoidTarget({ kind: "payment", id })}
+      />
+      <div style={{ height: 12 }} />
+      <LedgerSection
+        title="Disbursements" icon={<Receipt size={13} color="#D97706" />} iconBg="#FFFBEB"
+        rows={disbursements} color="#92400E"
+        onAdd={() => { setEditingDisb(null); setDisbOpen(true); }}
+        onEdit={(d) => { setEditingDisb(d); setDisbOpen(true); }}
+        onVoid={(id) => setVoidTarget({ kind: "disbursement", id })}
+      />
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button onClick={copyReport} style={{ ...actionBtn, flex: 1 }}>
+          {reportCopied ? <><Check size={14} /> Copied</> : <><FileText size={14} /> Trip Report</>}
+        </button>
+        <button onClick={onReconfigure} style={{ ...actionBtn, flex: 1 }}>
+          <Settings size={14} /> Reconfigure
+        </button>
+      </div>
+
+      {/* Sheets */}
+      <LedgerSheet open={payOpen} title={editingPay ? "Edit Payment" : "Record Payment"} editing={editingPay} onClose={() => setPayOpen(false)} onSubmit={async (d) => { await onAddPayment(d, editingPay); setPayOpen(false); }} />
+      <LedgerSheet open={disbOpen} title={editingDisb ? "Edit Disbursement" : "Record Disbursement"} editing={editingDisb} onClose={() => setDisbOpen(false)} onSubmit={async (d) => { await onAddDisbursement(d, editingDisb); setDisbOpen(false); }} />
+
+      <ConfirmSheet
+        open={!!voidTarget}
+        title={`Void this ${voidTarget?.kind ?? "transaction"}?`}
+        message="This permanently removes the record and updates the billing ledger. This cannot be undone."
+        confirmLabel="Void"
+        destructive
+        loading={voiding}
+        onConfirm={async () => {
+          if (!voidTarget) return;
+          setVoiding(true);
+          try {
+            if (voidTarget.kind === "payment") await onVoidPayment(voidTarget.id);
+            else await onVoidDisbursement(voidTarget.id);
+            setVoidTarget(null);
+          } finally {
+            setVoiding(false);
+          }
+        }}
+        onCancel={() => setVoidTarget(null)}
+      />
+    </div>
+  );
+}
+
+function KPI({ label, value, color, bg, settled }: { label: string; value: number; color: string; bg: string; settled?: boolean }) {
+  return (
+    <div style={{ flex: 1, background: bg, borderRadius: 12, padding: "10px 11px", minWidth: 0 }}>
+      <div style={{ fontFamily: font, fontSize: 8.5, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontFamily: font, fontSize: 14, fontWeight: 800, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {settled ? "Settled" : `₱${Math.round(value).toLocaleString()}`}
+      </div>
+    </div>
+  );
+}
+
+function LedgerSection({ title, icon, iconBg, rows, color, onAdd, onEdit, onVoid }: {
+  title: string; icon: React.ReactNode; iconBg: string; rows: any[]; color: string;
+  onAdd?: () => void; onEdit: (r: any) => void; onVoid: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 8, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
+          <span style={{ fontFamily: font, fontSize: 12, fontWeight: 800, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</span>
+        </div>
+        {onAdd && (
+          <button onClick={onAdd} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 9, border: "none", background: "#003829", color: "#fff", fontFamily: font, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            <Plus size={12} /> Record
+          </button>
+        )}
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ padding: "14px", background: "rgba(241,245,249,0.5)", border: "1px dashed #E2E8F0", borderRadius: 12, textAlign: "center", fontFamily: font, fontSize: 11, fontWeight: 600, color: "#94A3B8" }}>
+          None recorded
+        </div>
+      ) : (
+        rows.map((r) => (
+          <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#fff", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, marginBottom: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: font, fontSize: 14, fontWeight: 800, color }}>₱{(r.amount || 0).toLocaleString()}</div>
+              <div style={{ fontFamily: font, fontSize: 10, fontWeight: 500, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {new Date(r.actual_date || r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {r.reference_number ? ` · #${r.reference_number}` : ""}{r.notes ? ` · ${r.notes}` : ""}
+              </div>
+              {(r.creator?.full_name || r.modifier?.full_name) && (
+                <div style={{ fontFamily: font, fontSize: 9, fontWeight: 600, color: "#CBD5E1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  {r.creator?.full_name ? `by ${r.creator.full_name}` : ""}{r.modifier?.full_name && r.modifier.full_name !== r.creator?.full_name ? ` · upd ${r.modifier.full_name}` : ""}
+                </div>
+              )}
+            </div>
+            <button onClick={() => onEdit(r)} style={miniBtn} aria-label="Edit"><Settings size={13} color="#64748B" /></button>
+            <button onClick={() => onVoid(r.id)} style={{ ...miniBtn, background: "#FFF1F2" }} aria-label="Void"><Trash2 size={13} color="#E11D48" /></button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function LedgerSheet({ open, title, editing, onClose, onSubmit }: { open: boolean; title: string; editing: any | null; onClose: () => void; onSubmit: (data: any) => Promise<void> }) {
+  const [saving, setSaving] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    const fd = new FormData(e.currentTarget);
+    await onSubmit({ amount: fd.get("amount"), reference: fd.get("reference"), notes: fd.get("notes"), actual_date: fd.get("actual_date"), method: "Cash" });
+    setSaving(false);
+  };
+
+  return (
+    <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <Drawer.Portal>
+        <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1099 }} />
+        <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1100, outline: "none", maxHeight: "88dvh" }}>
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+          </div>
+          <div style={{ padding: "10px 20px 28px", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: font }}>{title}</h3>
+              <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} aria-label="Close"><X size={14} color="#64748B" /></button>
+            </div>
+            <form onSubmit={submit}>
+              <SheetField label="Date"><input name="actual_date" type="date" defaultValue={editing?.actual_date?.slice(0, 10) || today} required style={sheetInput} /></SheetField>
+              <SheetField label="Amount (₱)"><input name="amount" type="number" step="0.01" inputMode="decimal" defaultValue={editing?.amount || ""} required style={sheetInput} /></SheetField>
+              <SheetField label="Reference # (optional)"><input name="reference" defaultValue={editing?.reference_number || ""} style={sheetInput} /></SheetField>
+              <SheetField label="Notes"><textarea name="notes" defaultValue={editing?.notes || ""} rows={2} style={{ ...sheetInput, height: "auto", paddingTop: 10, resize: "vertical" }} /></SheetField>
+              <button type="submit" disabled={saving} style={{ ...saveBtn, width: "100%", marginTop: 4, opacity: saving ? 0.7 : 1 }}>
+                {saving ? <Loader2 className="animate-spin" size={15} /> : <><CheckCircle2 size={15} /> Save</>}
+              </button>
+            </form>
+          </div>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
+  );
+}
+
+function SheetField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", fontFamily: font, fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const actionBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", borderRadius: 11,
+  border: "1.5px solid rgba(0,0,0,0.08)", background: "#ffffff", color: "#475569",
+  fontFamily: font, fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent",
+};
+
+const ghostBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10,
+  border: "none", background: "transparent", color: "#00674F",
+  fontFamily: font, fontSize: 11.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent",
+};
+
+const saveBtn: React.CSSProperties = {
+  flex: 1, padding: "14px", borderRadius: 12, border: "none", background: "#003829", color: "#ffffff",
+  fontFamily: font, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, WebkitTapHighlightColor: "transparent",
+};
+
+const miniBtn: React.CSSProperties = {
+  width: 30, height: 30, borderRadius: 8, border: "none", background: "#F1F5F9",
+  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
+  WebkitTapHighlightColor: "transparent",
+};
+
+const sheetInput: React.CSSProperties = {
+  width: "100%", height: 44, padding: "0 12px", borderRadius: 12, fontSize: 14,
+  fontFamily: font, fontWeight: 500, border: "1.5px solid rgba(0,0,0,0.08)",
+  background: "#ffffff", color: "#0F172A", outline: "none", WebkitAppearance: "none",
+};
