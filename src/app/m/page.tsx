@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -125,7 +125,7 @@ export default function MobileLoginPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         style={{ width: "100%", maxWidth: "380px" }}
       >
-        {/* â”€â”€ Logo â”€â”€ */}
+        {/* ── Logo ── */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div
             style={{
@@ -171,7 +171,7 @@ export default function MobileLoginPage() {
           </p>
         </div>
 
-        {/* â”€â”€ Login Form â”€â”€ */}
+        {/* ── Login Form ── */}
         <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Email */}
           <div style={{ position: "relative" }}>
@@ -245,7 +245,7 @@ export default function MobileLoginPage() {
           </button>
         </form>
 
-        {/* â”€â”€ Forgot Password Link â”€â”€ */}
+        {/* ── Forgot Password Link ── */}
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <button
             onClick={() => {
@@ -269,7 +269,7 @@ export default function MobileLoginPage() {
           </button>
         </div>
 
-        {/* â”€â”€ Copyright â”€â”€ */}
+        {/* ── Copyright ── */}
         <div
           style={{
             textAlign: "center",
@@ -279,7 +279,7 @@ export default function MobileLoginPage() {
           }}
         >
           <p style={{ fontSize: 9, fontWeight: 500, color: "#fff", margin: 0 }}>
-            Â© 2026 NorthMind Ecosystem
+            © 2026 NorthMind Ecosystem
           </p>
           <p style={{ fontSize: 9, fontWeight: 500, color: "#fff", margin: 0 }}>
             All rights reserved.
@@ -287,7 +287,7 @@ export default function MobileLoginPage() {
         </div>
       </motion.div>
 
-      {/* â”€â”€ Forgot Password Bottom Sheet â”€â”€ */}
+      {/* ── Forgot Password Bottom Sheet ── */}
       <Drawer.Root open={isResetOpen} onOpenChange={setIsResetOpen}>
         <Drawer.Portal>
           <Drawer.Overlay
