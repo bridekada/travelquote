@@ -16,6 +16,7 @@ interface MobileReviewProps {
   quote: QuoteData;
   role?: string;
   totals: any;
+  dbMiscPresets?: any[];
   payments: any[];
   disbursements: any[];
   extraFees: any[];
@@ -145,13 +146,14 @@ function ReviewEditor({
 /* ────────────────────────── Command Center ────────────────────────── */
 
 function CommandCenter({
-  quote, totals, payments, disbursements, onReconfigure,
+  quote, totals, dbMiscPresets = [], payments, disbursements, onReconfigure,
   onAddPayment, onVoidPayment, onAddDisbursement, onVoidDisbursement,
 }: MobileReviewProps) {
   const [payOpen, setPayOpen] = useState(false);
   const [disbOpen, setDisbOpen] = useState(false);
   const [editingPay, setEditingPay] = useState<any | null>(null);
   const [editingDisb, setEditingDisb] = useState<any | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [reportCopied, setReportCopied] = useState(false);
   const [voidTarget, setVoidTarget] = useState<{ kind: "payment" | "disbursement"; id: string } | null>(null);
   const [voiding, setVoiding] = useState(false);
@@ -166,19 +168,59 @@ function CommandCenter({
 
   const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "");
 
+  // ── Trip Report generation (mirrors desktop AdminReportModal) ──
+  const buildReport = () => {
+    const items = quote.items || [];
+    const fmtLong = (d?: string) => (d ? new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "");
+    const fmtTime = (d?: string) => (d ? new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "TBA");
+    const tourDate = items.length > 0 ? `${fmtLong(items[0].date)} - ${fmtLong(items[items.length - 1].date)}` : "N/A";
+
+    // Expenses — only those included in the selected package AND with a value > 0
+    const inclu: any = details.inclusions || {};
+    const c = totals.colTotals || { rate: 0, fuel: 0, accom: 0, misc: {} };
+    const expLines: string[] = [];
+    const pushExp = (label: string, amount: number, included: boolean) => {
+      if (included && amount > 0) expLines.push(`${label}: ₱${Math.round(amount).toLocaleString()}`);
+    };
+    pushExp("Fleet Rate", c.rate || 0, !!inclu.vehicle);
+    pushExp("Fuel", c.fuel || 0, !!inclu.fuel);
+    pushExp("Guest Accom", c.accom || 0, !!inclu.accommodation);
+    dbMiscPresets.forEach((p: any) => {
+      const pName = (p.name || "").toLowerCase().trim();
+      if (["fleet rate", "fuel", "guest accom"].includes(pName)) return; // avoid duplicating primary categories
+      const amount = c.misc?.[p.id] || 0;
+      const inPkg = (inclu.misc_details || []).some((md: any) => (md.name || "").toLowerCase().trim() === pName);
+      pushExp(p.name, amount, inPkg);
+    });
+
+    // Itinerary — per-day line with vehicle + accommodation, plus optional details block
+    const itinLines = items.map((item: any) => {
+      const ids = item.selected_vehicle_ids && item.selected_vehicle_ids.length > 0 ? item.selected_vehicle_ids : (quote.fleet || []).map((v: any) => v.id);
+      const vNames = (quote.fleet || []).filter((v: any) => ids.includes(v.id)).map((v: any) => v.model).join(", ");
+      const detailsStr = item.itinerary_details ? `\nDetails:\n*****\n${item.itinerary_details}\n*****` : "";
+      return `Day ${item.day_number}: ${item.destination} (Car: ${vNames || "n/a"}) (Accoms: ${item.guest_accommodation_name || "n/a"})${detailsStr}`;
+    }).join("\n\n");
+
+    return [
+      "Travel Details",
+      `Tour Date: ${tourDate}`,
+      `Pick Up Time (ETA): ${fmtTime(quote.eta)}`,
+      `Drop-off Time (ETD): ${fmtTime(quote.etd)}`,
+      `Pick Up Location: ${quote.pickup_location || "TBA"}`,
+      `Contact Person: ${quote.customer_name || ""}`,
+      `Contact Number: ${quote.contact_number || "N/A"}`,
+      "__________",
+      "Expenses",
+      expLines.join("\n"),
+      `LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}`,
+      "__________",
+      "Itinerary (Include Accomodation if applicable)",
+      itinLines,
+    ].join("\n\n");
+  };
+
   const copyReport = async () => {
-    const c = totals.colTotals;
-    let r = `TRIP REPORT — ${quote.customer_name || "Guest"}\n`;
-    r += `Tour: ${fmtDate(quote.eta)} – ${fmtDate(quote.etd)}\n`;
-    r += `Pickup: ${quote.pickup_location || "—"} → ${quote.dropoff_location || "—"}\n`;
-    r += `Contact: ${quote.contact_number || "—"}\n\n--- EXPENSES ---\n`;
-    if (c.rate > 0) r += `Fleet Rate: ₱${Math.round(c.rate).toLocaleString()}\n`;
-    if (c.fuel > 0) r += `Fuel: ₱${Math.round(c.fuel).toLocaleString()}\n`;
-    if (c.accom > 0) r += `Guest Accom: ₱${Math.round(c.accom).toLocaleString()}\n`;
-    r += `\nAGREED TOTAL: ₱${Math.round(totalAgreed).toLocaleString()}\n`;
-    r += `LESS RESERVATION: ₱${Math.round(totalPaid).toLocaleString()}\n`;
-    r += `BALANCE: ₱${Math.round(balance).toLocaleString()}\n`;
-    try { await navigator.clipboard.writeText(r); setReportCopied(true); setTimeout(() => setReportCopied(false), 2000); } catch { alert("Copy failed"); }
+    try { await navigator.clipboard.writeText(buildReport()); setReportCopied(true); setTimeout(() => setReportCopied(false), 2000); } catch { alert("Copy failed"); }
   };
 
   // ── Financial breakdown (base rate / commission / fees / discount / final) ──
@@ -312,13 +354,16 @@ function CommandCenter({
 
       {/* Actions */}
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={copyReport} style={{ ...actionBtn, flex: 1 }}>
-          {reportCopied ? <><Check size={14} /> Copied</> : <><FileText size={14} /> Trip Report</>}
+        <button onClick={() => setReportOpen(true)} style={{ ...actionBtn, flex: 1 }}>
+          <FileText size={14} /> Trip Report
         </button>
         <button onClick={onReconfigure} style={{ ...actionBtn, flex: 1 }}>
           <Settings size={14} /> Reconfigure
         </button>
       </div>
+
+      {/* Trip Report viewer */}
+      <ReportSheet open={reportOpen} onClose={() => setReportOpen(false)} text={reportOpen ? buildReport() : ""} copied={reportCopied} onCopy={copyReport} />
 
       {/* Sheets */}
       <LedgerSheet open={payOpen} title={editingPay ? "Edit Payment" : "Record Payment"} editing={editingPay} onClose={() => setPayOpen(false)} onSubmit={async (d) => { await onAddPayment(d, editingPay); setPayOpen(false); }} />
@@ -436,6 +481,36 @@ function LedgerSection({ title, icon, iconBg, rows, color, onAdd, onEdit, onVoid
         ))
       )}
     </div>
+  );
+}
+
+function ReportSheet({ open, onClose, text, copied, onCopy }: { open: boolean; onClose: () => void; text: string; copied: boolean; onCopy: () => void }) {
+  return (
+    <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
+      <Drawer.Portal>
+        <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1099 }} />
+        <Drawer.Content style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 1100, outline: "none", maxHeight: "90dvh", display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: 10, paddingBottom: 4 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: "#E2E8F0" }} />
+          </div>
+          <div style={{ padding: "10px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0F172A", fontFamily: font }}>Trip Report</h3>
+              <p style={{ margin: "2px 0 0", fontSize: 11, fontWeight: 500, color: "#94A3B8", fontFamily: font }}>Internal operational summary</p>
+            </div>
+            <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} aria-label="Close"><X size={14} color="#64748B" /></button>
+          </div>
+          <div style={{ padding: "12px 20px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+            <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12, lineHeight: 1.6, color: "#334155", background: "#F8FAFC", border: "1px solid rgba(0,0,0,0.06)", borderRadius: 14, padding: 14 }}>{text}</pre>
+          </div>
+          <div style={{ padding: "10px 20px", paddingBottom: "calc(20px + var(--mobile-safe-bottom, 0px))", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+            <button onClick={onCopy} style={{ ...saveBtn, width: "100%", opacity: copied ? 0.85 : 1 }}>
+              {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy Report</>}
+            </button>
+          </div>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
 

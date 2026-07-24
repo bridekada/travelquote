@@ -919,6 +919,7 @@ function MobileBuilder() {
           quote={quote}
           role={profile?.role}
           totals={totals}
+          dbMiscPresets={dbMiscPresets}
           payments={payments}
           disbursements={disbursements}
           extraFees={extraFees}
