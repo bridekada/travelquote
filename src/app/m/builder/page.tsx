@@ -980,23 +980,33 @@ function MobileBuilder() {
           zIndex: 150,
         }}
       >
-        <button onClick={back} style={navBtnSecondary} aria-label="Back">
-          <ArrowLeft size={16} /> {step === 1 || confirmedView ? "Exit" : "Back"}
-        </button>
-        <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-          <div style={{ fontFamily: font, fontSize: 8.5, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</div>
-          <div style={{ fontFamily: font, fontSize: 15, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>
-            P{Math.round(totals.grandTotal).toLocaleString()}
-          </div>
-        </div>
-        {step < 4 ? (
-          <button onClick={next} style={navBtnPrimary} aria-label="Next">
-            Next <ArrowRight size={16} />
-          </button>
-        ) : (
-          <button onClick={() => router.push("/m/dashboard")} style={navBtnPrimary} aria-label="Exit builder">
+        {confirmedView ? (
+          // Confirmed view: the command center owns the numbers (agreed snapshot).
+          // Drop the live Grand Total so it can't contradict the record — just a clean Exit.
+          <button onClick={() => router.push("/m/dashboard")} style={{ ...navBtnPrimary, flex: 1 }} aria-label="Exit builder">
             <LogOut size={16} /> Exit
           </button>
+        ) : (
+          <>
+            <button onClick={back} style={navBtnSecondary} aria-label="Back">
+              <ArrowLeft size={16} /> {step === 1 ? "Exit" : "Back"}
+            </button>
+            <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+              <div style={{ fontFamily: font, fontSize: 8.5, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</div>
+              <div style={{ fontFamily: font, fontSize: 15, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>
+                P{Math.round(totals.grandTotal).toLocaleString()}
+              </div>
+            </div>
+            {step < 4 ? (
+              <button onClick={next} style={navBtnPrimary} aria-label="Next">
+                Next <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button onClick={() => router.push("/m/dashboard")} style={navBtnPrimary} aria-label="Exit builder">
+                <LogOut size={16} /> Exit
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
