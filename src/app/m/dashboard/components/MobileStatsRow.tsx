@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, CheckCircle, TrendingUp, Clock } from "lucide-react";
 
 interface MobileStatsRowProps {
   totalQuotes: number;
@@ -10,6 +9,8 @@ interface MobileStatsRowProps {
   pendingCount: number;
 }
 
+const font = "'Inter', system-ui, sans-serif";
+
 const formatCurrency = (n: number) => {
   if (n >= 1_000_000) return `P${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `P${(n / 1_000).toFixed(0)}K`;
@@ -17,10 +18,10 @@ const formatCurrency = (n: number) => {
 };
 
 const STATS_CONFIG = [
-  { key: "total", label: "Total Quotes", icon: <FileText size={18} />, color: "#003829", bg: "#F0FDF4", borderColor: "rgba(0,56,41,0.08)" },
-  { key: "confirmed", label: "Confirmed", icon: <CheckCircle size={18} />, color: "#059669", bg: "#ECFDF5", borderColor: "rgba(5,150,105,0.1)" },
-  { key: "revenue", label: "Revenue", icon: <TrendingUp size={18} />, color: "#0369A1", bg: "#E0F2FE", borderColor: "rgba(3,105,161,0.1)" },
-  { key: "pending", label: "Pending", icon: <Clock size={18} />, color: "#D97706", bg: "#FEF3C7", borderColor: "rgba(217,119,6,0.1)" },
+  { key: "total", label: "Total Quotes", color: "#003829", bg: "#F0FDF4" },
+  { key: "confirmed", label: "Confirmed", color: "#059669", bg: "#ECFDF5" },
+  { key: "revenue", label: "Revenue", color: "#0369A1", bg: "#E0F2FE" },
+  { key: "pending", label: "Pending", color: "#D97706", bg: "#FEF3C7" },
 ];
 
 export default function MobileStatsRow({ totalQuotes, confirmedCount, revenue, pendingCount }: MobileStatsRowProps) {
@@ -32,7 +33,7 @@ export default function MobileStatsRow({ totalQuotes, confirmedCount, revenue, p
   };
 
   return (
-    <div className="mobile-h-scroll" style={{ paddingBottom: 4, paddingLeft: 0 }}>
+    <div style={{ display: "flex", gap: 8 }}>
       {STATS_CONFIG.map((stat, i) => (
         <motion.div
           key={stat.key}
@@ -40,53 +41,40 @@ export default function MobileStatsRow({ totalQuotes, confirmedCount, revenue, p
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: i * 0.05 }}
           style={{
-            minWidth: 130,
-            padding: "14px 16px",
-            borderRadius: 16,
-            background: "#ffffff",
-            border: `1px solid ${stat.borderColor}`,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            flex: 1,
+            minWidth: 0,
+            background: stat.bg,
+            borderRadius: 14,
+            padding: "12px 10px",
           }}
         >
           <div
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              background: stat.bg,
+              fontFamily: font,
+              fontSize: 9,
+              fontWeight: 700,
               color: stat.color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 8,
-            }}
-          >
-            {stat.icon}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
-              fontSize: 22,
-              fontWeight: 800,
-              color: "#0F172A",
-              lineHeight: 1,
-              marginBottom: 3,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {values[stat.key]}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
-              fontSize: 10,
-              fontWeight: 600,
-              color: "#94A3B8",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
+              lineHeight: 1.2,
+              marginBottom: 4,
             }}
           >
             {stat.label}
+          </div>
+          <div
+            style={{
+              fontFamily: font,
+              fontSize: 15,
+              fontWeight: 800,
+              color: stat.color,
+              letterSpacing: "-0.02em",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {values[stat.key]}
           </div>
         </motion.div>
       ))}

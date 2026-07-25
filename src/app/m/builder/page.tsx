@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 
@@ -254,7 +254,14 @@ function MobileBuilder() {
         if (sel) setSelectedPackageId(sel.id);
       }
       setInitialQuotationText(copyFromId ? "" : (qData.quotation_text || ""));
-      if (searchParams.get("edit") === "true") setIsReconfiguring(true);
+      const editMode = searchParams.get("edit") === "true";
+      if (editMode) setIsReconfiguring(true);
+
+      // Confirmed quotes open straight on the review/command-center (step 4) with the
+      // stepper hidden; ?edit=true (reconfigure) and everything else start at step 1.
+      const opensConfirmed = !copyFromId && ["Confirmed", "Payment Started", "Payment Complete"].includes(qData.status) && !editMode;
+      setStep(opensConfirmed ? 4 : 1);
+      setMaxReached(4); // existing quote has all steps' data — allow free jumps once the stepper is shown
 
       hasHydrated.current = true;
       setIsLoaded(true);
@@ -830,6 +837,13 @@ function MobileBuilder() {
     await fetchDisbursements();
   };
 
+  // Read-only lock: Cancelled/Lost quotes, or confirmed quotes not being reconfigured
+  const isDead = ["Cancelled", "Lost"].includes(quote.status || "");
+  const isConfirmedQuote = ["Confirmed", "Payment Started", "Payment Complete"].includes(quote.status || "") && !!quote.id;
+  // Confirmed quotes show only the review/command-center (step 4) with the stepper
+  // hidden; the full wizard reappears only after the user hits Reconfigure.
+  const confirmedView = isConfirmedQuote && !isReconfiguring;
+
   // ── Step navigation ──
   const goToStep = (s: number) => {
     setStep(s);
@@ -837,20 +851,28 @@ function MobileBuilder() {
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const next = () => step < 4 && goToStep(step + 1);
-  const back = () => (step > 1 ? goToStep(step - 1) : router.push("/m/dashboard"));
+  const back = () => {
+    // In the confirmed command-center view (or on step 1), "Back" exits to the
+    // dashboard rather than stepping into the hidden wizard.
+    if (confirmedView || step === 1) { router.push("/m/dashboard"); return; }
+    goToStep(step - 1);
+  };
+  const handleReconfigure = () => {
+    setIsReconfiguring(true);
+    setStep(1);
+    setMaxReached(4);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   if (authLoading || !isLoaded) return <CenterLoader />;
 
-  // Read-only lock: Cancelled/Lost quotes, or confirmed quotes not being reconfigured
-  const isDead = ["Cancelled", "Lost"].includes(quote.status || "");
-  const isConfirmedQuote = ["Confirmed", "Payment Started", "Payment Complete"].includes(quote.status || "") && !!quote.id;
-  const readOnly = isDead || (isConfirmedQuote && !isReconfiguring);
+  const readOnly = isDead || confirmedView;
   // Step 4 renders its own command center for confirmed quotes; only steps 1-3 (and dead-quote review) need the lock banner
   const showLockBanner = readOnly && !(isConfirmedQuote && step === 4);
 
   return (
     <div style={{ paddingBottom: 96 }}>
-      <MobileStepIndicator current={step} maxReached={maxReached} onJump={goToStep} />
+      {!confirmedView && <MobileStepIndicator current={step} maxReached={maxReached} onJump={goToStep} />}
 
       {showLockBanner && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: isDead ? "#FFF1F2" : "#FFFBEB", border: `1px solid ${isDead ? "rgba(225,29,72,0.15)" : "rgba(217,119,6,0.15)"}`, borderRadius: 12, marginBottom: 14 }}>
@@ -858,7 +880,7 @@ function MobileBuilder() {
             {isDead ? `This quote is ${quote.status} — view only.` : "Confirmed quote — view only. Reconfigure to edit."}
           </span>
           {isConfirmedQuote && (
-            <button onClick={() => setIsReconfiguring(true)} style={{ padding: "6px 12px", borderRadius: 9, border: "none", background: "#003829", color: "#fff", fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={handleReconfigure} style={{ padding: "6px 12px", borderRadius: 9, border: "none", background: "#003829", color: "#fff", fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               Reconfigure
             </button>
           )}
@@ -934,7 +956,7 @@ function MobileBuilder() {
           onPolish={handlePolish}
           onSaveDraft={(text) => finalizeSave(quote.status || "Draft", true, text)}
           onConfirm={(text) => finalizeSave("Confirmed", false, text)}
-          onReconfigure={() => setIsReconfiguring(true)}
+          onReconfigure={handleReconfigure}
           onAddPayment={handleAddPayment}
           onVoidPayment={handleVoidPayment}
           onAddDisbursement={handleAddDisbursement}
@@ -959,7 +981,7 @@ function MobileBuilder() {
         }}
       >
         <button onClick={back} style={navBtnSecondary} aria-label="Back">
-          <ArrowLeft size={16} /> {step === 1 ? "Exit" : "Back"}
+          <ArrowLeft size={16} /> {step === 1 || confirmedView ? "Exit" : "Back"}
         </button>
         <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
           <div style={{ fontFamily: font, fontSize: 8.5, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</div>
@@ -973,7 +995,7 @@ function MobileBuilder() {
           </button>
         ) : (
           <button onClick={() => router.push("/m/dashboard")} style={navBtnPrimary} aria-label="Exit builder">
-            <Check size={16} /> Done
+            <LogOut size={16} /> Exit
           </button>
         )}
       </div>

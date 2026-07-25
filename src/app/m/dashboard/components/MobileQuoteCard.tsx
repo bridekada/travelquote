@@ -264,8 +264,8 @@ export default function MobileQuoteCard({ quote, paymentTotal, onTap, onDuplicat
           {quote.pax_count ? ` · ${quote.pax_count} pax` : ""}
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: "rgba(0,0,0,0.04)", margin: "0 -16px", marginBottom: 10 }} />
+        {/* Status-colored divider between the trip dates and the amount */}
+        <div style={{ height: 2, background: statusColor.text, opacity: 0.85, margin: "0 -16px 10px" }} />
 
         {/* Row 4: Total + Meta */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

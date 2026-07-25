@@ -57,6 +57,8 @@ export default function MobilePackages({
         const commission = computed?.commissionAmount || 0;
         const selected = selectedPackageId === pkg.id;
         const isConfig = configIdx === i;
+        // Presets store their label in `title`; custom packages use `name`. Resolve both.
+        const pkgName = pkg.name || pkg.title || "";
 
         return (
           <div
@@ -71,7 +73,7 @@ export default function MobilePackages({
             }}
           >
             <div
-              onClick={() => onSelectPackage(pkg.name, pkg.id)}
+              onClick={() => onSelectPackage(pkgName || `Package ${i + 1}`, pkg.id)}
               style={{ padding: "14px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
             >
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -86,7 +88,7 @@ export default function MobilePackages({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <input
-                      value={pkg.name || ""}
+                      value={pkgName}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => onUpdatePackage(i, { name: e.target.value })}
                       placeholder={`Package ${i + 1}`}
@@ -116,15 +118,6 @@ export default function MobilePackages({
                 <button onClick={() => setConfigIdx(isConfig ? null : i)} style={cfgBtn(isConfig)}>
                   <Settings size={12} /> {isConfig ? "Done" : "Configure"}
                 </button>
-                <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                  <input
-                    type="checkbox"
-                    checked={!!pkg.is_recommended}
-                    onChange={(e) => onUpdatePackage(i, { is_recommended: e.target.checked })}
-                    style={{ width: 15, height: 15, accentColor: "#D97706" }}
-                  />
-                  <span style={{ fontFamily: font, fontSize: 11, fontWeight: 600, color: "#64748B" }}>Recommended</span>
-                </label>
                 {livePackages.length > 1 && (
                   <button onClick={() => onRemovePackage(i)} style={{ ...cfgBtn(false), marginLeft: "auto", borderColor: "rgba(225,29,72,0.2)", background: "#FFF1F2", color: "#E11D48" }} aria-label="Remove package">
                     <Trash2 size={12} />

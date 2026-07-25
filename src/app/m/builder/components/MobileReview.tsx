@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Drawer } from "vaul";
 import {
-  Copy, Check, Sparkles, RotateCcw, Loader2, FileText, Save, ShieldCheck,
+  Copy, Check, RotateCcw, Loader2, FileText, Save, ShieldCheck,
   Plus, Trash2, CreditCard, Receipt, Settings, X, Clock, CheckCircle2,
 } from "lucide-react";
 import { QuoteData } from "@/app/builder/components/types";
@@ -49,23 +49,18 @@ export default function MobileReview(props: MobileReviewProps) {
 
 function ReviewEditor({
   quote, role, totals, includeItinerary, setIncludeItinerary, selectedPackageId,
-  isSaving, readOnly, compileText, onPolish, onSaveDraft, onConfirm,
+  isSaving, readOnly, compileText, onSaveDraft, onConfirm,
 }: MobileReviewProps) {
   const [text, setText] = useState(() => compileText());
   const [original] = useState(text);
   const [copied, setCopied] = useState(false);
-  const [polishing, setPolishing] = useState(false);
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { alert("Copy failed"); }
   };
-  const polish = async () => {
-    setPolishing(true);
-    try { const res = await onPolish(text); if (res) setText(res); }
-    catch { alert("AI service busy — please try again."); }
-    finally { setPolishing(false); }
-  };
   const confirmDisabled = !selectedPackageId || !quote.customer_name?.trim();
+  const commissionPct = quote.admin_commission || 0;
+  const commissionAmount = totals.packages?.find((p: any) => p.id === selectedPackageId)?.commissionAmount || 0;
 
   return (
     <div>
@@ -74,10 +69,6 @@ function ReviewEditor({
         <input type="checkbox" checked={includeItinerary} onChange={(e) => setIncludeItinerary(e.target.checked)} style={{ width: 17, height: 17, accentColor: "#00674F" }} />
         <span style={{ fontFamily: font, fontSize: 12.5, fontWeight: 600, color: "#334155" }}>Include itinerary in quotation text</span>
       </label>
-
-      <button onClick={() => setText(compileText())} style={{ ...ghostBtn, marginBottom: 8 }}>
-        <RotateCcw size={13} /> Regenerate from current data
-      </button>
 
       {/* Editor */}
       <textarea
@@ -95,14 +86,12 @@ function ReviewEditor({
 
       {/* Actions */}
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        <button onClick={() => setText(compileText())} style={actionBtn}>
+          <RotateCcw size={14} /> Regenerate
+        </button>
         <button onClick={copy} style={actionBtn}>
           {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
         </button>
-        {role === "super_admin" && (
-          <button onClick={polish} disabled={polishing} style={{ ...actionBtn, opacity: polishing ? 0.7 : 1 }}>
-            {polishing ? <><Loader2 className="animate-spin" size={14} /> Polishing</> : <><Sparkles size={14} /> AI Polish</>}
-          </button>
-        )}
         {role === "super_admin" && text !== original && (
           <button onClick={() => setText(original)} style={actionBtn}>
             <RotateCcw size={14} /> Revert
@@ -111,9 +100,17 @@ function ReviewEditor({
       </div>
 
       {/* Grand total */}
-      <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FDF4", borderRadius: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</span>
-        <span style={{ fontFamily: font, fontSize: 20, fontWeight: 800, color: "#003829" }}>₱{Math.round(totals.grandTotal).toLocaleString()}</span>
+      <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FDF4", borderRadius: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</span>
+          <span style={{ fontFamily: font, fontSize: 20, fontWeight: 800, color: "#003829" }}>₱{Math.round(totals.grandTotal).toLocaleString()}</span>
+        </div>
+        {commissionPct > 0 && commissionAmount > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(0,103,79,0.12)" }}>
+            <span style={{ fontFamily: font, fontSize: 10.5, fontWeight: 600, color: "#6366F1" }}>Incl. Admin Commission ({commissionPct}%)</span>
+            <span style={{ fontFamily: font, fontSize: 13.5, fontWeight: 800, color: "#6366F1" }}>₱{Math.round(commissionAmount).toLocaleString()}</span>
+          </div>
+        )}
       </div>
 
       {/* Save / Confirm — hidden for view-only (dead) quotes */}
@@ -568,12 +565,6 @@ const actionBtn: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", borderRadius: 11,
   border: "1.5px solid rgba(0,0,0,0.08)", background: "#ffffff", color: "#475569",
   fontFamily: font, fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent",
-};
-
-const ghostBtn: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10,
-  border: "none", background: "transparent", color: "#00674F",
-  fontFamily: font, fontSize: 11.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent",
 };
 
 const saveBtn: React.CSSProperties = {
