@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Drawer } from "vaul";
 import {
-  Copy, Check, RotateCcw, Loader2, FileText, Save, ShieldCheck,
+  Copy, Check, RotateCcw, Loader2, FileText, Save, ShieldCheck, ChevronDown,
   Plus, Trash2, CreditCard, Receipt, Settings, X, Clock, CheckCircle2,
 } from "lucide-react";
 import { QuoteData } from "@/app/builder/components/types";
@@ -57,6 +57,7 @@ function ReviewEditor({
   const [copied, setCopied] = useState(false);
   // Draft string so partially-typed values ("10.") survive re-render; null = show canonical value.
   const [commDraft, setCommDraft] = useState<string | null>(null);
+  const [openCost, setOpenCost] = useState<string | null>(null);
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { alert("Copy failed"); }
@@ -72,13 +73,14 @@ function ReviewEditor({
   //    inclusions; with no package selected we list every cost line. ──
   const pkgConfig = totals.packages?.find((p: any) => p.id === selectedPackageId)?.config;
   const col = totals.colTotals || { rate: 0, fuel: 0, accom: 0, misc: {} as Record<string, number> };
-  const costLines: { label: string; amount: number }[] = [];
-  if (!pkgConfig || pkgConfig.includes_vehicle) costLines.push({ label: "Vehicle Rate", amount: col.rate || 0 });
-  if (!pkgConfig || pkgConfig.includes_fuel) costLines.push({ label: "Fuel", amount: col.fuel || 0 });
-  if (!pkgConfig || pkgConfig.includes_accommodation) costLines.push({ label: "Guest Accommodation", amount: col.accom || 0 });
+  const perDay = col.perDay || { rate: [], fuel: [], accom: [], misc: {} };
+  const costLines: { label: string; amount: number; days: number[] }[] = [];
+  if (!pkgConfig || pkgConfig.includes_vehicle) costLines.push({ label: "Vehicle Rate", amount: col.rate || 0, days: perDay.rate || [] });
+  if (!pkgConfig || pkgConfig.includes_fuel) costLines.push({ label: "Fuel", amount: col.fuel || 0, days: perDay.fuel || [] });
+  if (!pkgConfig || pkgConfig.includes_accommodation) costLines.push({ label: "Guest Accommodation", amount: col.accom || 0, days: perDay.accom || [] });
   dbMiscPresets.forEach((m: any) => {
     if (!pkgConfig || (pkgConfig.includes_misc_ids || []).includes(m.id)) {
-      costLines.push({ label: m.name, amount: col.misc?.[m.id] || 0 });
+      costLines.push({ label: m.name, amount: col.misc?.[m.id] || 0, days: perDay.misc?.[m.id] || [] });
     }
   });
   const costSubtotal = costLines.reduce((s, l) => s + l.amount, 0);
@@ -177,17 +179,55 @@ function ReviewEditor({
                 {pkgConfig ? "in selected package" : "all items"}
               </span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              {costLines.map((l, i) => (
-                <div key={i} style={{ minWidth: 0, background: "rgba(255,255,255,0.65)", borderRadius: 9, padding: "6px 8px" }}>
-                  <div style={{ fontFamily: font, fontSize: 9.5, fontWeight: 600, color: "#64748B", lineHeight: 1.25, overflowWrap: "anywhere", marginBottom: 2 }}>
-                    {l.label}
-                  </div>
-                  <div style={{ fontFamily: font, fontSize: 12, fontWeight: 800, color: l.amount > 0 ? "#003829" : "#CBD5E1", letterSpacing: "-0.01em" }}>
-                    ₱{Math.round(l.amount).toLocaleString()}
-                  </div>
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, alignItems: "start" }}>
+              {costLines.map((l, i) => {
+                // Keyed by index+label so duplicate preset names can't open two cells at once.
+                const key = `${i}-${l.label}`;
+                const open = openCost === key;
+                const canExpand = l.days.length > 0;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-expanded={canExpand ? open : undefined}
+                    onClick={() => canExpand && setOpenCost(open ? null : key)}
+                    style={{
+                      minWidth: 0, width: "100%", textAlign: "left", display: "block",
+                      background: "rgba(255,255,255,0.65)", borderRadius: 9, padding: "6px 8px",
+                      border: open ? "1px solid rgba(0,103,79,0.35)" : "1px solid transparent",
+                      cursor: canExpand ? "pointer" : "default", WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    <div style={{ fontFamily: font, fontSize: 9.5, fontWeight: 600, color: "#64748B", lineHeight: 1.25, overflowWrap: "anywhere", marginBottom: 2 }}>
+                      {l.label}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                      <span style={{ fontFamily: font, fontSize: 12, fontWeight: 800, color: l.amount > 0 ? "#003829" : "#CBD5E1", letterSpacing: "-0.01em" }}>
+                        ₱{Math.round(l.amount).toLocaleString()}
+                      </span>
+                      {canExpand && (
+                        <ChevronDown
+                          size={11}
+                          color="#94A3B8"
+                          style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
+                        />
+                      )}
+                    </div>
+                    {open && (
+                      <div style={{ marginTop: 5, paddingTop: 5, borderTop: "1px dashed rgba(0,103,79,0.18)" }}>
+                        {l.days.map((amt, d) => (
+                          <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4, marginBottom: 1 }}>
+                            <span style={{ fontFamily: font, fontSize: 9, fontWeight: 600, color: "#94A3B8" }}>Day {d + 1}</span>
+                            <span style={{ fontFamily: font, fontSize: 9.5, fontWeight: 700, color: amt > 0 ? "#475569" : "#CBD5E1" }}>
+                              ₱{Math.round(amt).toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 6, paddingTop: 6, borderTop: "1px dashed rgba(0,103,79,0.15)" }}>
               <span style={{ fontFamily: font, fontSize: 10.5, fontWeight: 700, color: "#00674F" }}>Subtotal (before commission)</span>

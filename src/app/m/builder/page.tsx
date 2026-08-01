@@ -396,8 +396,19 @@ function MobileBuilder() {
       acc.rate += curRate; acc.km += item.km; acc.fuel += fuel; acc.accom += (item.guest_accommodation_amount || 0);
       acc.grand += calculateRowTotal(item, quote.admin_commission, quote.fleet);
       dbMiscPresets.forEach((p) => { acc.misc[p.id] = (acc.misc[p.id] || 0) + (item.dynamic_costs[p.id] || 0); });
+      // Per-day figures come from this same pass so the breakdown always sums to the totals above.
+      acc.perDay.rate.push(curRate);
+      acc.perDay.fuel.push(fuel);
+      acc.perDay.accom.push(item.guest_accommodation_amount || 0);
+      dbMiscPresets.forEach((p) => {
+        if (!acc.perDay.misc[p.id]) acc.perDay.misc[p.id] = [];
+        acc.perDay.misc[p.id].push(item.dynamic_costs[p.id] || 0);
+      });
       return acc;
-    }, { rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number> });
+    }, {
+      rate: 0, km: 0, fuel: 0, accom: 0, grand: 0, misc: {} as Record<string, number>,
+      perDay: { rate: [] as number[], fuel: [] as number[], accom: [] as number[], misc: {} as Record<string, number[]> },
+    });
 
     return { packages: packageTotals, grandTotal: selectedPkgPrice + adjustments, selectedPkgPrice, totalExtraFees: extraFees.reduce((a, b) => a + (b.amount || 0), 0), colTotals, rowTotals };
   }, [quote.items, quote.fleet, extraFees, discount, livePackages, dbMiscPresets, selectedPackageId, quote.admin_commission]);
