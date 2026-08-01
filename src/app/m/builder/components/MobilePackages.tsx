@@ -14,6 +14,7 @@ interface MobilePackagesProps {
   livePackages: any[];
   packagesComputed: { id: string; name: string; total: number; commissionAmount: number; is_recommended?: boolean; config: any }[];
   dbMiscPresets: any[];
+  colTotals?: { rate: number; fuel: number; accom: number; misc: Record<string, number> };
   selectedPackageId: string | null;
   extraFees: ExtraFee[];
   grandTotal: number;
@@ -29,7 +30,7 @@ interface MobilePackagesProps {
 }
 
 export default function MobilePackages({
-  quote, livePackages, packagesComputed, dbMiscPresets, selectedPackageId,
+  quote, livePackages, packagesComputed, dbMiscPresets, colTotals, selectedPackageId,
   extraFees, grandTotal, readOnly, onSelectPackage, onUpdatePackage, onToggleMisc,
   onAddPackage, onRemovePackage, onAddFee, onRemoveFee, onUpdateNotes,
 }: MobilePackagesProps) {
@@ -140,14 +141,15 @@ export default function MobilePackages({
                     <div style={{ fontFamily: font, fontSize: 10, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "12px 0 8px" }}>
                       What&apos;s included
                     </div>
-                    <IncToggle label="Vehicle Rate" icon={<Car size={13} />} on={!!pkg.includes_vehicle} onToggle={() => onUpdatePackage(i, { includes_vehicle: !pkg.includes_vehicle })} />
-                    <IncToggle label="Fuel Cost" icon={<Fuel size={13} />} on={!!pkg.includes_fuel} onToggle={() => onUpdatePackage(i, { includes_fuel: !pkg.includes_fuel })} />
-                    <IncToggle label="Guest Accommodation" icon={<Users size={13} />} on={!!pkg.includes_accommodation} onToggle={() => onUpdatePackage(i, { includes_accommodation: !pkg.includes_accommodation })} />
+                    <IncToggle label="Vehicle Rate" icon={<Car size={13} />} amount={colTotals?.rate} on={!!pkg.includes_vehicle} onToggle={() => onUpdatePackage(i, { includes_vehicle: !pkg.includes_vehicle })} />
+                    <IncToggle label="Fuel Cost" icon={<Fuel size={13} />} amount={colTotals?.fuel} on={!!pkg.includes_fuel} onToggle={() => onUpdatePackage(i, { includes_fuel: !pkg.includes_fuel })} />
+                    <IncToggle label="Guest Accommodation" icon={<Users size={13} />} amount={colTotals?.accom} on={!!pkg.includes_accommodation} onToggle={() => onUpdatePackage(i, { includes_accommodation: !pkg.includes_accommodation })} />
                     {dbMiscPresets.map((m) => (
                       <IncToggle
                         key={m.id}
                         label={m.name}
                         icon={<Receipt size={13} />}
+                        amount={colTotals?.misc?.[m.id]}
                         on={(pkg.includes_misc_ids || []).includes(m.id)}
                         onToggle={() => onToggleMisc(i, m.id)}
                       />
@@ -233,7 +235,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div style={{ fontFamily: font, fontSize: 11, fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", margin: "18px 0 10px 2px" }}>{children}</div>;
 }
 
-function IncToggle({ label, icon, on, onToggle }: { label: string; icon: React.ReactNode; on: boolean; onToggle: () => void }) {
+function IncToggle({ label, icon, on, amount, onToggle }: { label: string; icon: React.ReactNode; on: boolean; amount?: number; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
@@ -250,8 +252,13 @@ function IncToggle({ label, icon, on, onToggle }: { label: string; icon: React.R
       }}>
         {on && <Check size={12} color="#fff" strokeWidth={3} />}
       </span>
-      <span style={{ color: on ? "#00674F" : "#94A3B8", display: "flex" }}>{icon}</span>
-      <span style={{ flex: 1, textAlign: "left", fontFamily: font, fontSize: 12.5, fontWeight: 600, color: on ? "#003829" : "#64748B" }}>{label}</span>
+      <span style={{ color: on ? "#00674F" : "#94A3B8", display: "flex", flexShrink: 0 }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0, textAlign: "left", fontFamily: font, fontSize: 12.5, fontWeight: 600, color: on ? "#003829" : "#64748B", lineHeight: 1.3, overflowWrap: "anywhere" }}>{label}</span>
+      {typeof amount === "number" && amount > 0 && (
+        <span style={{ flexShrink: 0, fontFamily: font, fontSize: 12, fontWeight: 800, color: on ? "#00674F" : "#94A3B8" }}>
+          ₱{Math.round(amount).toLocaleString()}
+        </span>
+      )}
     </button>
   );
 }

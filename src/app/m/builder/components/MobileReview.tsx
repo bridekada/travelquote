@@ -32,6 +32,7 @@ interface MobileReviewProps {
   onSaveDraft: (text: string) => void;
   onConfirm: (text: string) => void;
   onReconfigure: () => void;
+  onUpdateCommission?: (v: number) => void;
   onAddPayment: (data: any, editing: any | null) => Promise<void>;
   onVoidPayment: (id: string) => void;
   onAddDisbursement: (data: any, editing: any | null) => Promise<void>;
@@ -49,18 +50,25 @@ export default function MobileReview(props: MobileReviewProps) {
 
 function ReviewEditor({
   quote, role, totals, includeItinerary, setIncludeItinerary, selectedPackageId,
-  isSaving, readOnly, compileText, onSaveDraft, onConfirm,
+  extraFees, discount, isSaving, readOnly, compileText, onSaveDraft, onConfirm, onUpdateCommission,
 }: MobileReviewProps) {
   const [text, setText] = useState(() => compileText());
   const [original] = useState(text);
   const [copied, setCopied] = useState(false);
+  // Draft string so partially-typed values ("10.") survive re-render; null = show canonical value.
+  const [commDraft, setCommDraft] = useState<string | null>(null);
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { alert("Copy failed"); }
   };
   const confirmDisabled = !selectedPackageId || !quote.customer_name?.trim();
   const commissionPct = quote.admin_commission || 0;
-  const commissionAmount = totals.packages?.find((p: any) => p.id === selectedPackageId)?.commissionAmount || 0;
+  // Commission is baked into the package price, so extract it inclusively. Using
+  // selectedPkgPrice keeps this correct whether or not a package is selected yet.
+  const commissionAmount = Math.round((totals.selectedPkgPrice * commissionPct) / (100 + commissionPct)) || 0;
+  const commissionEditable = !!onUpdateCommission && !readOnly;
+  const feeList = extraFees || [];
+  const feesTotal = feeList.reduce((s: number, f: any) => s + (f.amount || 0), 0) - (discount || 0);
 
   return (
     <div>
@@ -105,10 +113,69 @@ function ReviewEditor({
           <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em" }}>Grand Total</span>
           <span style={{ fontFamily: font, fontSize: 20, fontWeight: 800, color: "#003829" }}>₱{Math.round(totals.grandTotal).toLocaleString()}</span>
         </div>
-        {commissionPct > 0 && commissionAmount > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(0,103,79,0.12)" }}>
-            <span style={{ fontFamily: font, fontSize: 10.5, fontWeight: 600, color: "#6366F1" }}>Incl. Admin Commission ({commissionPct}%)</span>
-            <span style={{ fontFamily: font, fontSize: 13.5, fontWeight: 800, color: "#6366F1" }}>₱{Math.round(commissionAmount).toLocaleString()}</span>
+        {/* Admin commission — editable here for last-minute adjustment. Always shown when
+            editable (so it can be set from zero); on locked quotes only if there is one. */}
+        {(commissionEditable || commissionPct > 0) && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(0,103,79,0.12)" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, fontFamily: font, fontSize: 10.5, fontWeight: 600, color: "#6366F1" }}>
+            Incl. Admin Commission
+            {commissionEditable ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                <input
+                  value={commDraft ?? (commissionPct || "")}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setCommDraft(raw);
+                    if (raw === "") { onUpdateCommission(0); return; }
+                    const n = parseFloat(raw);
+                    if (!isNaN(n)) onUpdateCommission(Math.min(100, Math.max(0, n)));
+                  }}
+                  onBlur={() => setCommDraft(null)}
+                  inputMode="decimal"
+                  aria-label="Admin commission percent"
+                  style={{
+                    width: 52, height: 28, padding: "0 6px", borderRadius: 8, textAlign: "right",
+                    fontFamily: font, fontSize: 12, fontWeight: 700, color: "#6366F1",
+                    border: "1.5px solid rgba(99,102,241,0.35)", background: "#ffffff",
+                    outline: "none", WebkitAppearance: "none",
+                  }}
+                />
+                <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#6366F1" }}>%</span>
+              </span>
+            ) : (
+              <span>({commissionPct}%)</span>
+            )}
+          </span>
+          <span style={{ flexShrink: 0, fontFamily: font, fontSize: 13.5, fontWeight: 800, color: "#6366F1" }}>₱{Math.round(commissionAmount).toLocaleString()}</span>
+        </div>
+        )}
+
+        {/* Fees & adjustments — read-only breakdown for reference */}
+        {(feeList.length > 0 || (discount || 0) > 0) && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(0,103,79,0.12)" }}>
+            <div style={{ fontFamily: font, fontSize: 9.5, fontWeight: 800, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5, opacity: 0.7 }}>
+              Fees &amp; Adjustments
+            </div>
+            {feeList.map((f: any, i: number) => (
+              <div key={f.id ?? i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 3 }}>
+                <span style={{ flex: 1, minWidth: 0, fontFamily: font, fontSize: 11.5, fontWeight: 500, color: "#475569", lineHeight: 1.3, overflowWrap: "anywhere" }}>{f.name || "Fee"}</span>
+                <span style={{ flexShrink: 0, fontFamily: font, fontSize: 12, fontWeight: 700, color: (f.amount || 0) < 0 ? "#E11D48" : "#334155" }}>
+                  {(f.amount || 0) < 0 ? "−" : "+"}₱{Math.abs(Math.round(f.amount || 0)).toLocaleString()}
+                </span>
+              </div>
+            ))}
+            {(discount || 0) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 3 }}>
+                <span style={{ flex: 1, minWidth: 0, fontFamily: font, fontSize: 11.5, fontWeight: 500, color: "#475569" }}>Client Discount</span>
+                <span style={{ flexShrink: 0, fontFamily: font, fontSize: 12, fontWeight: 700, color: "#E11D48" }}>−₱{Math.round(discount || 0).toLocaleString()}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 5, paddingTop: 5, borderTop: "1px dashed rgba(0,103,79,0.15)" }}>
+              <span style={{ fontFamily: font, fontSize: 11, fontWeight: 700, color: "#00674F" }}>Total Adjustments</span>
+              <span style={{ fontFamily: font, fontSize: 12.5, fontWeight: 800, color: feesTotal < 0 ? "#E11D48" : "#003829" }}>
+                {feesTotal < 0 ? "−" : "+"}₱{Math.abs(Math.round(feesTotal)).toLocaleString()}
+              </span>
+            </div>
           </div>
         )}
       </div>

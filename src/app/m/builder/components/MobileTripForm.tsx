@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { QuoteData, QuoteVehicle } from "@/app/builder/components/types";
 import MobileSearchSelect from "./MobileSearchSelect";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,6 +28,8 @@ export default function MobileTripForm({
   setField, onEtaChange, onEtdChange, onUpdateCommission, onUpdateFleet,
 }: MobileTripFormProps) {
   const fleet = quote.fleet || [];
+  // Draft string so partially-typed values ("10.") survive re-render; null = show canonical value.
+  const [commDraft, setCommDraft] = useState<string | null>(null);
 
   const addVehicle = () => {
     const first = dbVehicles[0];
@@ -237,13 +240,15 @@ export default function MobileTripForm({
       <SectionLabel>Details</SectionLabel>
       <Field label="Admin Commission (%)" icon={<Percent size={14} color="#D97706" />}>
         <input
-          value={quote.admin_commission || ""}
+          value={commDraft ?? (quote.admin_commission || "")}
           onChange={(e) => {
             const v = e.target.value;
+            setCommDraft(v);
             if (v === "") { onUpdateCommission(0); return; }
             const n = parseFloat(v);
             if (!isNaN(n)) onUpdateCommission(Math.min(100, Math.max(0, n)));
           }}
+          onBlur={() => setCommDraft(null)}
           inputMode="decimal"
           placeholder="0"
           style={inputStyle}

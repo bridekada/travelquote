@@ -922,6 +922,7 @@ function MobileBuilder() {
           livePackages={livePackages.length > 0 ? livePackages : dbPackagePresets}
           packagesComputed={totals.packages}
           dbMiscPresets={dbMiscPresets}
+          colTotals={totals.colTotals}
           selectedPackageId={selectedPackageId}
           extraFees={extraFees}
           grandTotal={totals.grandTotal}
@@ -957,6 +958,7 @@ function MobileBuilder() {
           onSaveDraft={(text) => finalizeSave(quote.status || "Draft", true, text)}
           onConfirm={(text) => finalizeSave("Confirmed", false, text)}
           onReconfigure={handleReconfigure}
+          onUpdateCommission={handleUpdateCommission}
           onAddPayment={handleAddPayment}
           onVoidPayment={handleVoidPayment}
           onAddDisbursement={handleAddDisbursement}
@@ -983,7 +985,7 @@ function MobileBuilder() {
         {confirmedView ? (
           // Confirmed view: the command center owns the numbers (agreed snapshot).
           // Drop the live Grand Total so it can't contradict the record — just a clean Exit.
-          <button onClick={() => router.push("/m/dashboard")} style={{ ...navBtnPrimary, flex: 1 }} aria-label="Exit builder">
+          <button onClick={() => router.push("/m/dashboard")} style={{ ...navBtnPrimary, marginLeft: "auto" }} aria-label="Exit builder">
             <LogOut size={16} /> Exit
           </button>
         ) : (

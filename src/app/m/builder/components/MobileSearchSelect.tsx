@@ -107,7 +107,10 @@ export default function MobileSearchSelect<T>({
         <ChevronDown size={16} color="#94A3B8" style={{ flexShrink: 0 }} />
       </button>
 
-      <Drawer.Root open={open} onOpenChange={(o) => { if (!o) setSearch(""); setOpen(o); }}>
+      {/* autoFocus=false: on iOS, focusing the search field while the drawer is still
+          animating pops the keyboard mid-transition and leaves the fixed-position sheet
+          stranded behind it. Open settled instead; the keyboard appears only on tap. */}
+      <Drawer.Root autoFocus={false} open={open} onOpenChange={(o) => { if (!o) setSearch(""); setOpen(o); }}>
         <Drawer.Portal>
           <Drawer.Overlay style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1099 }} />
           <Drawer.Content
@@ -127,7 +130,6 @@ export default function MobileSearchSelect<T>({
               <div style={{ position: "relative" }}>
                 <Search size={16} color="#94A3B8" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
                 <input
-                  autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={searchPlaceholder}

@@ -260,7 +260,7 @@ export default function MobileDayCards({
                                   onUpdateItem(index, { tags: nextTags });
                                 }}
                                 style={{
-                                  flex: 1, textAlign: "left", padding: "9px 11px", borderRadius: 10,
+                                  flex: 1, minWidth: 0, textAlign: "left", padding: "9px 11px", borderRadius: 10,
                                   border: on ? "1.5px solid rgba(0,103,79,0.3)" : "1.5px solid rgba(0,0,0,0.08)",
                                   background: on ? "#F0FDF4" : "#ffffff", cursor: "pointer",
                                   display: "flex", alignItems: "center", gap: 8, WebkitTapHighlightColor: "transparent",
@@ -274,7 +274,7 @@ export default function MobileDayCards({
                                 }}>
                                   {on && <span style={{ color: "#fff", fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                                 </span>
-                                <span style={{ fontFamily: font, fontSize: 12.5, fontWeight: 600, color: on ? "#003829" : "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <span style={{ flex: 1, minWidth: 0, fontFamily: font, fontSize: 12.5, fontWeight: 600, color: on ? "#003829" : "#64748B", lineHeight: 1.3, overflowWrap: "anywhere" }}>
                                   {p.name}
                                 </span>
                                 {inPkgZero && <span title="In a package but ₱0" style={{ marginLeft: "auto", color: "#D97706", fontSize: 11, flexShrink: 0 }}>⚠</span>}
@@ -285,7 +285,7 @@ export default function MobileDayCards({
                                 onChange={(e) => onUpdateItem(index, { dynamic_costs: { ...item.dynamic_costs, [p.id]: parseFloat(e.target.value) || 0 } }, true)}
                                 inputMode="decimal"
                                 placeholder={on ? "0" : "—"}
-                                style={{ ...inputStyle, width: 90, flex: "none", height: 40, textAlign: "right", opacity: on ? 1 : 0.5 }}
+                                style={{ ...inputStyle, width: 84, flex: "none", flexShrink: 0, height: 40, textAlign: "right", opacity: on ? 1 : 0.5 }}
                               />
                             </div>
                           );
