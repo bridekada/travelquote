@@ -31,25 +31,70 @@ function stripJoin<T extends Record<string, any>>(rows: T[]): T[] {
   });
 }
 
+/**
+ * `created_by`/`updated_by` are FKs to auth.users, not profiles, so PostgREST can't embed
+ * `creator:created_by(full_name)` on every table. When we fall back to an embed-free select we
+ * attach the names here instead, matching the pattern already used in the desktop builder.
+ */
+async function hydrateNames(rows: any[]): Promise<any[]> {
+  const ids = Array.from(
+    new Set(rows.flatMap((r) => [r.created_by, r.updated_by]).filter(Boolean)),
+  );
+  if (ids.length === 0) return rows;
+
+  const { data, error } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+  if (error) return rows; // names are cosmetic — never fail the fetch over them
+
+  const nameById: Record<string, string> = {};
+  (data || []).forEach((p: any) => { nameById[p.id] = p.full_name; });
+
+  return rows.map((r) => ({
+    ...r,
+    creator: r.created_by ? { full_name: nameById[r.created_by] || "System" } : null,
+    modifier: r.updated_by ? { full_name: nameById[r.updated_by] || "System" } : null,
+  }));
+}
+
+function sortDesc(rows: any[], orderBy?: string) {
+  if (!orderBy) return rows;
+  return rows.sort((a, b) => new Date(b[orderBy] || 0).getTime() - new Date(a[orderBy] || 0).getTime());
+}
+
+/** One request, filtered through the quote relationship — no id list in the URL. */
+async function fetchJoined(
+  table: TxnTable,
+  operatorId: string,
+  select: string,
+  orderBy?: string,
+): Promise<{ data: any[] | null; error: string | null }> {
+  let q = supabase
+    .from(table)
+    .select(`${select}, quotes!inner(operator_id)`)
+    .eq("quotes.operator_id", operatorId);
+  if (orderBy) q = q.order(orderBy, { ascending: false });
+
+  const { data, error } = await q;
+  if (error) return { data: null, error: error.message };
+  return { data: stripJoin(data || []), error: null };
+}
+
+/** Short, batched id lists — used when the quote relationship isn't available. */
 async function fetchChunked(
   table: TxnTable,
   select: string,
   quoteIds: string[],
   orderBy?: string,
-): Promise<TxnFetchResult> {
+): Promise<{ data: any[] | null; error: string | null }> {
   const out: any[] = [];
   for (let i = 0; i < quoteIds.length; i += CHUNK_SIZE) {
     const { data, error } = await supabase
       .from(table)
       .select(select)
       .in("quote_id", quoteIds.slice(i, i + CHUNK_SIZE));
-    if (error) return { data: [], error: error.message };
+    if (error) return { data: null, error: error.message };
     if (data) out.push(...data);
   }
-  if (orderBy) {
-    out.sort((a, b) => new Date(b[orderBy] || 0).getTime() - new Date(a[orderBy] || 0).getTime());
-  }
-  return { data: out, error: null };
+  return { data: sortDesc(out, orderBy), error: null };
 }
 
 /**
@@ -67,19 +112,37 @@ export async function fetchOperatorTransactions(
 ): Promise<TxnFetchResult> {
   if (!operatorId || quoteIds.length === 0) return { data: [], error: null };
 
-  // 1. Single request, filtered through the quote relationship — no id list, no URL ceiling.
-  let joined = supabase
-    .from(table)
-    .select(`${select}, quotes!inner(operator_id)`)
-    .eq("quotes.operator_id", operatorId);
-  if (orderBy) joined = joined.order(orderBy, { ascending: false });
+  // Degrade one capability at a time so a single unavailable relationship can't blank the ledger.
+  // `disbursements.created_by` has no FK to profiles, for instance, which makes the creator/modifier
+  // embeds invalid on that table — dropping them still yields complete rows, just without names.
+  const wantsNames = select.includes("created_by") || select.includes("updated_by");
+  const attempts: {
+    why: string;
+    embedFree?: boolean;
+    run: () => Promise<{ data: any[] | null; error: string | null }>;
+  }[] = [
+    { why: "relationship filter", run: () => fetchJoined(table, operatorId, select, orderBy) },
+    { why: "relationship filter without embeds", embedFree: true, run: () => fetchJoined(table, operatorId, "*", orderBy) },
+    { why: "chunked ids", run: () => fetchChunked(table, select, quoteIds, orderBy) },
+    { why: "chunked ids without embeds", embedFree: true, run: () => fetchChunked(table, "*", quoteIds, orderBy) },
+  ];
 
-  const { data, error } = await joined;
-  if (!error) return { data: stripJoin(data || []), error: null };
+  let lastError: string | null = null;
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    const { data, error } = await attempt.run();
+    if (!error) {
+      if (i > 0) console.warn(`[${table}] loaded via ${attempt.why} (previous attempt failed: ${lastError})`);
+      let rows = data || [];
+      // The embeds were dropped to get here, so attach creator/modifier names separately.
+      if (attempt.embedFree && wantsNames && rows.length > 0) rows = await hydrateNames(rows);
+      return { data: rows, error: null };
+    }
+    lastError = error;
+  }
 
-  // 2. The relationship embed wasn't usable — retry with short, chunked id batches.
-  console.warn(`[${table}] relationship filter failed, falling back to chunked ids:`, error.message);
-  return fetchChunked(table, select, quoteIds, orderBy);
+  console.error(`[${table}] all fetch strategies failed:`, lastError);
+  return { data: [], error: lastError };
 }
 
 /** Sum of payments per quote id, for the dashboard quote cards. */
