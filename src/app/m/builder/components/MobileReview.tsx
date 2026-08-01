@@ -49,7 +49,7 @@ export default function MobileReview(props: MobileReviewProps) {
 /* ────────────────────────── Review Editor ────────────────────────── */
 
 function ReviewEditor({
-  quote, role, totals, includeItinerary, setIncludeItinerary, selectedPackageId,
+  quote, role, totals, dbMiscPresets = [], includeItinerary, setIncludeItinerary, selectedPackageId,
   extraFees, discount, isSaving, readOnly, compileText, onSaveDraft, onConfirm, onUpdateCommission,
 }: MobileReviewProps) {
   const [text, setText] = useState(() => compileText());
@@ -67,6 +67,22 @@ function ReviewEditor({
   // selectedPkgPrice keeps this correct whether or not a package is selected yet.
   const commissionAmount = Math.round((totals.selectedPkgPrice * commissionPct) / (100 + commissionPct)) || 0;
   const commissionEditable = !!onUpdateCommission && !readOnly;
+
+  // ── Raw cost breakdown (pre-commission). Scoped to the selected package's
+  //    inclusions; with no package selected we list every cost line. ──
+  const pkgConfig = totals.packages?.find((p: any) => p.id === selectedPackageId)?.config;
+  const col = totals.colTotals || { rate: 0, fuel: 0, accom: 0, misc: {} as Record<string, number> };
+  const costLines: { label: string; amount: number }[] = [];
+  if (!pkgConfig || pkgConfig.includes_vehicle) costLines.push({ label: "Vehicle Rate", amount: col.rate || 0 });
+  if (!pkgConfig || pkgConfig.includes_fuel) costLines.push({ label: "Fuel", amount: col.fuel || 0 });
+  if (!pkgConfig || pkgConfig.includes_accommodation) costLines.push({ label: "Guest Accommodation", amount: col.accom || 0 });
+  dbMiscPresets.forEach((m: any) => {
+    if (!pkgConfig || (pkgConfig.includes_misc_ids || []).includes(m.id)) {
+      costLines.push({ label: m.name, amount: col.misc?.[m.id] || 0 });
+    }
+  });
+  const costSubtotal = costLines.reduce((s, l) => s + l.amount, 0);
+
   const feeList = extraFees || [];
   const feesTotal = feeList.reduce((s: number, f: any) => s + (f.amount || 0), 0) - (discount || 0);
 
@@ -148,6 +164,36 @@ function ReviewEditor({
           </span>
           <span style={{ flexShrink: 0, fontFamily: font, fontSize: 13.5, fontWeight: 800, color: "#6366F1" }}>₱{Math.round(commissionAmount).toLocaleString()}</span>
         </div>
+        )}
+
+        {/* Cost breakdown — read-only, raw (pre-commission) amounts, 2 columns */}
+        {costLines.length > 0 && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(0,103,79,0.12)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+              <span style={{ fontFamily: font, fontSize: 9.5, fontWeight: 800, color: "#00674F", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.7 }}>
+                Cost Breakdown
+              </span>
+              <span style={{ fontFamily: font, fontSize: 9, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
+                {pkgConfig ? "in selected package" : "all items"}
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {costLines.map((l, i) => (
+                <div key={i} style={{ minWidth: 0, background: "rgba(255,255,255,0.65)", borderRadius: 9, padding: "6px 8px" }}>
+                  <div style={{ fontFamily: font, fontSize: 9.5, fontWeight: 600, color: "#64748B", lineHeight: 1.25, overflowWrap: "anywhere", marginBottom: 2 }}>
+                    {l.label}
+                  </div>
+                  <div style={{ fontFamily: font, fontSize: 12, fontWeight: 800, color: l.amount > 0 ? "#003829" : "#CBD5E1", letterSpacing: "-0.01em" }}>
+                    ₱{Math.round(l.amount).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 6, paddingTop: 6, borderTop: "1px dashed rgba(0,103,79,0.15)" }}>
+              <span style={{ fontFamily: font, fontSize: 10.5, fontWeight: 700, color: "#00674F" }}>Subtotal (before commission)</span>
+              <span style={{ flexShrink: 0, fontFamily: font, fontSize: 12.5, fontWeight: 800, color: "#003829" }}>₱{Math.round(costSubtotal).toLocaleString()}</span>
+            </div>
+          </div>
         )}
 
         {/* Fees & adjustments — read-only breakdown for reference */}
