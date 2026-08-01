@@ -12,6 +12,7 @@ import MobileFilterChips from "./components/MobileFilterChips";
 import MobileQuoteCard from "./components/MobileQuoteCard";
 import ConfirmSheet from "../components/ConfirmSheet";
 import PullToRefresh from "../components/PullToRefresh";
+import { fetchPaymentTotals } from "@/lib/transactions";
 
 const ALL_STATUSES = [
   "Draft", "Quotation Sent", "Follow-up Needed",
@@ -75,18 +76,11 @@ export default function MobileDashboardPage() {
 
       setQuotes(data || []);
 
-      // Fetch payment totals
+      // Fetch payment totals (never sends quote ids in the URL — see lib/transactions)
       const quoteIds = (data || []).map((q: any) => q.id);
       if (quoteIds.length > 0) {
-        const { data: paymentsRes } = await supabase
-          .from("payments")
-          .select("quote_id, amount")
-          .in("quote_id", quoteIds);
-
-        const totals: Record<string, number> = {};
-        (paymentsRes || []).forEach((p: any) => {
-          totals[p.quote_id] = (totals[p.quote_id] || 0) + (p.amount || 0);
-        });
+        const { totals, error: totalsErr } = await fetchPaymentTotals(selectedOperatorId, quoteIds);
+        if (totalsErr) console.error("Error fetching payment totals:", totalsErr);
         setPaymentTotals(totals);
       }
     } catch (err) {

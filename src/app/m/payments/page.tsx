@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Drawer } from "vaul";
 import PullToRefresh from "../components/PullToRefresh";
+import { fetchOperatorTransactions } from "@/lib/transactions";
 
 const font = "'Inter', system-ui, sans-serif";
 
@@ -28,7 +29,9 @@ export default function MobilePaymentsPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [disbursements, setDisbursements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(20);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Filters (mirror desktop PaymentTrackerView + mobile dashboard pattern)
@@ -44,6 +47,7 @@ export default function MobilePaymentsPage() {
     }
     try {
       setLoading(true);
+      setLoadError(null);
       const { data: quotesData, error } = await supabase
         .from("quotes")
         .select("*, creator:created_by(full_name), modifier:updated_by(full_name)")
@@ -52,42 +56,27 @@ export default function MobilePaymentsPage() {
 
       if (error) {
         console.error("Error fetching quotes:", error);
+        setLoadError(error.message || "Could not load quotes.");
         return;
       }
       setQuotes(quotesData || []);
 
       const quoteIds = (quotesData || []).map((q: any) => q.id);
       if (quoteIds.length > 0) {
+        const select = "*, creator:created_by(full_name), modifier:updated_by(full_name)";
         const [paymentsRes, disbursementsRes] = await Promise.all([
-          supabase
-            .from("payments")
-            .select("*, creator:created_by(full_name), modifier:updated_by(full_name)")
-            .in("quote_id", quoteIds)
-            .order("actual_date", { ascending: false }),
-          supabase
-            .from("disbursements")
-            .select("*, creator:created_by(full_name), modifier:updated_by(full_name)")
-            .in("quote_id", quoteIds)
-            .order("actual_date", { ascending: false }),
+          fetchOperatorTransactions("payments", selectedOperatorId, quoteIds, select, "actual_date"),
+          fetchOperatorTransactions("disbursements", selectedOperatorId, quoteIds, select, "actual_date"),
         ]);
 
-        // Fallback to plain select if the join fails (mirrors desktop behavior)
-        let finalPayments = paymentsRes.data || [];
-        if (paymentsRes.error) {
-          const { data: fallback } = await supabase
-            .from("payments").select("*").in("quote_id", quoteIds)
-            .order("actual_date", { ascending: false });
-          if (fallback) finalPayments = fallback;
+        setPayments(paymentsRes.data);
+        setDisbursements(disbursementsRes.data);
+        if (paymentsRes.error || disbursementsRes.error) {
+          setLoadError(paymentsRes.error || disbursementsRes.error);
         }
-        let finalDisbursements = disbursementsRes.data || [];
-        if (disbursementsRes.error) {
-          const { data: fallback } = await supabase
-            .from("disbursements").select("*").in("quote_id", quoteIds)
-            .order("actual_date", { ascending: false });
-          if (fallback) finalDisbursements = fallback;
-        }
-        setPayments(finalPayments);
-        setDisbursements(finalDisbursements);
+      } else {
+        setPayments([]);
+        setDisbursements([]);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -99,6 +88,11 @@ export default function MobilePaymentsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Reset visible count on filter change
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchQuery, dateFilter, agentFilter]);
 
   // Quotes with at least one transaction, filtered by agent/date/search, sorted by recency
   const transactionQuotes = useMemo(() => {
@@ -188,6 +182,10 @@ export default function MobilePaymentsPage() {
     }, 0);
     return { collected, pending, disbursed };
   }, [payments, disbursements, transactionQuotes]);
+
+  // Stats above stay scoped to the full filtered set; only the rendered list is paged.
+  const visibleQuotes = transactionQuotes.slice(0, visibleCount);
+  const hasMore = visibleCount < transactionQuotes.length;
 
   const statCards = [
     { label: "Collected", value: stats.collected, color: "#059669", bg: "#ECFDF5" },
@@ -324,10 +322,35 @@ export default function MobilePaymentsPage() {
         </Drawer.Portal>
       </Drawer.Root>
 
+      {/* Partial failure: some data loaded, so warn inline rather than hiding what we have */}
+      {!loading && loadError && transactionQuotes.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginBottom: 12, background: "#FFF1F2", border: "1px solid rgba(225,29,72,0.15)", borderRadius: 12 }}>
+          <AlertCircle size={15} color="#E11D48" style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0, fontFamily: font, fontSize: 11.5, fontWeight: 600, color: "#E11D48" }}>
+            Some transactions couldn&apos;t be loaded — totals may be incomplete.
+          </span>
+          <button onClick={fetchData} style={{ flexShrink: 0, padding: "5px 10px", borderRadius: 8, border: "none", background: "#E11D48", color: "#fff", fontFamily: font, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Payment Group Cards */}
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
           <Loader2 className="animate-spin" size={24} color="#00674F" />
+        </div>
+      ) : loadError && transactionQuotes.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 24px", fontFamily: font }}>
+          <AlertCircle size={22} color="#E11D48" style={{ marginBottom: 8 }} />
+          <p style={{ fontSize: 14, fontWeight: 700, color: "#E11D48", margin: 0 }}>Couldn&apos;t load transactions</p>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "#94A3B8", margin: "4px 0 12px", overflowWrap: "anywhere" }}>{loadError}</p>
+          <button
+            onClick={fetchData}
+            style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: "#003829", color: "#fff", fontFamily: font, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+          >
+            Retry
+          </button>
         </div>
       ) : transactionQuotes.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 24px", fontFamily: font }}>
@@ -343,7 +366,7 @@ export default function MobilePaymentsPage() {
           </p>
         </div>
       ) : (
-        transactionQuotes.map((quote) => {
+        visibleQuotes.map((quote) => {
           const quotePayments = payments.filter((p) => p.quote_id === quote.id);
           const quoteDisbursements = disbursements.filter((d) => d.quote_id === quote.id);
           const totalAgreed = quote.grand_total || quote.selected_package_total || 0;
@@ -478,6 +501,29 @@ export default function MobilePaymentsPage() {
             </div>
           );
         })
+      )}
+
+      {/* Load More */}
+      {!loading && hasMore && (
+        <button
+          onClick={() => setVisibleCount((c) => c + 20)}
+          style={{
+            width: "100%",
+            padding: "12px",
+            borderRadius: 14,
+            border: "1.5px solid rgba(0,103,79,0.15)",
+            background: "#F0FDF4",
+            color: "#00674F",
+            fontFamily: font,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            marginTop: 4,
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          Load More ({transactionQuotes.length - visibleCount} remaining)
+        </button>
       )}
     </PullToRefresh>
   );

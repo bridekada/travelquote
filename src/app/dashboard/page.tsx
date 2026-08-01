@@ -12,6 +12,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { fetchOperatorTransactions, fetchPaymentTotals } from "@/lib/transactions";
 import { InfoDialog } from "@/app/builder/components/BuilderModals";
 import "@/app/builder/components/styles/InfoDialog.css";
 import { PremiumModalWrapper, premiumFormStyles } from "../admin/components/PremiumModalWrapper";
@@ -144,59 +145,23 @@ function DashboardContent() {
           // Fetch payment totals for all quotes
           const quoteIds = (data || []).map((q: any) => q.id);
           if (quoteIds.length > 0) {
-            const { data: paymentsRes } = await supabase
-              .from('payments')
-              .select('quote_id, amount')
-              .in('quote_id', quoteIds);
-            
-            const totals: Record<string, number> = {};
-            (paymentsRes || []).forEach((p: any) => {
-              totals[p.quote_id] = (totals[p.quote_id] || 0) + (p.amount || 0);
-            });
+            // Never sends quote ids in the URL — see lib/transactions
+            const { totals, error: totalsErr } = await fetchPaymentTotals(selectedOperatorId, quoteIds);
+            if (totalsErr) console.error('Error fetching payment totals:', totalsErr);
             setPaymentTotals(totals);
 
             if (activeTab === 'payments') {
+              const txnSelect = '*, creator:created_by(full_name), modifier:updated_by(full_name)';
               const [fullPaymentsRes, fullDisbursementsRes] = await Promise.all([
-                supabase
-                  .from('payments')
-                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
-                  .in('quote_id', quoteIds)
-                  .order('actual_date', { ascending: false }),
-                supabase
-                  .from('disbursements')
-                  .select('*, creator:created_by(full_name), modifier:updated_by(full_name)')
-                  .in('quote_id', quoteIds)
-                  .order('actual_date', { ascending: false })
+                fetchOperatorTransactions('payments', selectedOperatorId, quoteIds, txnSelect, 'actual_date'),
+                fetchOperatorTransactions('disbursements', selectedOperatorId, quoteIds, txnSelect, 'actual_date')
               ]);
 
-              let finalPayments = fullPaymentsRes.data || [];
-              if (fullPaymentsRes.error) {
-                console.warn("Dashboard payments join fetch failed, trying fallback select...", fullPaymentsRes.error);
-                const { data: fallbackPData } = await supabase
-                  .from('payments')
-                  .select('*')
-                  .in('quote_id', quoteIds)
-                  .order('actual_date', { ascending: false });
-                if (fallbackPData) {
-                  finalPayments = fallbackPData;
-                }
-              }
+              if (fullPaymentsRes.error) console.error('Error fetching payments:', fullPaymentsRes.error);
+              if (fullDisbursementsRes.error) console.error('Error fetching disbursements:', fullDisbursementsRes.error);
 
-              let finalDisbursements = fullDisbursementsRes.data || [];
-              if (fullDisbursementsRes.error) {
-                console.warn("Dashboard disbursements join fetch failed, trying fallback select...", fullDisbursementsRes.error);
-                const { data: fallbackDData } = await supabase
-                  .from('disbursements')
-                  .select('*')
-                  .in('quote_id', quoteIds)
-                  .order('actual_date', { ascending: false });
-                if (fallbackDData) {
-                  finalDisbursements = fallbackDData;
-                }
-              }
-
-              setPayments(finalPayments);
-              setDisbursements(finalDisbursements);
+              setPayments(fullPaymentsRes.data);
+              setDisbursements(fullDisbursementsRes.data);
             }
           }
         }
